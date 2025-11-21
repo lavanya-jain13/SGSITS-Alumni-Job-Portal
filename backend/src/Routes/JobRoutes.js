@@ -9,57 +9,27 @@ const {
   isAlumni,
   isStudent,
 } = require("../middleware/authMiddleware");
-const resumeUpload = require("../config/resumeUpload");
+const resumeUpload = require("../middleware/resumeUpload");
 
 // ================== ALUMNI JOB ROUTES ==================
 
 // 1. Post a new job
-router.post(
-  "/post-job",
-  authenticate,
-  isAlumni,
-  jobController.postJob
-);
+router.post("/post-job", authenticate, isAlumni, jobController.postJob);
 
 // 2. Get jobs posted by logged-in alumni
-router.get(
-  "/my-jobs",
-  authenticate,
-  isAlumni,
-  jobController.getMyJobs
-);
+router.get("/my-jobs", authenticate, isAlumni, jobController.getMyJobs);
 
 // 3. Get single job (only if posted by this alumni)
-router.get(
-  "/job/:id",
-  authenticate,
-  isAlumni,
-  jobController.getJobById
-);
+router.get("/job/:id", authenticate, isAlumni, jobController.getJobById);
 
 // 4. Update job (only owner alumni)
-router.put(
-  "/job/:id",
-  authenticate,
-  isAlumni,
-  jobController.updateJob
-);
+router.put("/job/:id", authenticate, isAlumni, jobController.updateJob);
 
 // 5. Delete job (only owner alumni)
-router.delete(
-  "/job/:id",
-  authenticate,
-  isAlumni,
-  jobController.deleteJob
-);
+router.delete("/job/:id", authenticate, isAlumni, jobController.deleteJob);
 
 // 6. Repost / change max_applicants_allowed / reactivate
-router.post(
-  "/job/:id/repost",
-  authenticate,
-  isAlumni,
-  jobController.repostJob
-);
+router.post("/job/:id/repost", authenticate, isAlumni, jobController.repostJob);
 
 // 7. Total applications count for a job
 router.get(
@@ -120,16 +90,10 @@ router.patch(
 // ================== STUDENT JOB ROUTES ==================
 
 // 14. Get all active jobs (student view)
-router.get(
-  "/get-all-jobs-student",
-  jobController.getAllJobsStudent
-);
+router.get("/get-all-jobs-student", jobController.getAllJobsStudent);
 
 // 15. Get job details for student
-router.get(
-  "/get-job-by-id-student/:id",
-  jobController.getJobByIdStudent
-);
+router.get("/get-job-by-id-student/:id", jobController.getJobByIdStudent);
 
 // 16. Apply to a job (with resume upload)
 router.post(

@@ -13,8 +13,8 @@ const adminRoutes = require("./Routes/adminRoutes");
 const authUtilityRoutes = require("./Routes/authUtilityRoutes");
 const JobRoutes = require("./Routes/JobRoutes");
 const utilityRoutes = require("./Routes/utilityRoutes");
-const ProjectRoutes = require("./Routes/projectRoutes");
-const OtherRoutes = require("./Routes/otherRoutes");
+const ProjectRoutes = require("./Routes/ProjectRoutes");
+const OtherRoutes = require("./Routes/OtherRoutes");
 
 // const app = require("./app");
 
