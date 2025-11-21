@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,12 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, GraduationCap, Building } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 const SignUp = () => {
+  const location = useLocation(); // detect route
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [userType, setUserType] = useState("student");
+  const [userType, setUserType] = useState("student"); // default
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -27,6 +28,15 @@ const SignUp = () => {
     gradYear: "",
     acceptTerms: false,
   });
+
+  // ✅ Automatically detect user type based on route
+  useEffect(() => {
+    if (location.pathname.includes("alumni")) {
+      setUserType("alumni");
+    } else if (location.pathname.includes("student")) {
+      setUserType("student");
+    }
+  }, [location.pathname]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,34 +74,8 @@ const SignUp = () => {
     }
 
     try {
-      const { apiFetch } = await import("@/lib/api");
-
-      if (userType === "student") {
-        await apiFetch("/auth/register/student", {
-          method: "POST",
-          body: JSON.stringify({
-            name: formData.name,
-            role: "student",
-            email: formData.email,
-            password_hash: formData.password,
-            branch: formData.branch || "Computer Science",
-            gradYear: formData.gradYear || new Date().getFullYear(),
-            student_id: formData.studentId,
-          }),
-        });
-      } else {
-        await apiFetch("/auth/register/alumni", {
-          method: "POST",
-          body: JSON.stringify({
-            name: formData.name,
-            role: "alumni",
-            grad_year: formData.gradYear,
-            email: formData.email,
-            password_hash: formData.password,
-            current_title: formData.currentTitle || "Alumni",
-          }),
-        });
-      }
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       toast({
         title: "Account created successfully!",
@@ -121,10 +105,26 @@ const SignUp = () => {
         <Card className="shadow-elegant">
           <CardHeader className="space-y-1 text-center">
             <div className="mx-auto mb-4 w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-primary-foreground" />
+              {userType === "alumni" ? (
+                <Building className="w-6 h-6 text-primary-foreground" />
+              ) : (
+                <GraduationCap className="w-6 h-6 text-primary-foreground" />
+              )}
             </div>
-            <CardTitle className="text-2xl font-bold">Join SGSITS Alumni Portal</CardTitle>
-            <CardDescription>Connect with opportunities and build your career</CardDescription>
+            <CardTitle className="text-2xl font-bold">
+              {userType === "student"
+                ? "Join as Student"
+                : userType === "alumni"
+                ? "Join as Alumni"
+                : "Join SGSITS Alumni Portal"}
+            </CardTitle>
+            <CardDescription>
+              {userType === "student"
+                ? "Register using your official SGSITS student email"
+                : userType === "alumni"
+                ? "Reconnect and share opportunities with the SGSITS network"
+                : "Connect with opportunities and build your career"}
+            </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-4">
@@ -172,7 +172,11 @@ const SignUp = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder={userType === "student" ? "yourname@sgsits.ac.in" : "your.email@example.com"}
+                  placeholder={
+                    userType === "student"
+                      ? "yourname@sgsits.ac.in"
+                      : "your.email@example.com"
+                  }
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   required
@@ -184,7 +188,7 @@ const SignUp = () => {
                 )}
               </div>
 
-              {/* Student ID (for students only) */}
+              {/* Student ID (only for students) */}
               {userType === "student" && (
                 <div className="space-y-2">
                   <Label htmlFor="studentId">Student ID</Label>
@@ -193,17 +197,23 @@ const SignUp = () => {
                     type="text"
                     placeholder="Enter your student ID"
                     value={formData.studentId}
-                    onChange={(e) => handleInputChange("studentId", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("studentId", e.target.value)
+                    }
                     required
                   />
                 </div>
               )}
 
-              {/* Graduation Year (for alumni) */}
+              {/* Graduation Year (only for alumni) */}
               {userType === "alumni" && (
                 <div className="space-y-2">
                   <Label htmlFor="gradYear">Graduation Year</Label>
-                  <Select onValueChange={(value) => handleInputChange("gradYear", value)}>
+                  <Select
+                    onValueChange={(value) =>
+                      handleInputChange("gradYear", value)
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select graduation year" />
                     </SelectTrigger>
@@ -252,12 +262,13 @@ const SignUp = () => {
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Must be at least 8 characters with 1 number and 1 letter
-                </p>
               </div>
 
               {/* Confirm Password */}
@@ -269,7 +280,9 @@ const SignUp = () => {
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm your password"
                     value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("confirmPassword", e.target.value)
+                    }
                     required
                   />
                   <Button
@@ -277,19 +290,27 @@ const SignUp = () => {
                     variant="ghost"
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    onClick={() =>
+                      setShowConfirmPassword(!showConfirmPassword)
+                    }
                   >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
               </div>
 
-              {/* Terms Checkbox */}
+              {/* Terms */}
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="acceptTerms"
                   checked={formData.acceptTerms}
-                  onCheckedChange={(checked) => handleInputChange("acceptTerms", checked)}
+                  onCheckedChange={(checked) =>
+                    handleInputChange("acceptTerms", checked)
+                  }
                 />
                 <Label htmlFor="acceptTerms" className="text-sm font-normal">
                   I agree to the{" "}
@@ -303,15 +324,24 @@ const SignUp = () => {
                 </Label>
               </div>
 
-              {/* Submit Button */}
-              <Button type="submit" variant="gradient" className="w-full" disabled={isLoading}>
+              <Button
+                type="submit"
+                variant="gradient"
+                className="w-full"
+                disabled={isLoading}
+              >
                 {isLoading ? "Creating Account..." : "Create Account"}
               </Button>
             </form>
 
             <div className="text-center text-sm">
-              <span className="text-muted-foreground">Already have an account? </span>
-              <Link to="/login" className="text-primary hover:underline font-medium">
+              <span className="text-muted-foreground">
+                Already have an account?{" "}
+              </span>
+              <Link
+                to="/login"
+                className="text-primary hover:underline font-medium"
+              >
                 Sign in
               </Link>
             </div>

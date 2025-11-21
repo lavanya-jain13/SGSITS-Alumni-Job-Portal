@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, GraduationCap, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { apiClient } from "@/lib/api";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -25,29 +26,33 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // Use backend auth
-      const { apiFetch, setToken, parseJwt } = await import("@/lib/api");
-
-      const res = await apiFetch("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email: formData.email, password_hash: formData.password }),
+      const response = await apiClient.login({
+        email: formData.email,
+        password: formData.password,
       });
 
-      if (!res || res?.token == null) {
-        throw new Error(res?.message || "Login failed");
+      // Store token
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
+
+      // Redirect based on user role
+      if (response.user.role === 'admin') {
+        toast({ title: "Welcome, Admin!", description: "Redirecting to Admin Dashboard", variant: "default" });
+        navigate("/admin");
+      } else if (response.user.role === 'student') {
+        toast({ title: "Welcome back, Student!", description: "Redirecting to Student Dashboard", variant: "default" });
+        navigate("/dashboard");
+      } else if (response.user.role === 'alumni') {
+        toast({ title: "Welcome, Alumni!", description: "Redirecting to Alumni Dashboard", variant: "default" });
+        navigate("/alumni");
       }
 
-      setToken(res.token);
-      const payload = parseJwt(res.token);
-      const role = payload?.role || "student";
-
-      toast({ title: "Login successful", description: "Redirecting...", variant: "default" });
-      if (role === "admin") navigate("/admin");
-      else if (role === "student") navigate("/dashboard");
-      else if (role === "alumni") navigate("/alumni");
-
     } catch (error) {
-      toast({ title: "Login Failed", description: "Invalid credentials. Please try again.", variant: "destructive" });
+      toast({
+        title: "Login Failed",
+        description: error.message || "Invalid credentials. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
