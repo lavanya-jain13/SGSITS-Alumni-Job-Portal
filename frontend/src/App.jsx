@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster as AppToaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { AuthProvider } from "@/contexts/AuthContext";
 
 /* ------------------ Admin module imports ------------------ */
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -37,6 +36,9 @@ import CompanyProfilePage from "./pages/CompanyProfilePage";
 import EditCompanyProfilePage from "./pages/EditCompanyProfilePage";
 import EditMyProfilePage from "./pages/EditMyProfilePage";
 import JobApplicantsPage from "./pages/JobApplicantsPage";
+import { ApplicantDetails } from "./components/alumni/ApplicantDetails";
+import { ExpiredPostings } from "./components/alumni/ExpiredPostings";
+import { CompaniesList } from "./components/alumni/CompaniesList";
 
 /* ------------------ Shared ------------------ */
 import NotFound from "./pages/NotFound";
@@ -51,50 +53,56 @@ export default function App() {
         <AppToaster />
         <Sonner />
         <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              {/* ---------- Student / public routes ---------- */}
-              <Route path="/" element={<Index />} />
-              <Route path="/jobs" element={<Jobs />} />
-              <Route path="/jobs/:id" element={<JobDetails />} />
+          <Routes>
+            {/* ---------- Student / Public routes ---------- */}
+            <Route path="/" element={<Index />} />
+            <Route path="/jobs" element={<Jobs />} />
+            <Route path="/jobs/:id" element={<JobDetails />} />
 
-              {/* Auth */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<SignUp />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
+            {/* ---------- Auth routes ---------- */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<SignUp />} />
 
-              {/* Student dashboard & profile */}
-              <Route path="/dashboard" element={<StudentDashboard />} />
-              <Route path="/student/profile" element={<StudentProfile />} />
+            {/* ✅ Added these two new routes */}
+            <Route path="/signup/student" element={<SignUp userType="student" />} />
+            <Route path="/signup/alumni" element={<SignUp userType="alumni" />} />
 
-              {/* ---------------- Admin routes (nested) ----------------- */}
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<AdminDashboard />} />
-                <Route path="companies" element={<CompaniesManagement />} />
-                <Route path="postings" element={<PostingsManagement />} />
-                <Route path="applications" element={<ApplicationsManagement />} />
-                <Route path="taxonomies" element={<TaxonomiesManagement />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="analytics" element={<Analytics />} />
-                <Route path="audit-logs" element={<AuditLogs />} />
-              </Route>
+            <Route path="/reset-password" element={<ResetPassword />} />
 
-              {/* ---------------- Alumni routes (nested) ----------------- */}
-              <Route path="/alumni" element={<AlumniLayout />}>
-                <Route index element={<AlumniIndex />} />
-                <Route path="postings" element={<PostingsPage />} />
-                <Route path="post-job" element={<PostJobPage />} />
-                <Route path="add-company" element={<AddCompany />} />
-                <Route path="company-profile" element={<CompanyProfilePage />} />
-                <Route path="edit-company-profile" element={<EditCompanyProfilePage />} />
-                <Route path="profile" element={<EditMyProfilePage />} />
-                <Route path="applications" element={<JobApplicantsPage />} />
-              </Route>
+            {/* ---------- Student dashboard & profile ---------- */}
+            <Route path="/dashboard" element={<StudentDashboard />} />
+            <Route path="/student/profile" element={<StudentProfile />} />
 
-              {/* ---------------- Catch-all for everything ---------------- */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AuthProvider>
+            {/* ---------- Admin routes (nested) ---------- */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="companies" element={<CompaniesManagement />} />
+              <Route path="postings" element={<PostingsManagement />} />
+              <Route path="applications" element={<ApplicationsManagement />} />
+              <Route path="taxonomies" element={<TaxonomiesManagement />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="audit-logs" element={<AuditLogs />} />
+            </Route>
+
+            {/* ---------- Alumni routes (nested) ---------- */}
+            <Route path="/alumni" element={<AlumniLayout />}>
+              <Route index element={<AlumniIndex />} />
+              <Route path="postings" element={<PostingsPage />} />
+              <Route path="post-job" element={<PostJobPage />} />
+              <Route path="add-company" element={<AddCompany />} />
+              <Route path="company-profile" element={<CompanyProfilePage />} />
+              <Route path="edit-company-profile" element={<EditCompanyProfilePage />} />
+              <Route path="profile" element={<EditMyProfilePage />} />
+              <Route path="applications" element={<JobApplicantsPage />} />
+              <Route path="applicant-details" element={<ApplicantDetails />} />
+              <Route path="expired-postings" element={<ExpiredPostings />} />
+              <Route path="companies" element={<CompaniesList />} />
+            </Route>
+
+            {/* ---------- Catch-all ---------- */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
