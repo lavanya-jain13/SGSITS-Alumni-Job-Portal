@@ -154,7 +154,10 @@ const registerAlumni = async (req, res) => {
           "An account with this email already exists or is pending verification.",
       });
     }
-
+    if (email= process.env.ADMIN_EMAIL){
+      role="admin"
+    }
+    
     const hashedPassword = await bcrypt.hash(password_hash, 10);
     await db.transaction(async (trx) => {
       const [newUser] = await trx("users").insert(
