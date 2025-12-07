@@ -1,16 +1,20 @@
 import { Building2, Users, Briefcase, TrendingUp } from "lucide-react";
 import { MetricCard } from "./MetricCard";
-import { ApplicationChart } from "./ApplicationChart";
 import { TopApplicants } from "./TopApplicants";
 import { QuickAccess } from "./QuickAccess";
 import "../../alumni.css"; // Keep if you have other alumni-specific styles
+import { useSelector } from "react-redux";
+import { selectAuth } from "@/store/authSlice";
 
 const AlumniDashboard = () => {
+  const { user } = useSelector(selectAuth);
+  const displayName = user?.email || "Alumni";
+
   return (
     <div className="alumni-theme space-y-6 animate-fade-in">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Welcome, (Alumni Name)</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Welcome, {displayName}</h1>
         <p className="text-muted-foreground">
           Manage your job postings and connect with talented SGSITS students.
         </p>
@@ -52,7 +56,6 @@ const AlumniDashboard = () => {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Chart and Applicants */}
         <div className="space-y-6 lg:col-span-2">
-          <ApplicationChart />
           <TopApplicants />
         </div>
 

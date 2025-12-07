@@ -8,12 +8,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, GraduationCap, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiClient, setToken } from "@/lib/api";
+import { apiClient } from "@/lib/api";
+import { useDispatch } from "react-redux";
+import { loginSuccess } from "@/store/authSlice";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -35,6 +39,7 @@ const Login = () => {
       setToken(response.token);
       localStorage.setItem("user", JSON.stringify(response.user));
       
+      dispatch(loginSuccess({ user: response.user, token: response.token }));
 
       // Redirect based on user role
       if (response.user.role === 'admin') {

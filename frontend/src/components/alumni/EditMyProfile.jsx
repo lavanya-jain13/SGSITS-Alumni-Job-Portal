@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,21 +10,29 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useToast } from "@/hooks/use-toast";
+import { apiClient } from "@/lib/api";
+import { useSelector, useDispatch } from "react-redux";
+import { selectAuth, updateUser } from "@/store/authSlice";
 
 export function EditMyProfile() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const dispatch = useDispatch();
+  const { user } = useSelector(selectAuth);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    fullName: "John Doe",
-    email: "john.doe@alumni.sgsits.ac.in",
-    phoneNumber: "+91 9876543210",
-    dateOfBirth: "1995-08-15",
-    graduationYear: "2018",
-    currentJobTitle: "Senior Software Engineer",
-    companyName: "TechCorp Inc.",
-    companyWebsite: "https://techcorp.com",
-    companyIndustry: "Information Technology",
-    companySize: "201-500 employees",
-    companyAbout: "Leading technology solutions provider",
+    fullName: "",
+    email: "",
+    phoneNumber: "",
+    dateOfBirth: "",
+    graduationYear: "",
+    currentJobTitle: "",
+    companyName: "",
+    companyWebsite: "",
+    companyIndustry: "",
+    companySize: "",
+    companyAbout: "",
     dataConsent: true,
   });
 
@@ -33,6 +41,24 @@ export function EditMyProfile() {
     company: true,
     declaration: true,
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        email: user.email || "",
+        fullName: user.name || prev.fullName,
+        phoneNumber: user.phone || "",
+        graduationYear: user.grad_year || "",
+        currentJobTitle: user.position || "",
+        companyName: user.company || "",
+        companyWebsite: user.company_website || "",
+        companyIndustry: user.industry || "",
+        companySize: user.company_size || "",
+        companyAbout: user.company_about || "",
+      }));
+    }
+  }, [user]);
 
   // Calculate profile completion percentage
   const calculateProgress = () => {
@@ -74,6 +100,50 @@ export function EditMyProfile() {
   };
 
   const progressPercentage = calculateProgress();
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await apiClient.completeAlumniProfile({
+        name: formData.companyName || formData.fullName,
+        website: formData.companyWebsite,
+        industry: formData.companyIndustry,
+        company_size: formData.companySize,
+        about: formData.companyAbout,
+        linkedin: formData.companyWebsite,
+        currentTitle: formData.currentJobTitle,
+        gradYear: formData.graduationYear,
+      });
+      // Update local auth state so ProfileView reflects changes
+      dispatch(
+        updateUser({
+          name: formData.fullName,
+          email: formData.email,
+          phone: formData.phoneNumber,
+          grad_year: formData.graduationYear,
+          position: formData.currentJobTitle,
+          company: formData.companyName,
+          company_website: formData.companyWebsite,
+          industry: formData.companyIndustry,
+          company_size: formData.companySize,
+          company_about: formData.companyAbout,
+        })
+      );
+      toast({
+        title: "Profile submitted",
+        description: "Your alumni profile and company details have been saved.",
+      });
+      navigate(-1);
+    } catch (error) {
+      toast({
+        title: "Failed to save",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -294,8 +364,8 @@ export function EditMyProfile() {
         <Button variant="outline" onClick={() => navigate(-1)}>
           Cancel
         </Button>
-        <Button>
-          Save Changes
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     </div>
