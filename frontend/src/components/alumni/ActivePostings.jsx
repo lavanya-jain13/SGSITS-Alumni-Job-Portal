@@ -356,7 +356,7 @@
 // }
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -371,6 +371,7 @@ import { apiClient } from "@/lib/api";
 
 export function ActivePostings() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -432,7 +433,13 @@ export function ActivePostings() {
     };
 
     fetchJobs();
-  }, [toast]);
+
+    if (location.state?.refreshJobs) {
+      // Clear the state flag to avoid repeated reloads
+      navigate(location.pathname, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toast, location.state?.refreshJobs]);
 
   const filteredJobs = jobs.filter((job) => {
     return (
