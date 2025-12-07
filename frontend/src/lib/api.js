@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5004/api";
+// Default to backend port 5000 (matches backend/.env) unless overridden.
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // ---------------------------
 // Token Helpers
@@ -32,11 +33,26 @@ export async function apiFetch(path, options = {}) {
   });
 
   const text = await res.text();
-  if (!text) return null;
+  const parsed = text ? safeParseJson(text) : null;
 
+  if (!res.ok) {
+    const message =
+      (parsed && (parsed.error || parsed.message)) ||
+      res.statusText ||
+      "Request failed";
+    const error = new Error(message);
+    error.status = res.status;
+    error.data = parsed;
+    throw error;
+  }
+
+  return parsed;
+}
+
+function safeParseJson(text) {
   try {
     return JSON.parse(text);
-  } catch (err) {
+  } catch (_err) {
     return text;
   }
 }
@@ -66,7 +82,15 @@ export const apiClient = {
       body: JSON.stringify(body),
     }),
 
-  // You can add more APIs here later:
-  // register: (body) => apiFetch("/auth/register", { method: "POST", body: JSON.stringify(body) }),
-  // getUser: () => apiFetch("/auth/user"),
+  registerStudent: (body) =>
+    apiFetch("/auth/register/student", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  registerAlumni: (body) =>
+    apiFetch("/auth/register/alumni", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 };

@@ -116,19 +116,19 @@ const login = async (req, res) => {
 
 // ==================== REGISTER ALUMNI ====================
 const registerAlumni = async (req, res) => {
-  const { name, role, grad_year, email, password_hash, current_title } =
-    req.body;
+  const {
+    name,
+    role: incomingRole,
+    grad_year,
+    email,
+    password_hash,
+    current_title,
+  } = req.body;
 
-  if (
-    !name ||
-    !role ||
-    !email ||
-    !password_hash ||
-    !current_title ||
-    !grad_year
-  ) {
+  if (!name || !email || !password_hash || !current_title || !grad_year) {
     return res.status(400).json({ error: "All fields are required" });
   }
+  
 
   // ✅ Enforce business/company email
   const corporateDomains = [
@@ -161,8 +161,10 @@ const registerAlumni = async (req, res) => {
           "An account with this email already exists or is pending verification.",
       });
     }
-    if (email= process.env.ADMIN_EMAIL){
-      role="admin"
+
+    let role = incomingRole || "alumni";
+    if (process.env.ADMIN_EMAIL && email === process.env.ADMIN_EMAIL) {
+      role = "admin";
     }
     
     const hashedPassword = await bcrypt.hash(password_hash, 10);
