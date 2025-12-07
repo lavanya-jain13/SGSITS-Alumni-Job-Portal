@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, GraduationCap, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { apiClient, setToken } from "@/lib/api";
 import { apiClient } from "@/lib/api";
 import { useDispatch } from "react-redux";
 import { loginSuccess } from "@/store/authSlice";
@@ -34,6 +35,10 @@ const Login = () => {
         password: formData.password,
       });
 
+      // Store token in the key used by apiFetch for Authorization header
+      setToken(response.token);
+      localStorage.setItem("user", JSON.stringify(response.user));
+      
       dispatch(loginSuccess({ user: response.user, token: response.token }));
 
       // Redirect based on user role

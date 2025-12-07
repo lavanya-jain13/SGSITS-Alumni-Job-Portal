@@ -10,7 +10,8 @@ export function setToken(token) {
 }
 
 export function getToken() {
-  return localStorage.getItem("api_token");
+  // fallback for older sessions that stored "token"
+  return localStorage.getItem("api_token") || localStorage.getItem("token");
 }
 
 // ---------------------------
