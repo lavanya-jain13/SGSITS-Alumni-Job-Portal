@@ -5,10 +5,13 @@ import { Bell, Search, User } from "lucide-react";
 import { Outlet, useLocation } from "react-router-dom";
 import { ProfileView } from "../alumni/ProfileView";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { logout } from "@/store/authSlice";
 
 export function AlumniLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   // ✅ Pages that have their own search bars
   const pagesWithOwnSearch = [
     "/alumni/postings",    // ActivePostings.jsx
@@ -66,6 +69,10 @@ export function AlumniLayout() {
               variant="ghost"
               size="sm"
               className="flex items-center gap-2 text-foreground hover:text-primary-foreground"
+              onClick={() => {
+                dispatch(logout());
+                navigate("/login");
+              }}
             >
               <span className="hidden sm:inline">Logout</span>
             </Button>

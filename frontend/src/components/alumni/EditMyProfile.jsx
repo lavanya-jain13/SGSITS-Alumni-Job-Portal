@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,21 +10,25 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useToast } from "@/hooks/use-toast";
+import { apiClient } from "@/lib/api";
 
 export function EditMyProfile() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    fullName: "John Doe",
-    email: "john.doe@alumni.sgsits.ac.in",
-    phoneNumber: "+91 9876543210",
-    dateOfBirth: "1995-08-15",
-    graduationYear: "2018",
-    currentJobTitle: "Senior Software Engineer",
-    companyName: "TechCorp Inc.",
-    companyWebsite: "https://techcorp.com",
-    companyIndustry: "Information Technology",
-    companySize: "201-500 employees",
-    companyAbout: "Leading technology solutions provider",
+    fullName: "",
+    email: "",
+    phoneNumber: "",
+    dateOfBirth: "",
+    graduationYear: "",
+    currentJobTitle: "",
+    companyName: "",
+    companyWebsite: "",
+    companyIndustry: "",
+    companySize: "",
+    companyAbout: "",
     dataConsent: true,
   });
 
@@ -33,6 +37,18 @@ export function EditMyProfile() {
     company: true,
     declaration: true,
   });
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      const parsed = JSON.parse(storedUser);
+      setFormData((prev) => ({
+        ...prev,
+        email: parsed.email || "",
+        fullName: parsed.name || prev.fullName,
+      }));
+    }
+  }, []);
 
   // Calculate profile completion percentage
   const calculateProgress = () => {
@@ -74,6 +90,35 @@ export function EditMyProfile() {
   };
 
   const progressPercentage = calculateProgress();
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await apiClient.completeAlumniProfile({
+        name: formData.companyName || formData.fullName,
+        website: formData.companyWebsite,
+        industry: formData.companyIndustry,
+        company_size: formData.companySize,
+        about: formData.companyAbout,
+        linkedin: formData.companyWebsite,
+        currentTitle: formData.currentJobTitle,
+        gradYear: formData.graduationYear,
+      });
+      toast({
+        title: "Profile submitted",
+        description: "Your alumni profile and company details have been saved.",
+      });
+      navigate(-1);
+    } catch (error) {
+      toast({
+        title: "Failed to save",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -294,8 +339,8 @@ export function EditMyProfile() {
         <Button variant="outline" onClick={() => navigate(-1)}>
           Cancel
         </Button>
-        <Button>
-          Save Changes
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     </div>

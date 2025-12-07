@@ -1,10 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Users, FileText } from "lucide-react";
+import { Plus, Users, FileText, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { logout } from "@/store/authSlice";
 
 export function QuickAccess() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate("/login");
+  };
+
   return (
     <Card className="gradient-card shadow-glow">
       <CardHeader>
@@ -38,6 +47,16 @@ export function QuickAccess() {
         >
           <FileText className="h-4 w-4 mr-2" />
           Edit Company
+        </Button>
+
+        <Button 
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start text-destructive"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Logout
         </Button>
       </CardContent>
     </Card>

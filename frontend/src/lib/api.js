@@ -93,4 +93,32 @@ export const apiClient = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+
+  // Alumni profile/company
+  completeAlumniProfile: (body) =>
+    apiFetch("/alumni/profile", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  updateAlumniProfile: (body) =>
+    apiFetch("/alumni/update-profile", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  addCompany: (body) =>
+    apiFetch("/alumni/add-company", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  // Alumni jobs
+  postJob: (body) =>
+    apiFetch("/job/post-job", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  getMyJobs: () => apiFetch("/job/my-jobs"),
 };
