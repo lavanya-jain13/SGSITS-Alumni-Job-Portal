@@ -4,13 +4,16 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 
-const SECRET_KEY = "your_jwt_secret";
+// Use the same JWT secret as authMiddleware
+const SECRET_KEY = process.env.JWT_SECRET || "your_jwt_secret";
 
 // ==================== REGISTER STUDENT ====================
 const registerStudent = async (req, res) => {
   try {
     const { name, role, email, password_hash, branch, gradYear, student_id } =
       req.body;
+
+      console.log(req.body);
 
     if (
       !name ||
@@ -22,7 +25,6 @@ const registerStudent = async (req, res) => {
     ) {
       return res.status(400).json({ error: "All fields are required" });
     }
-
     if (email.split("@")[1] !== "sgsits.ac.in") {
       return res.status(400).json({ error: "Email is not authorised" });
     }
