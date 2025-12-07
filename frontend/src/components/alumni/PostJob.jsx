@@ -459,7 +459,7 @@ export function PostJob() {
         title: "Job published",
         description: "Your job posting is now live.",
       });
-      navigate("/alumni/postings");
+      navigate("/alumni/postings", { state: { refreshJobs: true } });
     } catch (error) {
       toast({
         title: "Failed to publish job",

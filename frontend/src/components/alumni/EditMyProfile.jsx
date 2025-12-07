@@ -12,10 +12,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
+import { useSelector, useDispatch } from "react-redux";
+import { selectAuth, updateUser } from "@/store/authSlice";
 
 export function EditMyProfile() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const dispatch = useDispatch();
+  const { user } = useSelector(selectAuth);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
@@ -39,16 +43,22 @@ export function EditMyProfile() {
   });
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      const parsed = JSON.parse(storedUser);
+    if (user) {
       setFormData((prev) => ({
         ...prev,
-        email: parsed.email || "",
-        fullName: parsed.name || prev.fullName,
+        email: user.email || "",
+        fullName: user.name || prev.fullName,
+        phoneNumber: user.phone || "",
+        graduationYear: user.grad_year || "",
+        currentJobTitle: user.position || "",
+        companyName: user.company || "",
+        companyWebsite: user.company_website || "",
+        companyIndustry: user.industry || "",
+        companySize: user.company_size || "",
+        companyAbout: user.company_about || "",
       }));
     }
-  }, []);
+  }, [user]);
 
   // Calculate profile completion percentage
   const calculateProgress = () => {
@@ -104,6 +114,21 @@ export function EditMyProfile() {
         currentTitle: formData.currentJobTitle,
         gradYear: formData.graduationYear,
       });
+      // Update local auth state so ProfileView reflects changes
+      dispatch(
+        updateUser({
+          name: formData.fullName,
+          email: formData.email,
+          phone: formData.phoneNumber,
+          grad_year: formData.graduationYear,
+          position: formData.currentJobTitle,
+          company: formData.companyName,
+          company_website: formData.companyWebsite,
+          industry: formData.companyIndustry,
+          company_size: formData.companySize,
+          company_about: formData.companyAbout,
+        })
+      );
       toast({
         title: "Profile submitted",
         description: "Your alumni profile and company details have been saved.",
