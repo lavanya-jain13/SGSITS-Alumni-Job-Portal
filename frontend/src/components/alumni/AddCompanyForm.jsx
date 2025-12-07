@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft, Building2, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { apiClient } from "@/lib/api";
 
 const companySchema = z.object({
   companyName: z.string().min(1, "Company name is required"),
@@ -44,6 +46,7 @@ const companySizes = [
 export function AddCompanyForm() {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const {
     register,
@@ -52,19 +55,41 @@ export function AddCompanyForm() {
     watch,
     formState: { errors }
   } = useForm({
-    resolver: zodResolver(companySchema)
+    resolver: zodResolver(companySchema),
+    defaultValues: {
+      companyName: "",
+      industry: "",
+      companySize: "",
+      website: "",
+    },
   });
+
+  // Manually register select-only fields for validation/state
+  useEffect(() => {
+    register("industry");
+    register("companySize");
+  }, [register]);
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
-      // TODO: Integrate with backend API
-      console.log("Company data:", data);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await apiClient.addCompany({
+        name: data.companyName,
+        industry: data.industry,
+        company_size: data.companySize,
+        website: data.website || null,
+      });
+      toast({
+        title: "Company created",
+        description: "Your company profile has been submitted.",
+      });
       navigate("/alumni");
     } catch (error) {
-      console.error("Error creating company:", error);
+      toast({
+        title: "Failed to create company",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }

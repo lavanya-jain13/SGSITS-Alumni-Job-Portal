@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ArrowRight, Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { apiClient } from "@/lib/api";
 
 const initialFormData = {
   jobTitle: "",
@@ -49,8 +51,10 @@ const workModes = ["Remote", "On-site", "Hybrid"];
 
 export function PostJob() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState(initialFormData);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const calculateProgress = () => {
     let completedWeight = 0;
@@ -416,6 +420,57 @@ export function PostJob() {
 
   const progress = calculateProgress();
 
+  const handlePublish = async () => {
+    if (!formData.jobTitle || !formData.description) {
+      toast({
+        title: "Missing required fields",
+        description: "Job title and description are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        job_title: formData.jobTitle,
+        job_description: formData.description,
+        job_type: formData.jobType || null,
+        location: formData.location || null,
+        salary_range:
+          formData.minCtc && formData.maxCtc
+            ? `${formData.minCtc}-${formData.maxCtc}`
+            : formData.minCtc || formData.maxCtc || null,
+        experience_required: formData.experienceBand || null,
+        skills_required:
+          formData.requiredSkills.length > 0
+            ? formData.requiredSkills.join(", ")
+            : null,
+        stipend:
+          formData.ctcType === "Stipend"
+            ? formData.maxCtc || formData.minCtc || null
+            : null,
+        application_deadline: formData.applyByDate || null,
+        max_applicants_allowed: formData.applicationLimit || null,
+      };
+
+      await apiClient.postJob(payload);
+      toast({
+        title: "Job published",
+        description: "Your job posting is now live.",
+      });
+      navigate("/alumni/postings");
+    } catch (error) {
+      toast({
+        title: "Failed to publish job",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -493,8 +548,8 @@ export function PostJob() {
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           ) : (
-            <Button>
-              Publish Job
+            <Button onClick={handlePublish} disabled={isSubmitting}>
+              {isSubmitting ? "Publishing..." : "Publish Job"}
             </Button>
           )}
         </div>

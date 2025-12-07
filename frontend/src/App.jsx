@@ -4,7 +4,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster as AppToaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { Provider } from "react-redux";
+import { store } from "@/store";
+import RequireAuth from "@/components/RequireAuth";
 
 /* ------------------ Admin module imports ------------------ */
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -51,7 +53,7 @@ const queryClient = new QueryClient();
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
+      <Provider store={store}>
         <TooltipProvider>
           <AppToaster />
           <Sonner />
@@ -89,7 +91,14 @@ export default function App() {
             </Route>
 
             {/* ---------- Alumni routes (nested) ---------- */}
-            <Route path="/alumni" element={<AlumniLayout />}>
+            <Route
+              path="/alumni"
+              element={
+                <RequireAuth allowedRoles={["alumni", "admin"]}>
+                  <AlumniLayout />
+                </RequireAuth>
+              }
+            >
               <Route index element={<AlumniIndex />} />
               <Route path="postings" element={<PostingsPage />} />
               <Route path="post-job" element={<PostJobPage />} />
@@ -109,7 +118,7 @@ export default function App() {
           </Routes>
           </BrowserRouter>
         </TooltipProvider>
-      </AuthProvider>
+      </Provider>
     </QueryClientProvider>
   );
 }

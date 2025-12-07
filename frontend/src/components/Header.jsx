@@ -1,17 +1,21 @@
 import { Search, Bell, MessageSquare, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAuth } from "@/contexts/AuthContext";
+import { useSelector, useDispatch } from "react-redux";
+import { logout, selectAuth } from "@/store/authSlice";
 
 export default function Header() {
-  const { user, logout, isAuthenticated } = useAuth();
+  const dispatch = useDispatch();
+  const { user, isAuthenticated } = useSelector(selectAuth);
+
+  const handleLogout = () => dispatch(logout());
 
   return (
     <header className="bg-primary text-primary-foreground p-4">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center space-x-2">
-          <div className="text-2xl font-bold">✨ logo</div>
+          <div className="text-2xl font-bold">バ" logo</div>
         </div>
 
         {/* Search Bar */}
@@ -41,14 +45,14 @@ export default function Header() {
               variant="ghost"
               size="icon"
               className="text-white hover:bg-white/10"
-              onClick={logout}
+              onClick={handleLogout}
               title="Logout"
             >
               <LogOut className="h-5 w-5" />
             </Button>
           )}
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-pink-400 flex items-center justify-center text-sm font-semibold">
-            {user ? user.email.charAt(0).toUpperCase() : "👤"}
+            {user ? user.email.charAt(0).toUpperCase() : "?"}
           </div>
         </div>
       </div>
