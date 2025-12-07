@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, GraduationCap, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { apiClient } from "@/lib/api";
+import { apiClient, setToken } from "@/lib/api";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -31,9 +31,10 @@ const Login = () => {
         password: formData.password,
       });
 
-      // Store token
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      // Store token in the key used by apiFetch for Authorization header
+      setToken(response.token);
+      localStorage.setItem("user", JSON.stringify(response.user));
+      
 
       // Redirect based on user role
       if (response.user.role === 'admin') {
