@@ -101,6 +101,19 @@ exports.up = function (knex) {
       table.string("stipend", 100);
       table.date("application_deadline");
 
+      // 🔹 NEW FIELDS FROM YOUR OTHER MIGRATION (multi-step wizard support)
+      table.text("allowed_branches");
+      table.text("nice_to_have_skills");
+      table.string("work_mode", 100); // remote / hybrid / onsite
+      table.integer("number_of_openings");
+      table.text("custom_questions");
+      table.boolean("nda_required").defaultTo(false);
+      table.string("ctc_type", 50); // fixed / range / negotiable etc.
+      table.integer("min_ctc");
+      table.integer("max_ctc");
+      table.text("key_responsibilities");
+      table.text("requirements");
+
       table.integer("max_applicants_allowed").defaultTo(50);
       table.string("status", 20).defaultTo("active"); // active / paused / stopped
 
