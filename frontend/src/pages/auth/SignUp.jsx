@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, GraduationCap, Building } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { apiClient } from "@/lib/api";
 
 const SignUp = () => {
   const location = useLocation(); // detect route
@@ -26,6 +27,8 @@ const SignUp = () => {
     phone: "",
     studentId: "",
     gradYear: "",
+    branch: "",
+    currentTitle: "",
     acceptTerms: false,
   });
 
@@ -73,9 +76,50 @@ const SignUp = () => {
       return;
     }
 
+    // Role-specific required fields
+    if (userType === "student") {
+      if (!formData.branch || !formData.gradYear || !formData.studentId) {
+        toast({
+          title: "Missing details",
+          description: "Branch, graduation year, and student ID are required for students.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+    } else if (userType === "alumni") {
+      if (!formData.gradYear || !formData.currentTitle) {
+        toast({
+          title: "Missing details",
+          description: "Graduation year and current title are required for alumni.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+    }
+
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      if (userType === "student") {
+        await apiClient.registerStudent({
+          name: formData.name,
+          role: "student",
+          email: formData.email,
+          password_hash: formData.password,
+          branch: formData.branch,
+          gradYear: formData.gradYear,
+          student_id: formData.studentId,
+        });
+      } else {
+        await apiClient.registerAlumni({
+          name: formData.name,
+          role: "alumni",
+          email: formData.email,
+          password_hash: formData.password,
+          grad_year: formData.gradYear,
+          current_title: formData.currentTitle,
+        });
+      }
 
       toast({
         title: "Account created successfully!",
@@ -87,7 +131,7 @@ const SignUp = () => {
     } catch (error) {
       toast({
         title: "Registration failed",
-        description: "Something went wrong. Please try again.",
+        description: error?.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -98,6 +142,16 @@ const SignUp = () => {
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+  const graduationYears = (() => {
+    const currentYear = new Date().getFullYear();
+    if (userType === "student") {
+      // Show current year and a few years ahead for expected graduation
+      return Array.from({ length: 8 }, (_, i) => currentYear + i);
+    }
+    // Alumni: show recent past years
+    return Array.from({ length: 30 }, (_, i) => currentYear - i);
+  })();
 
   return (
     <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
@@ -205,11 +259,45 @@ const SignUp = () => {
                 </div>
               )}
 
-              {/* Graduation Year (only for alumni) */}
-              {userType === "alumni" && (
+              {/* Branch (students) */}
+              {userType === "student" && (
                 <div className="space-y-2">
-                  <Label htmlFor="gradYear">Graduation Year</Label>
+                  <Label htmlFor="branch">Branch</Label>
                   <Select
+                    value={formData.branch}
+                    onValueChange={(value) => handleInputChange("branch", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your branch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[
+                        "Computer Science",
+                        "Information Technology",
+                        "Electronics and Telecommunication",
+                        "Electronics and Instrumentation",
+                        "Electrical",
+                        "Mechanical",
+                        "Civil",
+                        "Industrial Production",
+                      ].map((branch) => (
+                        <SelectItem key={branch} value={branch.toLowerCase()}>
+                          {branch}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Graduation Year (only for alumni) */}
+              {(userType === "alumni" || userType === "student") && (
+                <div className="space-y-2">
+                  <Label htmlFor="gradYear">
+                    {userType === "student" ? "Expected Graduation Year" : "Graduation Year"}
+                  </Label>
+                  <Select
+                    value={formData.gradYear}
                     onValueChange={(value) =>
                       handleInputChange("gradYear", value)
                     }
@@ -218,16 +306,28 @@ const SignUp = () => {
                       <SelectValue placeholder="Select graduation year" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 30 }, (_, i) => {
-                        const year = new Date().getFullYear() - i;
-                        return (
-                          <SelectItem key={year} value={year.toString()}>
-                            {year}
-                          </SelectItem>
-                        );
-                      })}
+                      {graduationYears.map((year) => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              {/* Current Title (alumni) */}
+              {userType === "alumni" && (
+                <div className="space-y-2">
+                  <Label htmlFor="currentTitle">Current Title / Role</Label>
+                  <Input
+                    id="currentTitle"
+                    type="text"
+                    placeholder="e.g., Senior Engineer at ABC Corp"
+                    value={formData.currentTitle}
+                    onChange={(e) => handleInputChange("currentTitle", e.target.value)}
+                    required
+                  />
                 </div>
               )}
 
