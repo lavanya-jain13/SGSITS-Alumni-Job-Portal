@@ -4,7 +4,8 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 
-const SECRET_KEY = "your_jwt_secret";
+// Use the same JWT secret as authMiddleware
+const SECRET_KEY = process.env.JWT_SECRET || "your_jwt_secret";
 
 // ==================== REGISTER STUDENT ====================
 const registerStudent = async (req, res) => {
