@@ -12,6 +12,8 @@ const registerStudent = async (req, res) => {
     const { name, role, email, password_hash, branch, gradYear, student_id } =
       req.body;
 
+      console.log(req.body);
+
     if (
       !name ||
       !email ||
@@ -22,7 +24,6 @@ const registerStudent = async (req, res) => {
     ) {
       return res.status(400).json({ error: "All fields are required" });
     }
-
     if (email.split("@")[1] !== "sgsits.ac.in") {
       return res.status(400).json({ error: "Email is not authorised" });
     }
