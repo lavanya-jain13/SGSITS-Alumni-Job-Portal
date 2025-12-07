@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, GraduationCap, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiClient, setToken } from "@/lib/api";
-import { apiClient } from "@/lib/api";
 import { useDispatch } from "react-redux";
 import { loginSuccess } from "@/store/authSlice";
 
