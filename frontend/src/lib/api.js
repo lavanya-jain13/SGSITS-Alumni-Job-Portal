@@ -114,6 +114,16 @@ export const apiClient = {
       body: JSON.stringify(body),
     }),
 
+  getMyCompanies: () => apiFetch("/alumni/companies"),
+
+  getCompanyById: (id) => apiFetch(`/alumni/companies/${id}`),
+
+  updateCompany: (id, body) =>
+    apiFetch(`/alumni/companies/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+
   // Alumni jobs
   postJob: (body) =>
     apiFetch("/job/post-job", {

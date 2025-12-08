@@ -141,4 +141,126 @@ const addCompany = async (req, res) => {
   }
 };
 
-module.exports = { completeProfile, updateProfile, addCompany };
+// Get companies for the authenticated alumni
+const getMyCompanies = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId || req.user.role !== "alumni") {
+      return res.status(403).json({ error: "Only alumni can view companies." });
+    }
+
+    const companies = await db("companies")
+      .where({ user_id: userId })
+      .select(
+        "id",
+        "name",
+        "industry",
+        "company_size",
+        "website",
+        "about",
+        "status",
+        "created_at"
+      )
+      .orderBy("created_at", "desc");
+
+    return res.json({ companies });
+  } catch (error) {
+    console.error("Get My Companies Error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Get single company (owned by current alumni)
+const getCompanyById = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.params;
+
+    if (!userId || req.user.role !== "alumni") {
+      return res.status(403).json({ error: "Only alumni can view companies." });
+    }
+
+    const company = await db("companies")
+      .where({ id, user_id: userId })
+      .select(
+        "id",
+        "name",
+        "industry",
+        "company_size",
+        "website",
+        "about",
+        "document_url",
+        "status",
+        "created_at"
+      )
+      .first();
+
+    if (!company) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+
+    return res.json({ company });
+  } catch (error) {
+    console.error("Get Company Error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Update company (owned by current alumni)
+const updateCompany = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.params;
+
+    if (!userId || req.user.role !== "alumni") {
+      return res.status(403).json({ error: "Only alumni can update companies." });
+    }
+
+    const company = await db("companies").where({ id, user_id: userId }).first();
+    if (!company) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+
+    const { name, industry, company_size, website, about, document_url } = req.body || {};
+
+    await db("companies")
+      .where({ id })
+      .update({
+        name: name ?? company.name,
+        industry: industry ?? company.industry,
+        company_size: company_size ?? company.company_size,
+        website: website ?? company.website,
+        about: about ?? company.about,
+        document_url: document_url ?? company.document_url,
+      });
+
+    const updated = await db("companies")
+      .where({ id })
+      .select(
+        "id",
+        "name",
+        "industry",
+        "company_size",
+        "website",
+        "about",
+        "document_url",
+        "status",
+        "created_at"
+      )
+      .first();
+
+    return res.json({ message: "Company updated successfully", company: updated });
+  } catch (error) {
+    console.error("Update Company Error:", error);
+    return res.status(500).json({ error: error.message || "Internal server error" });
+  }
+};
+
+module.exports = {
+  completeProfile,
+  updateProfile,
+  addCompany,
+  getMyCompanies,
+  getCompanyById,
+  updateCompany,
+};
