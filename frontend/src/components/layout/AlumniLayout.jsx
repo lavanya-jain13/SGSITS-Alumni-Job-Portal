@@ -14,6 +14,9 @@ export function AlumniLayout() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user } = useSelector(selectAuth);
+  const displayName =
+    user?.name ||
+    (user?.email ? user.email.split("@")[0] : "Profile");
   // ✅ Pages that have their own search bars
   const pagesWithOwnSearch = [
     "/alumni/postings",    // ActivePostings.jsx
@@ -55,13 +58,13 @@ export function AlumniLayout() {
               className="relative flex items-center gap-2 text-foreground hover:text-primary-foreground"
               onClick={() => navigate("/alumni/profile-view")}
             >
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                  {user?.email ? user.email.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
-                </div>
-                <div className="hidden sm:block text-left">
-                  <div className="text-sm font-medium leading-none">
-                    {user?.email || "Profile"}
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                    {user?.email ? user.email.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
+                  </div>
+                  <div className="hidden sm:block text-left">
+                    <div className="text-sm font-medium leading-none">
+                    {displayName}
                   </div>
                   <div className="text-xs text-muted-foreground leading-none">
                     Alumni
