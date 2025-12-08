@@ -1,47 +1,39 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, MapPin, Users, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-// Mock data - replace with actual data from your backend
-const mockCompanies = [
-  {
-    id: 1,
-    name: "Tech Innovations Ltd",
-    industry: "Technology",
-    location: "San Francisco, CA",
-    employees: "50-100",
-    description: "Leading software development company specializing in AI solutions",
-    logo: "🏢",
-  },
-  {
-    id: 2,
-    name: "Green Energy Corp",
-    industry: "Renewable Energy",
-    location: "Austin, TX",
-    employees: "100-500",
-    description: "Sustainable energy solutions for a better tomorrow",
-    logo: "⚡",
-  },
-  {
-    id: 3,
-    name: "HealthTech Plus",
-    industry: "Healthcare",
-    location: "Boston, MA",
-    employees: "20-50",
-    description: "Revolutionary healthcare technology and telemedicine platform",
-    logo: "🏥",
-  },
-];
+import { apiClient } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 export function CompaniesList() {
   const navigate = useNavigate();
-  const [companies] = useState(mockCompanies);
+  const { toast } = useToast();
+  const [companies, setCompanies] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      setLoading(true);
+      try {
+        const data = await apiClient.getMyCompanies();
+        setCompanies(data?.companies || []);
+      } catch (error) {
+        toast({
+          title: "Failed to load companies",
+          description: error?.message || "Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCompanies();
+  }, [toast]);
 
   const handleCompanyClick = (companyId) => {
-    // Navigate to company profile with the company ID
     navigate(`/alumni/company-profile?id=${companyId}`);
   };
 
@@ -60,7 +52,13 @@ export function CompaniesList() {
         </Button>
       </div>
 
-      {companies.length === 0 ? (
+      {loading ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            Loading companies...
+          </CardContent>
+        </Card>
+      ) : companies.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
@@ -86,11 +84,11 @@ export function CompaniesList() {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="text-4xl">{company.logo}</div>
+                    <div className="text-4xl">{company.name?.charAt(0) || "🏢"}</div>
                     <div>
                       <CardTitle className="text-lg">{company.name}</CardTitle>
                       <Badge variant="secondary" className="mt-1">
-                        {company.industry}
+                        {company.industry || "—"}
                       </Badge>
                     </div>
                   </div>
@@ -99,16 +97,16 @@ export function CompaniesList() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground line-clamp-2">
-                  {company.description}
+                  {company.about || "No description provided."}
                 </p>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center text-muted-foreground">
                     <MapPin className="mr-2 h-4 w-4" />
-                    {company.location}
+                    {company.location || "—"}
                   </div>
                   <div className="flex items-center text-muted-foreground">
                     <Users className="mr-2 h-4 w-4" />
-                    {company.employees} employees
+                    {company.company_size || "—"} {company.company_size ? "employees" : ""}
                   </div>
                 </div>
               </CardContent>
