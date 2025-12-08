@@ -1,303 +1,317 @@
 // db/migrations/20250918060958_create_alumni_schema.js
 
 exports.up = function (knex) {
-  return knex.schema
-    // ---------------- USERS ----------------
-    .createTable("users", (table) => {
-      table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
-      table.string("email", 255).notNullable().unique();
-      table.text("password_hash").notNullable();
-      table.string("role", 20).notNullable(); // admin / alumni / student
-      table.boolean("is_verified").defaultTo(false);
-      table.string("status", 20); // optional: active, banned, etc.
-      table.timestamp("created_at").defaultTo(knex.fn.now());
-    })
+  return (
+    knex.schema
+      // ---------------- USERS ----------------
+      .createTable("users", (table) => {
+        table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+        table.string("email", 255).notNullable().unique();
+        table.text("password_hash").notNullable();
+        table.string("role", 20).notNullable(); // admin / alumni / student
+        table.boolean("is_verified").defaultTo(false);
+        table.string("status", 20); // optional: active, banned, etc.
+        table.timestamp("created_at").defaultTo(knex.fn.now());
+      })
 
-    // ---------------- STUDENT PROFILES ----------------
-    .createTable("student_profiles", (table) => {
-      table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
-      table
-        .uuid("user_id")
-        .notNullable()
-        .references("id")
-        .inTable("users")
-        .onDelete("CASCADE");
-      table.string("name", 255).notNullable();
-      table.string("student_id", 50).notNullable();
-      table.string("branch", 100).notNullable();
-      table.integer("grad_year").notNullable();
-      table.text("skills");
-      table.text("resume_url");
-      table.timestamp("created_at").defaultTo(knex.fn.now());
-    })
+      // ---------------- STUDENT PROFILES ----------------
+      .createTable("student_profiles", (table) => {
+        table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+        table
+          .uuid("user_id")
+          .notNullable()
+          .references("id")
+          .inTable("users")
+          .onDelete("CASCADE");
+        table.string("name", 255).notNullable();
+        table.string("student_id", 50).notNullable();
+        table.string("branch", 100).notNullable();
+        table.integer("grad_year").notNullable();
+        table.text("skills");
+        table.text("resume_url");
+        table.timestamp("created_at").defaultTo(knex.fn.now());
+      })
 
-    // ---------------- ALUMNI PROFILES ----------------
-    .createTable("alumni_profiles", (table) => {
-      table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
-      table
-        .uuid("user_id")
-        .notNullable()
-        .references("id")
-        .inTable("users")
-        .onDelete("CASCADE");
-      table.string("name", 255).notNullable();
-      table.integer("grad_year");
-      table.string("current_title", 255);
-      table.timestamp("created_at").defaultTo(knex.fn.now());
-    })
+      // ---------------- ALUMNI PROFILES ----------------
+      .createTable("alumni_profiles", (table) => {
+        table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+        table
+          .uuid("user_id")
+          .notNullable()
+          .references("id")
+          .inTable("users")
+          .onDelete("CASCADE");
+        table.string("name", 255).notNullable();
+        table.integer("grad_year");
+        table.string("current_title", 255);
+        table.timestamp("created_at").defaultTo(knex.fn.now());
+      })
 
-    // ---------------- COMPANIES ----------------
-    .createTable("companies", (table) => {
-      table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
-      table
-        .uuid("alumni_id")
-        .notNullable()
-        .references("id")
-        .inTable("alumni_profiles")
-        .onDelete("CASCADE");
-      table
-        .uuid("user_id")
-        .notNullable()
-        .references("id")
-        .inTable("users")
-        .onDelete("CASCADE");
-      table.string("name", 140);
-      table.text("website");
-      table.string("industry", 100);
-      table.string("company_size", 50);
-      table.text("about");
-      table.text("document_url");
-      table.string("status", 20);
-      table.timestamp("created_at").defaultTo(knex.fn.now());
-    })
+      // ---------------- COMPANIES ----------------
+      .createTable("companies", (table) => {
+        table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
 
-    // ---------------- JOB POSTS ----------------
-    .createTable("jobs", (table) => {
-      table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+        table
+          .uuid("alumni_id")
+          .notNullable()
+          .references("id")
+          .inTable("alumni_profiles")
+          .onDelete("CASCADE");
 
-      table
-        .uuid("company_id")
-        .notNullable()
-        .references("id")
-        .inTable("companies")
-        .onDelete("CASCADE");
+        table
+          .uuid("user_id")
+          .notNullable()
+          .references("id")
+          .inTable("users")
+          .onDelete("CASCADE");
 
-      // who posted this job (alumni_profiles.id)
-      table
-        .uuid("alumni_id")
-        .notNullable()
-        .references("id")
-        .inTable("alumni_profiles")
-        .onDelete("CASCADE");
+        table.string("name", 140);
+        table.text("website");
+        table.string("industry", 100);
+        table.string("company_size", 50);
+        table.text("about");
+        table.text("document_url");
+        table.string("status", 20);
 
-      table.string("job_title", 255).notNullable();
-      table.text("job_description").notNullable();
+        table.specificType("office_locations", "text[]");
 
-      table.string("job_type", 100); // full-time / intern / etc.
-      table.string("location", 255);
-      table.string("salary_range", 100);
-      table.string("experience_required", 255);
-      table.text("skills_required");
-      table.string("stipend", 100);
-      table.date("application_deadline");
+        table.text("company_culture");
+        table.text("linkedin_url");
+        table.text("twitter_url");
 
-      // 🔹 NEW FIELDS FROM YOUR OTHER MIGRATION (multi-step wizard support)
-      table.text("allowed_branches");
-      table.text("nice_to_have_skills");
-      table.string("work_mode", 100); // remote / hybrid / onsite
-      table.integer("number_of_openings");
-      table.text("custom_questions");
-      table.boolean("nda_required").defaultTo(false);
-      table.string("ctc_type", 50); // fixed / range / negotiable etc.
-      table.integer("min_ctc");
-      table.integer("max_ctc");
-      table.text("key_responsibilities");
-      table.text("requirements");
+        table.integer("founded_year").checkBetween([1800, 2100]);
 
-      table.integer("max_applicants_allowed").defaultTo(50);
-      table.string("status", 20).defaultTo("active"); // active / paused / stopped
+        table.timestamp("created_at").defaultTo(knex.fn.now());
+      })
 
-      table.timestamp("created_at").defaultTo(knex.fn.now());
-      table.timestamp("updated_at").defaultTo(knex.fn.now());
-    })
+      // ---------------- JOB POSTS ----------------
+      .createTable("jobs", (table) => {
+        table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
 
-    // ---------------- JOB APPLICATIONS ----------------
-    .createTable("job_applications", (table) => {
-      table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+        table
+          .uuid("company_id")
+          .notNullable()
+          .references("id")
+          .inTable("companies")
+          .onDelete("CASCADE");
 
-      table
-        .uuid("job_id")
-        .notNullable()
-        .references("id")
-        .inTable("jobs")
-        .onDelete("CASCADE");
+        // who posted this job (alumni_profiles.id)
+        table
+          .uuid("alumni_id")
+          .notNullable()
+          .references("id")
+          .inTable("alumni_profiles")
+          .onDelete("CASCADE");
 
-      table
-        .uuid("user_id")
-        .notNullable()
-        .references("id")
-        .inTable("users")
-        .onDelete("CASCADE");
+        table.string("job_title", 255).notNullable();
+        table.text("job_description").notNullable();
 
-      table.text("resume_url");
+        table.string("job_type", 100); // full-time / intern / etc.
+        table.string("location", 255);
+        table.string("salary_range", 100);
+        table.string("experience_required", 255);
+        table.text("skills_required");
+        table.string("stipend", 100);
+        table.date("application_deadline");
 
-      table.string("status", 20).defaultTo("pending"); // pending / accepted / rejected / on_hold
-      table.boolean("is_read").defaultTo(false);
+        // 🔹 NEW FIELDS FROM YOUR OTHER MIGRATION (multi-step wizard support)
+        table.text("allowed_branches");
+        table.text("nice_to_have_skills");
+        table.string("work_mode", 100); // remote / hybrid / onsite
+        table.integer("number_of_openings");
+        table.text("custom_questions");
+        table.boolean("nda_required").defaultTo(false);
+        table.string("ctc_type", 50); // fixed / range / negotiable etc.
+        table.integer("min_ctc");
+        table.integer("max_ctc");
+        table.text("key_responsibilities");
+        table.text("requirements");
 
-      table.timestamp("applied_at").defaultTo(knex.fn.now());
+        table.integer("max_applicants_allowed").defaultTo(50);
+        table.string("status", 20).defaultTo("active"); // active / paused / stopped
 
-      // prevent duplicate application by same user for same job
-      table.unique(["job_id", "user_id"]);
-    })
+        table.timestamp("created_at").defaultTo(knex.fn.now());
+        table.timestamp("updated_at").defaultTo(knex.fn.now());
+      })
 
-    // ---------------- PROJECT POSTS ----------------
-    .createTable("project_posts", (table) => {
-      table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+      // ---------------- JOB APPLICATIONS ----------------
+      .createTable("job_applications", (table) => {
+        table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
 
-      table
-        .uuid("alumni_id")
-        .notNullable()
-        .references("id")
-        .inTable("alumni_profiles")
-        .onDelete("CASCADE");
+        table
+          .uuid("job_id")
+          .notNullable()
+          .references("id")
+          .inTable("jobs")
+          .onDelete("CASCADE");
 
-      table.string("project_title", 255).notNullable();
-      table.text("project_description").notNullable();
-      table.string("stipend", 100);
-      table.text("skills_required");
-      table.string("duration", 100);
+        table
+          .uuid("user_id")
+          .notNullable()
+          .references("id")
+          .inTable("users")
+          .onDelete("CASCADE");
 
-      table.integer("max_applicants_allowed").defaultTo(50);
-      table.string("status", 20).defaultTo("active"); // active / paused / stopped
+        table.text("resume_url");
 
-      table.timestamp("created_at").defaultTo(knex.fn.now());
-      table.timestamp("updated_at").defaultTo(knex.fn.now());
-    })
+        table.string("status", 20).defaultTo("pending"); // pending / accepted / rejected / on_hold
+        table.boolean("is_read").defaultTo(false);
 
-    // ---------------- PROJECT APPLICATIONS ----------------
-    .createTable("project_applications", (table) => {
-      table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+        table.timestamp("applied_at").defaultTo(knex.fn.now());
 
-      table
-        .uuid("project_id")
-        .notNullable()
-        .references("id")
-        .inTable("project_posts")
-        .onDelete("CASCADE");
+        // prevent duplicate application by same user for same job
+        table.unique(["job_id", "user_id"]);
+      })
 
-      table
-        .uuid("user_id")
-        .notNullable()
-        .references("id")
-        .inTable("users")
-        .onDelete("CASCADE");
+      // ---------------- PROJECT POSTS ----------------
+      .createTable("project_posts", (table) => {
+        table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
 
-      table.text("resume_url");
+        table
+          .uuid("alumni_id")
+          .notNullable()
+          .references("id")
+          .inTable("alumni_profiles")
+          .onDelete("CASCADE");
 
-      table.string("status", 20).defaultTo("pending");
-      table.boolean("is_read").defaultTo(false);
-      table.timestamp("applied_at").defaultTo(knex.fn.now());
+        table.string("project_title", 255).notNullable();
+        table.text("project_description").notNullable();
+        table.string("stipend", 100);
+        table.text("skills_required");
+        table.string("duration", 100);
 
-      table.unique(["project_id", "user_id"]);
-    })
+        table.integer("max_applicants_allowed").defaultTo(50);
+        table.string("status", 20).defaultTo("active"); // active / paused / stopped
 
-    // ---------------- OTHER POSTS ----------------
-    .createTable("other_posts", (table) => {
-      table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+        table.timestamp("created_at").defaultTo(knex.fn.now());
+        table.timestamp("updated_at").defaultTo(knex.fn.now());
+      })
 
-      table
-        .uuid("alumni_id")
-        .notNullable()
-        .references("id")
-        .inTable("alumni_profiles")
-        .onDelete("CASCADE");
+      // ---------------- PROJECT APPLICATIONS ----------------
+      .createTable("project_applications", (table) => {
+        table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
 
-      table.string("heading", 255).notNullable();
-      table.text("description").notNullable();
-      table.string("stipend", 100);
-      table.string("duration", 100);
+        table
+          .uuid("project_id")
+          .notNullable()
+          .references("id")
+          .inTable("project_posts")
+          .onDelete("CASCADE");
 
-      table.integer("max_applicants_allowed").defaultTo(50);
-      table.string("status", 20).defaultTo("active"); // active / paused / stopped
+        table
+          .uuid("user_id")
+          .notNullable()
+          .references("id")
+          .inTable("users")
+          .onDelete("CASCADE");
 
-      table.timestamp("created_at").defaultTo(knex.fn.now());
-      table.timestamp("updated_at").defaultTo(knex.fn.now());
-    })
+        table.text("resume_url");
 
-    // ---------------- OTHER POST APPLICATIONS ----------------
-    .createTable("other_post_applications", (table) => {
-      table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+        table.string("status", 20).defaultTo("pending");
+        table.boolean("is_read").defaultTo(false);
+        table.timestamp("applied_at").defaultTo(knex.fn.now());
 
-      table
-        .uuid("other_post_id")
-        .notNullable()
-        .references("id")
-        .inTable("other_posts")
-        .onDelete("CASCADE");
+        table.unique(["project_id", "user_id"]);
+      })
 
-      table
-        .uuid("user_id")
-        .notNullable()
-        .references("id")
-        .inTable("users")
-        .onDelete("CASCADE");
+      // ---------------- OTHER POSTS ----------------
+      .createTable("other_posts", (table) => {
+        table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
 
-      table.text("resume_url");
+        table
+          .uuid("alumni_id")
+          .notNullable()
+          .references("id")
+          .inTable("alumni_profiles")
+          .onDelete("CASCADE");
 
-      table.string("status", 20).defaultTo("pending");
-      table.boolean("is_read").defaultTo(false);
-      table.timestamp("applied_at").defaultTo(knex.fn.now());
+        table.string("heading", 255).notNullable();
+        table.text("description").notNullable();
+        table.string("stipend", 100);
+        table.string("duration", 100);
 
-      table.unique(["other_post_id", "user_id"]);
-    })
+        table.integer("max_applicants_allowed").defaultTo(50);
+        table.string("status", 20).defaultTo("active"); // active / paused / stopped
 
-    // ---------------- OTP VERIFICATIONS ----------------
-    .createTable("otp_verifications", (table) => {
-      table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
-      table.string("email", 255).notNullable();
-      table.string("otp", 6).notNullable();
-      table.timestamp("expires_at").notNullable();
-      table.boolean("is_used").defaultTo(false);
-    })
+        table.timestamp("created_at").defaultTo(knex.fn.now());
+        table.timestamp("updated_at").defaultTo(knex.fn.now());
+      })
 
-    // ---------------- PASSWORD RESET TOKENS ----------------
-    .createTable("password_reset_tokens", (table) => {
-      table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
-      table
-        .uuid("user_id")
-        .notNullable()
-        .references("id")
-        .inTable("users")
-        .onDelete("CASCADE");
-      table.string("token_hash", 255).notNullable();
-      table.timestamp("expires_at").notNullable();
-      table.boolean("used").defaultTo(false);
-      table.timestamp("created_at").defaultTo(knex.fn.now());
-    })
+      // ---------------- OTHER POST APPLICATIONS ----------------
+      .createTable("other_post_applications", (table) => {
+        table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
 
-    // ---------------- NOTIFICATIONS ----------------
-    .createTable("notifications", (table) => {
-      table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+        table
+          .uuid("other_post_id")
+          .notNullable()
+          .references("id")
+          .inTable("other_posts")
+          .onDelete("CASCADE");
 
-      table
-        .uuid("user_id")
-        .notNullable()
-        .references("id")
-        .inTable("users")
-        .onDelete("CASCADE");
+        table
+          .uuid("user_id")
+          .notNullable()
+          .references("id")
+          .inTable("users")
+          .onDelete("CASCADE");
 
-      table.string("title", 120).notNullable();
-      table.text("message").notNullable();
-      table.boolean("is_read").notNullable().defaultTo(false);
-      table
-        .timestamp("created_at", { useTz: true })
-        .notNullable()
-        .defaultTo(knex.fn.now());
-      table
-        .timestamp("updated_at", { useTz: true })
-        .notNullable()
-        .defaultTo(knex.fn.now());
-    });
+        table.text("resume_url");
+
+        table.string("status", 20).defaultTo("pending");
+        table.boolean("is_read").defaultTo(false);
+        table.timestamp("applied_at").defaultTo(knex.fn.now());
+
+        table.unique(["other_post_id", "user_id"]);
+      })
+
+      // ---------------- OTP VERIFICATIONS ----------------
+      .createTable("otp_verifications", (table) => {
+        table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+        table.string("email", 255).notNullable();
+        table.string("otp", 6).notNullable();
+        table.timestamp("expires_at").notNullable();
+        table.boolean("is_used").defaultTo(false);
+      })
+
+      // ---------------- PASSWORD RESET TOKENS ----------------
+      .createTable("password_reset_tokens", (table) => {
+        table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+        table
+          .uuid("user_id")
+          .notNullable()
+          .references("id")
+          .inTable("users")
+          .onDelete("CASCADE");
+        table.string("token_hash", 255).notNullable();
+        table.timestamp("expires_at").notNullable();
+        table.boolean("used").defaultTo(false);
+        table.timestamp("created_at").defaultTo(knex.fn.now());
+      })
+
+      // ---------------- NOTIFICATIONS ----------------
+      .createTable("notifications", (table) => {
+        table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+
+        table
+          .uuid("user_id")
+          .notNullable()
+          .references("id")
+          .inTable("users")
+          .onDelete("CASCADE");
+
+        table.string("title", 120).notNullable();
+        table.text("message").notNullable();
+        table.boolean("is_read").notNullable().defaultTo(false);
+        table
+          .timestamp("created_at", { useTz: true })
+          .notNullable()
+          .defaultTo(knex.fn.now());
+        table
+          .timestamp("updated_at", { useTz: true })
+          .notNullable()
+          .defaultTo(knex.fn.now());
+      })
+  );
 };
 
 exports.down = function (knex) {
