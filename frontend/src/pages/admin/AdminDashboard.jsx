@@ -1,4 +1,4 @@
-import { Users, Building2, FileText, ClipboardList } from "lucide-react";
+import { Users, Building2 } from "lucide-react";
 import { StatCard } from "@/components/admin/StatCard";
 import { UserManagement } from "@/components/admin/UserManagement";
 
@@ -17,13 +17,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="New Users"
-            value="640"
-            icon={Users}
-            variant="default"
-          />
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <StatCard
             title="Active Companies"
             value="92"
@@ -31,16 +25,15 @@ export default function AdminDashboard() {
             variant="success"
           />
           <StatCard
-            title="Live Postings"
-            value="134"
-            icon={FileText}
-            variant="warning"
+            title="Student Users"
+            value="1,240"
+            icon={Users}
+            variant="default"
           />
           <StatCard
-            title="Applications"
-            value="480"
-            subtitle="Today"
-            icon={ClipboardList}
+            title="Alumni Users"
+            value="860"
+            icon={Users}
             variant="default"
           />
         </div>

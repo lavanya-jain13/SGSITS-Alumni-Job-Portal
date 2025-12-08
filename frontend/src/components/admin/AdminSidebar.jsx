@@ -24,10 +24,8 @@ const navigationItems = [
   { title: "Users", url: "/admin", icon: Users },
   { title: "Companies", url: "/admin/companies", icon: Building2 },
   { title: "Postings", url: "/admin/postings", icon: FileText },
-  { title: "Applications", url: "/admin/applications", icon: ClipboardList },
   { title: "Taxonomies", url: "/admin/taxonomies", icon: Tags },
   { title: "Settings", url: "/admin/settings", icon: Settings },
-  { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
   { title: "Audit Logs", url: "/admin/audit-logs", icon: Shield },
 ];
 
