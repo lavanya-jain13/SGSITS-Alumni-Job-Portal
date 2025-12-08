@@ -1,13 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Header from "./Header";
-import SkillTrends from "./SkillTrends";
-import MarketShare from "./MarketShare";
-import PersonalizedTips from "./PersonalizedTips";
 import JobCard from "./JobCard";
 import ApplicationHistory from "./ApplicationHistory";
+import SettingsProfile from "./SettingsProfile";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { getToken, setToken } from "@/lib/api";
 
 const recommendedJobs = [
   { id: "1", title: "Junior Frontend Developer", company: "InnovaTech - New York, NY", location: "New York, NY", type: "Full-time" },
@@ -18,98 +15,34 @@ const recommendedJobs = [
   { id: "6", title: "Software Engineering Intern", company: "Apex Solutions - Boston, MA", location: "Boston, MA", type: "Internship" },
 ];
 
-const computeProgress = (profile) => {
-  const sections = [
-    { completed: !!(profile.name && profile.student_id), weight: 20 },
-    { completed: !!(profile.branch && profile.grad_year), weight: 20 },
-    { completed: profile.skills.length >= 1, weight: 20 },
-    { completed: profile.experiences.length >= 1, weight: 20 },
-    { completed: profile.resumeUploaded, weight: 10 },
-    { completed: profile.desiredRoles.length > 0 || profile.preferredLocations.length > 0, weight: 10 },
-  ];
-  return sections.reduce((total, section) => total + (section.completed ? section.weight : 0), 0);
-};
-
 export default function StudentDashboard() {
   const navigate = useNavigate();
 
+  // ✅ Profile data state
   const [profileData, setProfileData] = useState({
-    name: "",
-    email: "",
-    student_id: "",
-    branch: "",
-    grad_year: "",
-    resumeUploaded: false,
-    experiences: [],
+    resumeUploaded: true,
+    experiences: ["Frontend Developer"],
     skills: [],
     summary: "",
-    desiredRoles: [],
-    preferredLocations: [],
-    workMode: "hybrid",
-    achievements: "",
   });
 
-  useEffect(() => {
-    let mounted = true;
-    const loadExtras = () => {
-      try {
-        const raw = localStorage.getItem("student_profile_extras");
-        return raw ? JSON.parse(raw) : {};
-      } catch {
-        return {};
-      }
-    };
-
-    const loadProfile = async () => {
-      try {
-        const token = getToken();
-        if (!token) return;
-        const { apiFetch } = await import("@/lib/api");
-        const res = await apiFetch("/student/profile");
-        const profile = res?.profile || {};
-        if (!mounted) return;
-        const extras = loadExtras();
-        setProfileData((prev) => ({
-          ...prev,
-          name: profile.name || "",
-          email: profile.email || "",
-          student_id: profile.student_id || "",
-          branch: profile.branch || "",
-          grad_year: profile.grad_year || "",
-          skills: profile.skills
-            ? profile.skills
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean)
-                .map((name) => ({ name, proficiency: 3, experience: 1 }))
-            : [],
-          experiences: profile.experiences || [],
-          resumeUploaded: !!profile.resume_url,
-          desiredRoles: extras.desiredRoles || [],
-          preferredLocations: extras.preferredLocations || [],
-          workMode: extras.workMode || "hybrid",
-          summary: extras.summary || "",
-          achievements: extras.achievements || "",
-        }));
-      } catch (err) {
-        console.error("Failed to load profile", err);
-        if (err?.status === 401) setToken(null);
-      }
-    };
-    loadProfile();
-    return () => { mounted = false; };
-  }, []);
-
-  const progress = computeProgress(profileData);
+  // Progress calculation
+  const progress =
+    (profileData.resumeUploaded ? 25 : 0) +
+    (profileData.experiences.length > 0 ? 25 : 0) +
+    (profileData.skills.length >= 3 ? 25 : 0) +
+    (profileData.summary ? 25 : 0);
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
       <main className="max-w-7xl mx-auto p-6">
+        {/* 🔹 Profile Progress Section */}
         <div className="bg-white shadow rounded-lg p-6 mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Your Profile Progress</h2>
+            {/* ✅ Fixed navigation path */}
             <Button onClick={() => navigate("/student/profile")} className="bg-blue-500">
               Complete Profile
             </Button>
@@ -119,6 +52,7 @@ export default function StudentDashboard() {
             Complete your profile to unlock more opportunities and gain badges!
           </p>
 
+          {/* Progress Bar */}
           <div className="flex items-center mb-4">
             <span className="text-2xl font-bold text-blue-600 mr-4">
               {progress}%
@@ -131,37 +65,42 @@ export default function StudentDashboard() {
             </div>
           </div>
 
+          {/* Tasks + Badges */}
           <div className="grid md:grid-cols-2 gap-6">
+            {/* Tasks */}
             <div>
               <h3 className="font-medium mb-2">Tasks to Complete</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  {profileData.resumeUploaded ? "[x]" : "[ ]"} Upload your resume
+                  {profileData.resumeUploaded ? "✅" : "⭕"} Upload your resume
                 </li>
                 <li>
-                  {profileData.experiences.length > 0 ? "[x]" : "[ ]"} Fill out work experience
+                  {profileData.experiences.length > 0 ? "✅" : "⭕"} Fill out work
+                  experience
                 </li>
                 <li>
-                  {profileData.skills.length >= 1 ? "[x]" : "[ ]"} Add at least 1 key skill
+                  {profileData.skills.length >= 3 ? "✅" : "⭕"} Add 3 key skills
                 </li>
                 <li>
-                  {profileData.desiredRoles.length > 0 || profileData.preferredLocations.length > 0 ? "[x]" : "[ ]"} Set your job preferences
+                  {profileData.summary ? "✅" : "⭕"} Write a professional
+                  summary
                 </li>
               </ul>
             </div>
 
+            {/* Badges */}
             <div>
               <h3 className="font-medium mb-2">Your Badges</h3>
               <div className="flex gap-6">
                 <div className="text-center">
                   <div className="w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center text-white font-bold">
-                    P
+                    ⭐
                   </div>
                   <p className="text-xs mt-1">Profile Pioneer</p>
                 </div>
                 <div className="text-center">
                   <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center text-white font-bold">
-                    S
+                    🔍
                   </div>
                   <p className="text-xs mt-1">Skill Seeker</p>
                 </div>
@@ -170,12 +109,7 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6 mb-8">
-          <SkillTrends />
-          <MarketShare />
-          <PersonalizedTips />
-        </div>
-
+        {/* Recommended Jobs Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-semibold">Recommended for You</h2>
@@ -197,7 +131,11 @@ export default function StudentDashboard() {
           </div>
         </div>
 
+        {/* Application History */}
         <ApplicationHistory />
+
+        {/* Settings & Profile */}
+        <SettingsProfile />
       </main>
     </div>
   );
