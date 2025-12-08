@@ -149,19 +149,45 @@ const getMyCompanies = async (req, res) => {
       return res.status(403).json({ error: "Only alumni can view companies." });
     }
 
-    const companies = await db("companies")
-      .where({ user_id: userId })
-      .select(
-        "id",
-        "name",
-        "industry",
-        "company_size",
-        "website",
-        "about",
-        "status",
-        "created_at"
-      )
-      .orderBy("created_at", "desc");
+    let companies;
+    try {
+      companies = await db("companies")
+        .where({ user_id: userId })
+        .select(
+          "id",
+          "name",
+          "industry",
+          "company_size",
+          "website",
+          "about",
+          "document_url",
+          "status",
+          "office_locations",
+          "company_culture",
+          "linkedin_url",
+          "twitter_url",
+          "founded_year",
+          "created_at"
+        )
+        .orderBy("created_at", "desc");
+    } catch (err) {
+      // Fallback for databases where new columns are not migrated yet
+      console.error("Get My Companies column mismatch, falling back:", err.message);
+      companies = await db("companies")
+        .where({ user_id: userId })
+        .select(
+          "id",
+          "name",
+          "industry",
+          "company_size",
+          "website",
+          "about",
+          "document_url",
+          "status",
+          "created_at"
+        )
+        .orderBy("created_at", "desc");
+    }
 
     return res.json({ companies });
   } catch (error) {
@@ -180,20 +206,44 @@ const getCompanyById = async (req, res) => {
       return res.status(403).json({ error: "Only alumni can view companies." });
     }
 
-    const company = await db("companies")
-      .where({ id, user_id: userId })
-      .select(
-        "id",
-        "name",
-        "industry",
-        "company_size",
-        "website",
-        "about",
-        "document_url",
-        "status",
-        "created_at"
-      )
-      .first();
+    let company;
+    try {
+      company = await db("companies")
+        .where({ id, user_id: userId })
+        .select(
+          "id",
+          "name",
+          "industry",
+          "company_size",
+          "website",
+          "about",
+          "document_url",
+          "status",
+          "office_locations",
+          "company_culture",
+          "linkedin_url",
+          "twitter_url",
+          "founded_year",
+          "created_at"
+        )
+        .first();
+    } catch (err) {
+      console.error("Get Company column mismatch, falling back:", err.message);
+      company = await db("companies")
+        .where({ id, user_id: userId })
+        .select(
+          "id",
+          "name",
+          "industry",
+          "company_size",
+          "website",
+          "about",
+          "document_url",
+          "status",
+          "created_at"
+        )
+        .first();
+    }
 
     if (!company) {
       return res.status(404).json({ error: "Company not found" });
@@ -221,33 +271,98 @@ const updateCompany = async (req, res) => {
       return res.status(404).json({ error: "Company not found" });
     }
 
-    const { name, industry, company_size, website, about, document_url } = req.body || {};
+    const {
+      name,
+      industry,
+      company_size,
+      website,
+      about,
+      document_url,
+      office_locations,
+      company_culture,
+      linkedin_url,
+      twitter_url,
+      founded_year,
+    } = req.body || {};
 
-    await db("companies")
-      .where({ id })
-      .update({
-        name: name ?? company.name,
-        industry: industry ?? company.industry,
-        company_size: company_size ?? company.company_size,
-        website: website ?? company.website,
-        about: about ?? company.about,
-        document_url: document_url ?? company.document_url,
-      });
+    const fullUpdate = {
+      name: name ?? company.name,
+      industry: industry ?? company.industry,
+      company_size: company_size ?? company.company_size,
+      website: website ?? company.website,
+      about: about ?? company.about,
+      document_url: document_url ?? company.document_url,
+      office_locations:
+        typeof office_locations === "undefined"
+          ? company.office_locations
+          : office_locations,
+      company_culture:
+        typeof company_culture === "undefined"
+          ? company.company_culture
+          : company_culture,
+      linkedin_url:
+        typeof linkedin_url === "undefined" ? company.linkedin_url : linkedin_url,
+      twitter_url:
+        typeof twitter_url === "undefined" ? company.twitter_url : twitter_url,
+      founded_year:
+        typeof founded_year === "undefined" ? company.founded_year : founded_year,
+    };
 
-    const updated = await db("companies")
-      .where({ id })
-      .select(
-        "id",
-        "name",
-        "industry",
-        "company_size",
-        "website",
-        "about",
-        "document_url",
-        "status",
-        "created_at"
-      )
-      .first();
+    const basicUpdate = {
+      name: name ?? company.name,
+      industry: industry ?? company.industry,
+      company_size: company_size ?? company.company_size,
+      website: website ?? company.website,
+      about: about ?? company.about,
+      document_url: document_url ?? company.document_url,
+    };
+
+    try {
+      await db("companies").where({ id }).update(fullUpdate);
+    } catch (err) {
+      // Fallback if new columns are missing in the database
+      console.error("Full update failed, falling back to basic update:", err.message);
+      await db("companies").where({ id }).update(basicUpdate);
+    }
+
+    let updated;
+    try {
+      updated = await db("companies")
+        .where({ id })
+        .select(
+          "id",
+          "name",
+          "industry",
+          "company_size",
+          "website",
+          "about",
+          "document_url",
+          "status",
+          "office_locations",
+          "company_culture",
+          "linkedin_url",
+          "twitter_url",
+          "founded_year",
+          "created_at"
+        )
+        .first();
+    } catch (err) {
+      console.error("Select updated company fallback:", err.message);
+      updated = await db("companies")
+        .where({ id })
+        .select(
+          "id",
+          "name",
+          "industry",
+          "company_size",
+          "website",
+          "about",
+          "document_url",
+          "status",
+          "created_at"
+        )
+        .first();
+    }
 
     return res.json({ message: "Company updated successfully", company: updated });
   } catch (error) {
