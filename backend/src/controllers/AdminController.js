@@ -234,6 +234,24 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
+// Promote a user to admin; only existing admins can call this
+exports.promoteUserToAdmin = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await db("users").where({ id }).first();
+    if (!user) return res.status(404).json({ error: "User not found" });
+    if (user.role === "admin") {
+      return res.status(400).json({ error: "User is already an admin" });
+    }
+
+    await db("users").where({ id }).update({ role: "admin" });
+    return res.json({ message: "User promoted to admin successfully" });
+  } catch (error) {
+    console.error("promoteUserToAdmin error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 /* -------------------------------------------
    5️⃣ NOTIFICATIONS
 -------------------------------------------- */

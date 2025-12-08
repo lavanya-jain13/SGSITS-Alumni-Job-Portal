@@ -9,6 +9,7 @@ const {
   getAllUsers,
   deleteUser,
   sendNotification,
+  promoteUserToAdmin,
 } = require("../controllers/AdminController");
 const { authenticate, isAdmin } = require("../middleware/authMiddleware");
 
@@ -39,6 +40,7 @@ router.delete("/jobs/:id", authenticate, isAdmin, deleteJobAdmin);
 // User Management
 router.get("/users", authenticate, isAdmin, getAllUsers);
 router.delete("/users/:id", authenticate, isAdmin, deleteUser);
+router.patch("/users/:id/promote", authenticate, isAdmin, promoteUserToAdmin);
 
 // Notifications
 router.post("/notify", authenticate, isAdmin, sendNotification);
