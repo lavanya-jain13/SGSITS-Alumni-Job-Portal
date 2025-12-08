@@ -79,7 +79,14 @@ export default function App() {
             <Route path="/student/profile" element={<StudentProfile />} />
 
             {/* ---------- Admin routes (nested) ---------- */}
-            <Route path="/admin" element={<AdminLayout />}>
+            <Route
+              path="/admin"
+              element={
+                <RequireAuth allowedRoles={["admin"]}>
+                  <AdminLayout />
+                </RequireAuth>
+              }
+            >
               <Route index element={<AdminDashboard />} />
               <Route path="companies" element={<CompaniesManagement />} />
               <Route path="postings" element={<PostingsManagement />} />
