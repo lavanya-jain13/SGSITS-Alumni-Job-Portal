@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -12,18 +11,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Search, 
-  Eye, 
-  Edit, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Search,
   AlertTriangle,
   FileText,
   Users,
   Clock,
-  Star,
-  Download
+  Download,
+  Trash2
 } from "lucide-react";
 import { StatCard } from "@/components/admin/StatCard";
 
@@ -116,8 +111,6 @@ const mockPostings = [
 
 export default function PostingsManagement() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
   const [postings, setPostings] = useState(mockPostings);
 
   const exportToCSV = () => {
@@ -151,41 +144,15 @@ export default function PostingsManagement() {
     const matchesSearch = posting.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          posting.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          posting.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || posting.status.toLowerCase() === statusFilter;
-    const matchesType = typeFilter === "all" || posting.type.toLowerCase() === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
+    return matchesSearch;
   });
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Approved": return "bg-success text-success-foreground";
-      case "Featured": return "bg-primary text-primary-foreground";
-      case "Pending": return "bg-warning text-warning-foreground";
-      case "Rejected": return "bg-destructive text-destructive-foreground";
-      case "Expired": return "bg-muted text-muted-foreground";
-      case "Draft": return "bg-secondary text-secondary-foreground";
-      default: return "bg-muted text-muted-foreground";
+  const handlePostingAction = (postingId, action) => {
+    if (action === "delete") {
+      setPostings(prevPostings => prevPostings.filter(posting => posting.id !== postingId));
     }
   };
 
-  const handlePostingAction = (postingId, action) => {
-    setPostings(prevPostings =>
-      prevPostings.map(posting =>
-        posting.id === postingId
-          ? {
-              ...posting,
-              status: action === "approve" ? "Approved" : 
-                     action === "reject" ? "Rejected" : 
-                     action === "feature" ? "Featured" : 
-                     posting.status
-            }
-          : posting
-      )
-    );
-  };
-
-  const pendingCount = postings.filter(p => p.status === "Pending").length;
-  const approvedCount = postings.filter(p => p.status === "Approved").length;
   const flaggedCount = postings.filter(p => p.flagged).length;
   const totalApplications = postings.reduce((sum, p) => sum + p.applications, 0);
 
@@ -200,18 +167,12 @@ export default function PostingsManagement() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           title="Total Postings"
           value="134"
           icon={FileText}
           variant="default"
-        />
-        <StatCard
-          title="Pending Review"
-          value={pendingCount.toString()}
-          icon={Clock}
-          variant="warning"
         />
         <StatCard
           title="Flagged Content"
@@ -249,30 +210,6 @@ export default function PostingsManagement() {
                 className="pl-9"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending Review</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="featured">Featured</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-                <SelectItem value="expired">Expired</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="full-time">Full-time</SelectItem>
-                <SelectItem value="part-time">Part-time</SelectItem>
-                <SelectItem value="internship">Internship</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardContent>
       </Card>
@@ -290,7 +227,6 @@ export default function PostingsManagement() {
                 <TableHead>Company & Location</TableHead>
                 <TableHead>Dates & Deadline</TableHead>
                 <TableHead>Applications</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -341,59 +277,15 @@ export default function PostingsManagement() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge className={`${getStatusColor(posting.status)} font-medium`}>
-                      {posting.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button size="sm" variant="outline">
-                        <Eye className="h-3 w-3 mr-1" />
-                        View
-                      </Button>
-                      
-                      {posting.status === "Pending" && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handlePostingAction(posting.id, "approve")}
-                            className="text-success border-success hover:bg-success hover:text-success-foreground"
-                          >
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handlePostingAction(posting.id, "reject")}
-                            className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                          >
-                            <XCircle className="h-3 w-3 mr-1" />
-                            Reject
-                          </Button>
-                        </>
-                      )}
-
-                      {(posting.status === "Approved" || posting.status === "Featured") && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handlePostingAction(posting.id, "feature")}
-                          className="text-primary border-primary hover:bg-primary hover:text-primary-foreground"
-                        >
-                          <Star className="h-3 w-3 mr-1" />
-                          {posting.status === "Featured" ? "Unfeature" : "Feature"}
-                        </Button>
-                      )}
-
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handlePostingAction(posting.id, "edit")}
+                        onClick={() => handlePostingAction(posting.id, "delete")}
+                        className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
                       >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Delete
                       </Button>
                     </div>
                   </TableCell>

@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Star, Flag, Merge, Edit, Building2, Users, Briefcase } from "lucide-react";
+import { Search, Star, Building2, Users, Briefcase } from "lucide-react";
 import { StatCard } from "@/components/admin/StatCard";
 
 const mockCompanies = [
@@ -95,6 +95,7 @@ export default function CompaniesManagement() {
       case "Approved": return "default";
       case "Featured": return "default";
       case "Pending": return "secondary";
+      case "Rejected": return "destructive";
       case "Flagged": return "destructive";
       default: return "secondary";
     }
@@ -105,6 +106,7 @@ export default function CompaniesManagement() {
       case "Approved": return "bg-success text-success-foreground";
       case "Featured": return "bg-primary text-primary-foreground";
       case "Pending": return "bg-warning text-warning-foreground";
+      case "Rejected": return "bg-destructive text-destructive-foreground";
       case "Flagged": return "bg-destructive text-destructive-foreground";
       default: return "bg-muted text-muted-foreground";
     }
@@ -116,10 +118,7 @@ export default function CompaniesManagement() {
         company.id === companyId
           ? {
               ...company,
-              status: action === "approve" ? "Approved" : 
-                     action === "flag" ? "Flagged" : 
-                     action === "feature" ? "Featured" :
-                     "Approved"
+              status: action === "approve" ? "Approved" : "Rejected"
             }
           : company
       )
@@ -247,55 +246,21 @@ export default function CompaniesManagement() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      {company.status === "Pending" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleCompanyAction(company.id, "approve")}
-                          className="text-success border-success hover:bg-success hover:text-success-foreground"
-                        >
-                          Approve
-                        </Button>
-                      )}
-                      {company.status !== "Featured" && company.status !== "Flagged" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleCompanyAction(company.id, "feature")}
-                          className="text-primary border-primary hover:bg-primary hover:text-primary-foreground"
-                        >
-                          <Star className="h-3 w-3 mr-1" />
-                          Feature
-                        </Button>
-                      )}
-                      {company.status === "Featured" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleCompanyAction(company.id, "unfeature")}
-                          className="text-muted-foreground"
-                        >
-                          Unfeature
-                        </Button>
-                      )}
-                      {company.status !== "Flagged" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleCompanyAction(company.id, "flag")}
-                          className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                        >
-                          <Flag className="h-3 w-3 mr-1" />
-                          Flag
-                        </Button>
-                      )}
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-foreground"
+                        onClick={() => handleCompanyAction(company.id, "approve")}
+                        className="text-success border-success hover:bg-success hover:text-success-foreground"
                       >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCompanyAction(company.id, "reject")}
+                        className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      >
+                        Reject
                       </Button>
                     </div>
                   </TableCell>
