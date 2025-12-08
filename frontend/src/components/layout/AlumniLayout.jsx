@@ -1,7 +1,7 @@
 import { AlumniSidebar } from "@/components/alumni/AlumniSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Bell, Search, User } from "lucide-react";
+import { Search, User } from "lucide-react";
 import { Outlet, useLocation } from "react-router-dom";
 import { ProfileView } from "../alumni/ProfileView";
 import { useNavigate } from "react-router-dom";
@@ -49,15 +49,6 @@ export function AlumniLayout() {
 
           {/* Right Header Controls */}
           <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="relative text-foreground hover:text-primary-foreground"
-            >
-              <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive"></span>
-            </Button>
-
             <Button
               variant="ghost"
               size="sm"
