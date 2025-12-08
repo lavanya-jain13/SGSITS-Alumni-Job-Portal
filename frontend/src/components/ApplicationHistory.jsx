@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 
 const applications = [
   { id: "1", title: "Backend Developer", company: "CodeCraft Solutions", status: "Reviewed", daysAgo: 2 },
@@ -15,6 +16,13 @@ const statusColors = {
 };
 
 export default function ApplicationHistory() {
+  const navigate = useNavigate();
+
+  const handleView = (app) => {
+    // Navigate to job details; replace with application detail route when available
+    navigate(`/jobs/${app.id}`);
+  };
+
   return (
     <Card className="mt-8">
       <CardHeader>
@@ -33,7 +41,7 @@ export default function ApplicationHistory() {
                 <Badge variant="secondary" className={statusColors[app.status]}>
                   {app.status}
                 </Badge>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => handleView(app)}>
                   View
                 </Button>
               </div>

@@ -7,17 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import ApplicationModal from "@/components/ApplicationModals";
 
 export default function JobDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("description");
-  
-  // Mock profile completion check
-  const profileComplete = false;
+  const profileComplete = true; // TODO: replace with real profile completion status
   const [jobDetails, setJobDetails] = useState(null);
   const [applicantCount, setApplicantCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
 
   React.useEffect(() => {
     let mounted = true;
@@ -29,11 +29,12 @@ export default function JobDetails() {
         if (mounted) {
           setJobDetails(res?.job || null);
         }
-        // fetch applicant counts (requires auth)
         try {
           const applicants = await apiFetch(`/job/view-applicants/${id}`);
           if (mounted) setApplicantCount(applicants?.count || applicants?.applicants?.length || 0);
-        } catch (err) {}
+        } catch (err) {
+          // ignore applicant load failures for now
+        }
       } catch (err) {
         console.error("Failed to load job details", err);
       } finally {
@@ -46,18 +47,45 @@ export default function JobDetails() {
 
   const handleApply = () => {
     if (!profileComplete) {
-      // Navigate to dashboard with profile completion prompt
       alert("Redirecting to complete your profile...");
       navigate("/?complete-profile=true");
       return;
     }
-    // Handle application logic
-    alert("Application submitted successfully!");
+    setIsApplicationModalOpen(true);
   };
+
+  const displayJob = {
+    title: jobDetails?.job_title || jobDetails?.title || "Job Details",
+    company: jobDetails?.company_name || jobDetails?.company || "Company",
+    type: jobDetails?.job_type || jobDetails?.type || "Job",
+    location: jobDetails?.location || "Location not specified",
+    experience: jobDetails?.experience || jobDetails?.experience_level || "Not specified",
+    applyBy: jobDetails?.application_deadline ? new Date(jobDetails.application_deadline).toDateString() : "Not specified",
+    posted: jobDetails?.created_at ? new Date(jobDetails.created_at).toDateString() : "Not specified",
+    stipend: jobDetails?.stipend || "Not specified"
+  };
+
+  const companyInfo = {
+    name: jobDetails?.company_name || "Company",
+    founded: jobDetails?.company_founded || "Not provided",
+    size: jobDetails?.company_size || "Not provided",
+    industry: jobDetails?.company_industry || jobDetails?.industry || "Not provided",
+    website: jobDetails?.company_website || jobDetails?.website || "Not provided"
+  };
+
+  if (!loading && !jobDetails) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-2">
+          <p className="text-lg font-semibold">Job not found</p>
+          <Button variant="outline" onClick={() => navigate("/jobs")}>Back to Jobs</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <div className="bg-primary text-primary-foreground py-4">
         <div className="max-w-7xl mx-auto px-6">
           <Button
@@ -73,9 +101,7 @@ export default function JobDetails() {
 
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Job Header */}
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
@@ -84,34 +110,34 @@ export default function JobDetails() {
                       <Building className="h-8 w-8 text-primary" />
                     </div>
                     <div>
-                      <h1 className="text-2xl font-bold">{jobDetails?.job_title || 'Job Details'}</h1>
-                      <p className="text-lg text-muted-foreground">{jobDetails?.company_name}</p>
+                      <h1 className="text-2xl font-bold">{displayJob.title}</h1>
+                      <p className="text-lg text-muted-foreground">{displayJob.company}</p>
                     </div>
                   </div>
                   <Badge 
                     variant="secondary"
                     className={
-                      mockJobDetails.type === "Full-time" ? "bg-orange-100 text-orange-800 border-orange-200" :
-                      mockJobDetails.type === "Internship" ? "bg-blue-100 text-blue-800 border-blue-200" :
+                      displayJob.type === "Full-time" ? "bg-orange-100 text-orange-800 border-orange-200" :
+                      displayJob.type === "Internship" ? "bg-blue-100 text-blue-800 border-blue-200" :
                       "bg-green-100 text-green-800 border-green-200"
                     }
                   >
-                    {mockJobDetails.type}
+                    {displayJob.type}
                   </Badge>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <MapPin className="h-4 w-4" />
-                    <span>{mockJobDetails.location}</span>
+                    <span>{displayJob.location}</span>
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Clock className="h-4 w-4" />
-                    <span>{mockJobDetails.experience}</span>
+                    <span>{displayJob.experience}</span>
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
-                    <span>Apply by {jobDetails?.created_at ? new Date(jobDetails.created_at).toDateString() : '—'}</span>
+                    <span>Apply by {displayJob.applyBy}</span>
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Users className="h-4 w-4" />
@@ -121,19 +147,18 @@ export default function JobDetails() {
 
                 <div className="flex flex-wrap gap-2 mb-6">
                   {(jobDetails?.skills || []).map((skill, i) => (
-                    <Badge key={skill} variant="outline">
+                    <Badge key={`${skill}-${i}`} variant="outline">
                       {skill}
                     </Badge>
                   ))}
                 </div>
 
                 <div className="text-lg font-semibold text-primary">
-                    {jobDetails?.stipend || '—'}
+                    {displayJob.stipend}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Tabbed Content */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="description">Description</TabsTrigger>
@@ -150,7 +175,7 @@ export default function JobDetails() {
                   </CardHeader>
                   <CardContent>
                     <div className="prose prose-sm max-w-none">
-                      <p className="whitespace-pre-line">{jobDetails?.job_description || 'No description provided.'}</p>
+                      <p className="whitespace-pre-line">{jobDetails?.job_description || "No description provided."}</p>
                     </div>
                     
                     <Separator className="my-6" />
@@ -227,37 +252,35 @@ export default function JobDetails() {
               <TabsContent value="company" className="mt-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>About {mockJobDetails.companyInfo.name}</CardTitle>
+                    <CardTitle>About {companyInfo.name}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div>
                         <span className="text-sm text-muted-foreground">Founded</span>
-                        <p className="font-medium">{mockJobDetails.companyInfo.founded}</p>
+                        <p className="font-medium">{companyInfo.founded}</p>
                       </div>
                       <div>
                         <span className="text-sm text-muted-foreground">Company Size</span>
-                        <p className="font-medium">{mockJobDetails.companyInfo.size}</p>
+                        <p className="font-medium">{companyInfo.size}</p>
                       </div>
                       <div>
                         <span className="text-sm text-muted-foreground">Industry</span>
-                        <p className="font-medium">{mockJobDetails.companyInfo.industry}</p>
+                        <p className="font-medium">{companyInfo.industry}</p>
                       </div>
                       <div>
                         <span className="text-sm text-muted-foreground">Website</span>
-                        <p className="font-medium text-primary">{mockJobDetails.companyInfo.website}</p>
+                        <p className="font-medium text-primary">{companyInfo.website}</p>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">{jobDetails?.company_about || 'No company details'}</p>
+                    <p className="text-sm text-muted-foreground">{jobDetails?.company_about || "No company details"}</p>
                   </CardContent>
                 </Card>
               </TabsContent>
             </Tabs>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Apply Card */}
             <Card>
               <CardContent className="p-6">
                 {!profileComplete && (
@@ -272,18 +295,17 @@ export default function JobDetails() {
                 <Button 
                   onClick={handleApply}
                   className="w-full mb-4"
-                  disabled={!profileComplete}
+                  disabled={!profileComplete || loading}
                 >
                   {profileComplete ? "Apply Now" : "Complete Profile to Apply"}
                 </Button>
                 
                 <div className="text-center text-sm text-muted-foreground">
-                  Posted {mockJobDetails.posted}
+                  Posted {displayJob.posted}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Quick Info */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Quick Info</CardTitle>
@@ -292,25 +314,24 @@ export default function JobDetails() {
                 <div className="space-y-4">
                   <div>
                     <span className="text-sm text-muted-foreground">Job Type</span>
-                    <p className="font-medium">{mockJobDetails.type}</p>
+                    <p className="font-medium">{displayJob.type}</p>
                   </div>
                   <div>
                     <span className="text-sm text-muted-foreground">Experience Level</span>
-                    <p className="font-medium">{mockJobDetails.experience}</p>
+                    <p className="font-medium">{displayJob.experience}</p>
                   </div>
                   <div>
                     <span className="text-sm text-muted-foreground">Location</span>
-                    <p className="font-medium">{mockJobDetails.location}</p>
+                    <p className="font-medium">{displayJob.location}</p>
                   </div>
                   <div>
                     <span className="text-sm text-muted-foreground">Application Deadline</span>
-                    <p className="font-medium">{mockJobDetails.applyBy}</p>
+                    <p className="font-medium">{displayJob.applyBy}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Similar Jobs */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Similar Jobs</CardTitle>
@@ -336,6 +357,17 @@ export default function JobDetails() {
           </div>
         </div>
       </div>
+
+      <ApplicationModal
+        isOpen={isApplicationModalOpen}
+        onClose={() => setIsApplicationModalOpen(false)}
+        jobDetails={{
+          title: displayJob.title,
+          company: displayJob.company,
+          location: displayJob.location,
+          type: displayJob.type
+        }}
+      />
     </div>
   );
 }

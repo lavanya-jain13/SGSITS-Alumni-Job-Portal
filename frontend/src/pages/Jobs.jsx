@@ -129,12 +129,12 @@ export default function Jobs() {
             <div className="grid gap-6">
               {jobs.map((job) => (
                 <JobCard
-                  key={job.id}
-                  id={job.id}
-                  title={job.title}
+                  key={job._id || job.id}
+                  id={job._id || job.id}
+                  title={job.job_title || job.title || "Job"}
                   company={job.company_name || job.company}
-                  location={job.location}
-                  type={job.type}
+                  location={job.location || "Location not specified"}
+                  type={job.job_type || job.type || "Job"}
                 />
               ))}
             </div>

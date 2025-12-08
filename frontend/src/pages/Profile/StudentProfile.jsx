@@ -61,6 +61,15 @@ const StudentProfile = () => {
   });
 
   useEffect(() => {
+    const loadExtras = () => {
+      try {
+        const raw = localStorage.getItem("student_profile_extras");
+        return raw ? JSON.parse(raw) : {};
+      } catch {
+        return {};
+      }
+    };
+
     const loadProfile = async () => {
       try {
         const token = getToken();
@@ -78,6 +87,7 @@ const StudentProfile = () => {
         const res = await apiFetch("/student/profile");
         const profile = res?.profile;
         if (!profile) return;
+        const extras = loadExtras();
 
         setProfileData((prev) => ({
           ...prev,
@@ -97,6 +107,17 @@ const StudentProfile = () => {
           resumeUrl: profile.resume_url || "",
           resumeUploaded: !!profile.resume_url,
           resumeFileName: profile.resume_url ? "Uploaded Resume" : "",
+          desiredRoles: extras.desiredRoles || [],
+          preferredLocations: extras.preferredLocations || [],
+          workMode: extras.workMode || "hybrid",
+          summary: extras.summary || "",
+          achievements: extras.achievements || "",
+          cgpa: extras.cgpa || "",
+          phone: extras.phone || "",
+          dateOfBirth: extras.dateOfBirth || "",
+          dataConsent: extras.dataConsent || false,
+          codeOfConduct: extras.codeOfConduct || false,
+          contactPermissions: extras.contactPermissions || false,
         }));
       } catch (err) {
         console.error("Failed to load profile", err);
@@ -226,6 +247,23 @@ const StudentProfile = () => {
         method: "PUT",
         body: JSON.stringify(dataToSend),
       });
+
+      // Persist extra client-only fields locally so they survive refresh
+      const extras = {
+        desiredRoles: profileData.desiredRoles || [],
+        preferredLocations: profileData.preferredLocations || [],
+        workMode: profileData.workMode || "hybrid",
+        summary: profileData.summary || "",
+        achievements: profileData.achievements || "",
+        cgpa: profileData.cgpa || "",
+        phone: profileData.phone || "",
+        dateOfBirth: profileData.dateOfBirth || "",
+        dataConsent: profileData.dataConsent || false,
+        codeOfConduct: profileData.codeOfConduct || false,
+        contactPermissions: profileData.contactPermissions || false,
+      };
+      localStorage.setItem("student_profile_extras", JSON.stringify(extras));
+
       toast({
         title: "Profile updated!",
         description: "Your profile has been saved successfully.",
