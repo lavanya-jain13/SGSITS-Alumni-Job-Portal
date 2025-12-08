@@ -97,7 +97,6 @@ const login = async (req, res) => {
   if (!valid) return res.status(401).json({ message: "Invalid password" });
 
   const roleToAssign = user.role.toLowerCase();
-
   const token = jwt.sign(
     { id: user.id, email: user.email, role: roleToAssign },
     SECRET_KEY,
@@ -118,14 +117,7 @@ const login = async (req, res) => {
 
 // ==================== REGISTER ALUMNI ====================
 const registerAlumni = async (req, res) => {
-  const {
-    name,
-    role: incomingRole,
-    grad_year,
-    email,
-    password_hash,
-    current_title,
-  } = req.body;
+  const { name, grad_year, email, password_hash, current_title } = req.body;
 
   if (!name || !email || !password_hash || !current_title || !grad_year) {
     return res.status(400).json({ error: "All fields are required" });
@@ -134,7 +126,7 @@ const registerAlumni = async (req, res) => {
 
   // ✅ Enforce business/company email
   const corporateDomains = [
-    // "gmail.com",
+    "gmail.com",
     "yahoo.com",
     "outlook.com",
     "hotmail.com",
@@ -164,11 +156,8 @@ const registerAlumni = async (req, res) => {
       });
     }
 
-    let role = incomingRole || "alumni";
-    if (process.env.ADMIN_EMAIL && email === process.env.ADMIN_EMAIL) {
-      role = "admin";
-    }
-    
+    const role = "alumni";
+  
     const hashedPassword = await bcrypt.hash(password_hash, 10);
     await db.transaction(async (trx) => {
       const [newUser] = await trx("users").insert(
