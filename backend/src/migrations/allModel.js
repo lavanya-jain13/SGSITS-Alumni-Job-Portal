@@ -17,30 +17,66 @@ exports.up = function (knex) {
       // ---------------- STUDENT PROFILES ----------------
       .createTable("student_profiles", (table) => {
         table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+
         table
           .uuid("user_id")
           .notNullable()
           .references("id")
           .inTable("users")
           .onDelete("CASCADE");
+
         table.string("name", 255).notNullable();
         table.string("student_id", 50).notNullable();
         table.string("branch", 100).notNullable();
         table.integer("grad_year").notNullable();
-        table.text("skills");
+
+        // NEW FIELDS
+        table.string("phone_number", 20);
+        table.date("dob");
+        table.string("current_year", 50); // 1st year, 2nd year...
+        table.decimal("cgpa", 4, 2); // e.g., 7.85
+        table.text("achievements");
+        table.text("proficiency");
+        table.integer("years_of_experience").defaultTo(0);
+
+        // skills as array of text (Postgres)
+        table.specificType("skills", "text[]");
+
         table.text("resume_url");
+        table.timestamp("created_at").defaultTo(knex.fn.now());
+      })
+
+      // ---------------- STUDENT EXPERIENCE ----------------
+      .createTable("student_experience", (table) => {
+        table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+
+        // FK → student_profiles
+        table
+          .uuid("student_id")
+          .notNullable()
+          .references("id")
+          .inTable("student_profiles")
+          .onDelete("CASCADE");
+
+        table.string("position", 255).notNullable();
+        table.string("company", 255).notNullable();
+        table.string("duration", 100); // e.g., "3 months", "Jan–Jun 2024"
+        table.text("description");
+
         table.timestamp("created_at").defaultTo(knex.fn.now());
       })
 
       // ---------------- ALUMNI PROFILES ----------------
       .createTable("alumni_profiles", (table) => {
         table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+
         table
           .uuid("user_id")
           .notNullable()
           .references("id")
           .inTable("users")
           .onDelete("CASCADE");
+
         table.string("name", 255).notNullable();
         table.integer("grad_year");
         table.string("current_title", 255);
@@ -72,14 +108,6 @@ exports.up = function (knex) {
         table.text("about");
         table.text("document_url");
         table.string("status", 20);
-
-        table.specificType("office_locations", "text[]");
-
-        table.text("company_culture");
-        table.text("linkedin_url");
-        table.text("twitter_url");
-
-        table.integer("founded_year").checkBetween([1800, 2100]);
 
         table.timestamp("created_at").defaultTo(knex.fn.now());
       })
@@ -114,7 +142,7 @@ exports.up = function (knex) {
         table.string("stipend", 100);
         table.date("application_deadline");
 
-        // 🔹 NEW FIELDS FROM YOUR OTHER MIGRATION (multi-step wizard support)
+        // multi-step wizard support
         table.text("allowed_branches");
         table.text("nice_to_have_skills");
         table.string("work_mode", 100); // remote / hybrid / onsite
@@ -276,12 +304,14 @@ exports.up = function (knex) {
       // ---------------- PASSWORD RESET TOKENS ----------------
       .createTable("password_reset_tokens", (table) => {
         table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+
         table
           .uuid("user_id")
           .notNullable()
           .references("id")
           .inTable("users")
           .onDelete("CASCADE");
+
         table.string("token_hash", 255).notNullable();
         table.timestamp("expires_at").notNullable();
         table.boolean("used").defaultTo(false);
@@ -325,6 +355,7 @@ exports.down = function (knex) {
     .dropTableIfExists("companies")
     .dropTableIfExists("notifications")
     .dropTableIfExists("password_reset_tokens")
+    .dropTableIfExists("student_experience")   // 🔹 drop child before parent
     .dropTableIfExists("alumni_profiles")
     .dropTableIfExists("student_profiles")
     .dropTableIfExists("otp_verifications")
