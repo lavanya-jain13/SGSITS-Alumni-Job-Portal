@@ -365,7 +365,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-import { Filter, Plus, MoreHorizontal, Edit, Pause, X, Trash2 } from "lucide-react";
+import { Filter, Plus, MoreHorizontal, Edit, Pause, X, Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
 
@@ -380,6 +380,7 @@ export function ActivePostings() {
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [selectedStatuses, setSelectedStatuses] = useState([]);
   const [showFilters, setShowFilters] = useState(true);
+  const [updatingId, setUpdatingId] = useState(null);
 
   const companies = useMemo(
     () => Array.from(new Set(jobs.map((job) => job.company).filter(Boolean))),
@@ -474,6 +475,69 @@ export function ActivePostings() {
       case "Paused": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
       default: return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
     }
+  };
+
+  const handlePause = async (jobId) => {
+    setUpdatingId(jobId);
+    try {
+      await apiClient.updateJob(jobId, { status: "paused" });
+      setJobs((prev) =>
+        prev.map((job) =>
+          job.id === jobId ? { ...job, status: "Paused" } : job
+        )
+      );
+      toast({ title: "Posting paused" });
+    } catch (error) {
+      toast({
+        title: "Failed to pause posting",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleResume = async (jobId) => {
+    setUpdatingId(jobId);
+    try {
+      await apiClient.updateJob(jobId, { status: "active" });
+      setJobs((prev) =>
+        prev.map((job) =>
+          job.id === jobId ? { ...job, status: "Accepting" } : job
+        )
+      );
+      toast({ title: "Posting resumed" });
+    } catch (error) {
+      toast({
+        title: "Failed to resume posting",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleDelete = async (jobId) => {
+    setUpdatingId(jobId);
+    try {
+      await apiClient.updateJob(jobId, { status: "closed" });
+      setJobs((prev) => prev.filter((job) => job.id !== jobId));
+      toast({ title: "Posting closed" });
+    } catch (error) {
+      toast({
+        title: "Failed to close posting",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleEdit = (jobId) => {
+    navigate(`/alumni/post-job?id=${jobId}`);
   };
 
   return (
@@ -795,21 +859,38 @@ export function ActivePostings() {
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit Job Posting
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onSelect={() => handleEdit(job.id)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit Job Posting
+                        </DropdownMenuItem>
+                        {job.status === "Paused" ? (
+                          <DropdownMenuItem
+                            disabled={updatingId === job.id}
+                            onSelect={() => handleResume(job.id)}
+                          >
+                            <Play className="h-4 w-4 mr-2" />
+                            Resume Applications
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            disabled={updatingId === job.id}
+                            onSelect={() => handlePause(job.id)}
+                          >
                             <Pause className="h-4 w-4 mr-2" />
                             Pause Applications
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
-                            <X className="h-4 w-4 mr-2" />
-                            Close Job Posting
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                        )}
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          disabled={updatingId === job.id}
+                          onSelect={() => handleDelete(job.id)}
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Close Job Posting
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     </td>
                   </tr>
                 ))

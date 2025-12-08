@@ -75,7 +75,11 @@ export function CompaniesList() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {companies.map((company) => (
+          {companies.map((company) => {
+            const firstLocation =
+              company.office_locations?.[0] || company.location || "—";
+            const cultureSnippet = company.company_culture || company.about || "No description provided.";
+            return (
             <Card
               key={company.id}
               className="cursor-pointer transition-all hover:shadow-lg hover:border-primary"
@@ -97,12 +101,12 @@ export function CompaniesList() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground line-clamp-2">
-                  {company.about || "No description provided."}
+                  {cultureSnippet}
                 </p>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center text-muted-foreground">
                     <MapPin className="mr-2 h-4 w-4" />
-                    {company.location || "—"}
+                    {firstLocation}
                   </div>
                   <div className="flex items-center text-muted-foreground">
                     <Users className="mr-2 h-4 w-4" />
@@ -111,7 +115,8 @@ export function CompaniesList() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          );
+          })}
         </div>
       )}
     </div>

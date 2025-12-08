@@ -132,4 +132,22 @@ export const apiClient = {
     }),
 
   getMyJobs: () => apiFetch("/job/my-jobs"),
+
+  updateJob: (id, body) =>
+    apiFetch(`/job/job/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+
+  deleteJob: (id) =>
+    apiFetch(`/job/job/${id}`, {
+      method: "DELETE",
+    }),
+
+  getJobById: (id) => apiFetch(`/job/job/${id}`),
+
+  repostJob: (id) =>
+    apiFetch(`/job/job/${id}/repost`, {
+      method: "POST",
+    }),
 };

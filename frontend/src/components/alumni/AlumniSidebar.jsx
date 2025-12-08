@@ -138,7 +138,6 @@ import {
   BarChart3, 
   Settings, 
   User,
-  PlusCircle,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -155,10 +154,6 @@ const navigation = [
   { name: "Home", href: "/alumni", icon: Home },
   { name: "Postings", href: "/alumni/postings", icon: Briefcase },
   { name: "Applications Overview", href: "/alumni/applications", icon: Users },
-];
-
-const quickActions = [
-  { name: "New message from applicant", href: "/alumni/messages", icon: PlusCircle },
 ];
 
 export function AlumniSidebar({ className }) {
@@ -349,29 +344,6 @@ export function AlumniSidebar({ className }) {
               )}
             </div>
           </div>
-
-          {/* Notifications */}
-          {!collapsed && (
-            <div className="pt-6">
-              <div className="mb-2">
-                <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-                  NOTIFICATIONS
-                </h3>
-              </div>
-              <div className="space-y-1">
-                {quickActions.map((item) => (
-                  <NavLink
-                    key={item.name}
-                    to={item.href}
-                    className="group flex items-center rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  >
-                    <item.icon className="h-5 w-5 flex-shrink-0" />
-                    <span className="ml-3">{item.name}</span>
-                  </NavLink>
-                ))}
-              </div>
-            </div>
-          )}
         </nav>
 
         {/* Settings */}
