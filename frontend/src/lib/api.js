@@ -168,6 +168,7 @@ export const apiClient = {
   adminRejectCompany: (companyId) =>
     apiFetch(`/admin/companies/${companyId}/reject`, { method: "PATCH" }),
   adminJobs: () => apiFetch("/admin/jobs"),
+  adminJobApplicants: (jobId) => apiFetch(`/admin/jobs/${jobId}/applicants`),
   adminDeleteJob: (id) =>
     apiFetch(`/admin/jobs/${id}`, { method: "DELETE" }),
   adminPromoteUser: (userId) =>

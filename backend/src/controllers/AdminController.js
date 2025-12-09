@@ -156,16 +156,34 @@ exports.getAllJobsAdmin = async (req, res) => {
       .leftJoin("companies as c", "c.id", "j.company_id")
       .leftJoin("alumni_profiles as ap", "ap.id", "j.alumni_id")
       .leftJoin("users as u", "u.id", "ap.user_id")
+      .leftJoin(
+        db("job_applications")
+          .select("job_id")
+          .count("* as applications_count")
+          .groupBy("job_id")
+          .as("ja"),
+        "ja.job_id",
+        "j.id"
+      )
       .select(
         "j.id as job_id",
         "j.job_title",
         "j.job_description",
         "j.created_at as job_created_at",
         "j.status as job_status",
+        "j.job_type",
+        "j.location",
+        "j.salary_range",
+        "j.application_deadline",
+        "j.allowed_branches",
+        "j.max_applicants_allowed",
+        "j.number_of_openings",
+        "j.work_mode",
         "c.name as company_name",
         "c.website",
         "ap.name as alumni_name",
-        "u.email as alumni_email"
+        "u.email as alumni_email",
+        db.raw("COALESCE(ja.applications_count, 0) as applications_count")
       )
       .orderBy("j.created_at", "desc");
 
@@ -186,6 +204,37 @@ exports.deleteJobAdmin = async (req, res) => {
     res.json({ message: "Job deleted successfully" });
   } catch (error) {
     console.error("deleteJobAdmin error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.getJobApplicantsAdmin = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const job = await db("jobs").where({ id }).first();
+    if (!job) return res.status(404).json({ error: "Job not found" });
+
+    const applicants = await db("job_applications as ja")
+      .join("users as u", "ja.user_id", "u.id")
+      .leftJoin("student_profiles as sp", "sp.user_id", "u.id")
+      .select(
+        "ja.id as application_id",
+        "ja.status as application_status",
+        "ja.is_read",
+        "ja.resume_url",
+        "ja.applied_at",
+        "u.id as user_id",
+        "u.email as user_email",
+        "sp.name as student_name",
+        "sp.branch as student_branch",
+        "sp.grad_year as student_grad_year"
+      )
+      .where("ja.job_id", id)
+      .orderBy("ja.applied_at", "desc");
+
+    return res.json({ job, applicants });
+  } catch (error) {
+    console.error("getJobApplicantsAdmin error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
