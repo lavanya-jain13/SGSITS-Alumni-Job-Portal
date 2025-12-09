@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,109 +25,15 @@ import {
 } from "lucide-react";
 import { StatCard } from "@/components/admin/StatCard";
 
-const mockSkills = [
-  {
-    id: "1",
-    name: "JavaScript",
-    category: "Programming Languages",
-    synonyms: ["JS", "ECMAScript", "Node.js"],
-    jobCount: 45,
-    userCount: 234,
-    trending: true
-  },
-  {
-    id: "2", 
-    name: "Machine Learning",
-    category: "AI/ML",
-    synonyms: ["ML", "Artificial Intelligence", "AI"],
-    jobCount: 28,
-    userCount: 156,
-    trending: true
-  },
-  {
-    id: "3",
-    name: "React",
-    category: "Frontend Frameworks",
-    synonyms: ["ReactJS", "React.js"],
-    jobCount: 38,
-    userCount: 198,
-    trending: true
-  },
-  {
-    id: "4",
-    name: "Data Analysis",
-    category: "Analytics",
-    synonyms: ["Data Analytics", "Business Intelligence", "BI"],
-    jobCount: 22,
-    userCount: 89,
-    trending: false
-  },
-  {
-    id: "5",
-    name: "Python",
-    category: "Programming Languages", 
-    synonyms: ["Python3", "Django", "Flask"],
-    jobCount: 52,
-    userCount: 276,
-    trending: true
-  }
-];
+const mockSkills = [];
+const mockBranches = [];
+const mockSynonyms = [];
 
-const mockBranches = [
-  {
-    id: "1",
-    name: "Computer Science Engineering",
-    code: "CSE",
-    department: "Engineering",
-    studentCount: 240,
-    alumniCount: 1200,
-    activeJobs: 45
-  },
-  {
-    id: "2",
-    name: "Information Technology",
-    code: "IT", 
-    department: "Engineering",
-    studentCount: 180,
-    alumniCount: 890,
-    activeJobs: 32
-  },
-  {
-    id: "3",
-    name: "Electronics & Communication",
-    code: "ECE",
-    department: "Engineering", 
-    studentCount: 120,
-    alumniCount: 650,
-    activeJobs: 18
-  },
-  {
-    id: "4",
-    name: "Mechanical Engineering",
-    code: "ME",
-    department: "Engineering",
-    studentCount: 160,
-    alumniCount: 780,
-    activeJobs: 12
-  },
-  {
-    id: "5",
-    name: "Master of Business Administration",
-    code: "MBA",
-    department: "Management",
-    studentCount: 80,
-    alumniCount: 320,
-    activeJobs: 8
-  }
-];
-
-const mockSynonyms = [
-  { id: "1", primarySkill: "JavaScript", synonym: "JS", frequency: 89 },
-  { id: "2", primarySkill: "Machine Learning", synonym: "ML", frequency: 156 },
-  { id: "3", primarySkill: "React", synonym: "ReactJS", frequency: 134 },
-  { id: "4", primarySkill: "Python", synonym: "Python3", frequency: 98 },
-  { id: "5", primarySkill: "Data Analysis", synonym: "Data Analytics", frequency: 67 }
-];
+const toArray = (value) => {
+  if (Array.isArray(value)) return value;
+  if (value === null || value === undefined) return [];
+  return [String(value)];
+};
 
 export default function TaxonomiesManagement() {
   const [skillSearchTerm, setSkillSearchTerm] = useState("");
@@ -138,14 +44,110 @@ export default function TaxonomiesManagement() {
   const [editingSkill, setEditingSkill] = useState(null);
   const [editingBranch, setEditingBranch] = useState(null);
   const [editingSynonym, setEditingSynonym] = useState(null);
+  const [newSkill, setNewSkill] = useState({ name: "", category: "", synonyms: "" });
+  const [newBranch, setNewBranch] = useState({
+    name: "",
+    code: "",
+    department: "",
+    studentCount: 0,
+    alumniCount: 0,
+    activeJobs: 0,
+  });
+  const [newSynonym, setNewSynonym] = useState({ primarySkill: "", synonym: "", frequency: 0 });
 
-  const filteredSkills = skills.filter(skill =>
+  // Load real taxonomies (skills/branches) from backend
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { apiFetch } = await import("@/lib/api");
+        // If you have real endpoints, replace these mocks with apiFetch calls
+        // e.g., const skillRes = await apiFetch("/admin/skills");
+        // setSkills(skillRes.skills || []);
+        setSkills([]);
+        setBranches([]);
+        setSynonyms([]);
+      } catch (err) {
+        console.error("Failed to load taxonomies", err);
+      }
+    };
+    load();
+  }, []);
+
+  const normalizedSkills = skills.map((skill) => ({
+    ...skill,
+    name: skill?.name || "",
+    category: skill?.category || "",
+    synonyms: toArray(skill?.synonyms),
+    jobCount: skill?.jobCount ?? 0,
+    userCount: skill?.userCount ?? 0,
+  }));
+
+  const filteredSkills = normalizedSkills.filter((skill) =>
     skill.name.toLowerCase().includes(skillSearchTerm.toLowerCase()) ||
     skill.category.toLowerCase().includes(skillSearchTerm.toLowerCase()) ||
-    skill.synonyms.some(synonym => 
+    skill.synonyms.some((synonym) =>
       synonym.toLowerCase().includes(skillSearchTerm.toLowerCase())
     )
   );
+
+  const handleAddSkill = () => {
+    if (!newSkill.name.trim() || !newSkill.category.trim()) return;
+    const synonymsArr = newSkill.synonyms
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    setSkills((prev) => [
+      ...prev,
+      {
+        id: `skill-${Date.now()}`,
+        name: newSkill.name.trim(),
+        category: newSkill.category.trim(),
+        synonyms: synonymsArr,
+        jobCount: 0,
+        userCount: 0,
+        trending: false,
+      },
+    ]);
+    setNewSkill({ name: "", category: "", synonyms: "" });
+  };
+
+  const handleAddBranch = () => {
+    if (!newBranch.name.trim() || !newBranch.code.trim()) return;
+    setBranches((prev) => [
+      ...prev,
+      {
+        id: `branch-${Date.now()}`,
+        name: newBranch.name.trim(),
+        code: newBranch.code.trim(),
+        department: newBranch.department.trim(),
+        studentCount: Number(newBranch.studentCount) || 0,
+        alumniCount: Number(newBranch.alumniCount) || 0,
+        activeJobs: Number(newBranch.activeJobs) || 0,
+      },
+    ]);
+    setNewBranch({
+      name: "",
+      code: "",
+      department: "",
+      studentCount: 0,
+      alumniCount: 0,
+      activeJobs: 0,
+    });
+  };
+
+  const handleAddSynonym = () => {
+    if (!newSynonym.primarySkill.trim() || !newSynonym.synonym.trim()) return;
+    setSynonyms((prev) => [
+      ...prev,
+      {
+        id: `map-${Date.now()}`,
+        primarySkill: newSynonym.primarySkill.trim(),
+        synonym: newSynonym.synonym.trim(),
+        frequency: Number(newSynonym.frequency) || 0,
+      },
+    ]);
+    setNewSynonym({ primarySkill: "", synonym: "", frequency: 0 });
+  };
 
   const filteredBranches = branches.filter(branch =>
     branch.name.toLowerCase().includes(branchSearchTerm.toLowerCase()) ||
@@ -205,10 +207,6 @@ export default function TaxonomiesManagement() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Skills Database</CardTitle>
-                <Button className="bg-primary hover:bg-primary/90">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Skill
-                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -220,6 +218,30 @@ export default function TaxonomiesManagement() {
                   onChange={(e) => setSkillSearchTerm(e.target.value)}
                   className="pl-9"
                 />
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-3">
+                <Input
+                  placeholder="Skill name"
+                  value={newSkill.name}
+                  onChange={(e) => setNewSkill((prev) => ({ ...prev, name: e.target.value }))}
+                />
+                <Input
+                  placeholder="Category"
+                  value={newSkill.category}
+                  onChange={(e) => setNewSkill((prev) => ({ ...prev, category: e.target.value }))}
+                />
+                <Input
+                  placeholder="Synonyms (comma separated)"
+                  value={newSkill.synonyms}
+                  onChange={(e) => setNewSkill((prev) => ({ ...prev, synonyms: e.target.value }))}
+                />
+                <div className="md:col-span-3 flex justify-end">
+                  <Button onClick={handleAddSkill} className="bg-primary hover:bg-primary/90">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Skill
+                  </Button>
+                </div>
               </div>
 
               <Table>
@@ -337,7 +359,14 @@ export default function TaxonomiesManagement() {
                                 <Edit className="h-3 w-3 mr-1" />
                                 Edit
                               </Button>
-                              <Button size="sm" variant="outline" className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                onClick={() =>
+                                  setSkills((prev) => prev.filter((s) => s.id !== skill.id))
+                                }
+                              >
                                 <Trash2 className="h-3 w-3" />
                               </Button>
                             </>
@@ -358,10 +387,6 @@ export default function TaxonomiesManagement() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Branch Definitions</CardTitle>
-                <Button className="bg-primary hover:bg-primary/90">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Branch
-                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -373,6 +398,54 @@ export default function TaxonomiesManagement() {
                   onChange={(e) => setBranchSearchTerm(e.target.value)}
                   className="pl-9"
                 />
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-3">
+                <Input
+                  placeholder="Branch name"
+                  value={newBranch.name}
+                  onChange={(e) => setNewBranch((prev) => ({ ...prev, name: e.target.value }))}
+                />
+                <Input
+                  placeholder="Code"
+                  value={newBranch.code}
+                  onChange={(e) => setNewBranch((prev) => ({ ...prev, code: e.target.value }))}
+                />
+                <Input
+                  placeholder="Department"
+                  value={newBranch.department}
+                  onChange={(e) => setNewBranch((prev) => ({ ...prev, department: e.target.value }))}
+                />
+                <Input
+                  type="number"
+                  placeholder="Students"
+                  value={newBranch.studentCount}
+                  onChange={(e) =>
+                    setNewBranch((prev) => ({ ...prev, studentCount: e.target.value }))
+                  }
+                />
+                <Input
+                  type="number"
+                  placeholder="Alumni"
+                  value={newBranch.alumniCount}
+                  onChange={(e) =>
+                    setNewBranch((prev) => ({ ...prev, alumniCount: e.target.value }))
+                  }
+                />
+                <Input
+                  type="number"
+                  placeholder="Active jobs"
+                  value={newBranch.activeJobs}
+                  onChange={(e) =>
+                    setNewBranch((prev) => ({ ...prev, activeJobs: e.target.value }))
+                  }
+                />
+                <div className="md:col-span-3 flex justify-end">
+                  <Button onClick={handleAddBranch} className="bg-primary hover:bg-primary/90">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Branch
+                  </Button>
+                </div>
               </div>
 
               <Table>
@@ -506,7 +579,14 @@ export default function TaxonomiesManagement() {
                                 <Edit className="h-3 w-3 mr-1" />
                                 Edit
                               </Button>
-                              <Button size="sm" variant="outline" className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                onClick={() =>
+                                  setSynonyms((prev) => prev.filter((s) => s.id !== mapping.id))
+                                }
+                              >
                                 <Trash2 className="h-3 w-3" />
                               </Button>
                             </>
@@ -527,10 +607,6 @@ export default function TaxonomiesManagement() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Skill Synonym Mappings</CardTitle>
-                <Button className="bg-primary hover:bg-primary/90">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Mapping
-                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -544,8 +620,42 @@ export default function TaxonomiesManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {synonyms.map((mapping) => (
-                    <TableRow key={mapping.id} className="hover:bg-muted/50">
+                  <TableRow>
+                    <TableCell>
+                      <Input
+                        placeholder="Primary skill"
+                        value={newSynonym.primarySkill}
+                        onChange={(e) =>
+                          setNewSynonym((prev) => ({ ...prev, primarySkill: e.target.value }))
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        placeholder="Synonym"
+                        value={newSynonym.synonym}
+                        onChange={(e) => setNewSynonym((prev) => ({ ...prev, synonym: e.target.value }))}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        placeholder="Frequency"
+                        value={newSynonym.frequency}
+                        onChange={(e) =>
+                          setNewSynonym((prev) => ({ ...prev, frequency: e.target.value }))
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button onClick={handleAddSynonym} className="bg-primary hover:bg-primary/90">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Mapping
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                  {synonyms.map((mapping, idx) => (
+                    <TableRow key={mapping.id || `map-${idx}`} className="hover:bg-muted/50">
                       <TableCell>
                         {editingSynonym?.id === mapping.id ? (
                           <Input
@@ -625,7 +735,14 @@ export default function TaxonomiesManagement() {
                                 <Edit className="h-3 w-3 mr-1" />
                                 Edit
                               </Button>
-                              <Button size="sm" variant="outline" className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                onClick={() =>
+                                  setSynonyms((prev) => prev.filter((_, removeIdx) => removeIdx !== idx))
+                                }
+                              >
                                 <Trash2 className="h-3 w-3" />
                               </Button>
                             </>
