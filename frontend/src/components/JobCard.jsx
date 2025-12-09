@@ -13,9 +13,12 @@ const typeColors = {
 
 export default function JobCard({ id = "1", title, company, location, type }) {
   const navigate = useNavigate();
-  const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
 
   const handleViewDetails = () => {
+    if (!id) {
+      navigate("/jobs");
+      return;
+    }
     navigate(`/jobs/${id}`);
   };
 
@@ -50,22 +53,23 @@ export default function JobCard({ id = "1", title, company, location, type }) {
               }}>
                 View Details
               </Button>
-              <Button size="sm" onClick={(e) => {
-                e.stopPropagation();
-                setIsApplicationModalOpen(true);
-              }}>
+              <Button
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // For now, drive to job details (real backend data); wire apply-job here if you add resume flow
+                  handleViewDetails();
+                }}
+              >
                 Apply Now
               </Button>
             </div>
           </div>
         </div>
       </CardContent>
-      
-      <ApplicationModal
-        isOpen={isApplicationModalOpen}
-        onClose={() => setIsApplicationModalOpen(false)}
-        jobDetails={jobDetails}
-      />
+
+      {/* ApplicationModal left here for future apply flow; currently we navigate to job details */}
+      <ApplicationModal isOpen={false} onClose={() => {}} jobDetails={jobDetails} />
     </Card>
   );
 }
