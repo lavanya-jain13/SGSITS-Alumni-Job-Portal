@@ -17,7 +17,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import ProfileCompletionMeter from "@/components/profile/ProfileCompletionMeter";
 import ProfileEditor from "@/components/profile/ProfileEditor";
-import { calculateProfileCompletion } from "@/lib/profileProgress";
 import { getToken, setToken } from "@/lib/api";
 import {
   User,
@@ -174,7 +173,6 @@ const StudentProfile = () => {
           resumeUploaded: !!profile.resume_url,
           resumeFileName: profile.resume_url ? "Uploaded Resume" : "",
           resumeFile: null,
-
           // prefer DB values, fallback to extras
           desiredRoles: profile.desired_roles || extras.desiredRoles || [],
           preferredLocations:
@@ -213,7 +211,7 @@ const StudentProfile = () => {
       }
     };
 
-    // reset state when user changes
+    // reset state when user changes (extrasKey depends on current user)
     setProfileData((prev) => ({
       ...prev,
       name: "",
@@ -246,6 +244,7 @@ const StudentProfile = () => {
     loadProfile();
   }, [extrasKey, navigate, toast]);
 
+  // ----- Profile completion sections (same logic as before) -----
   const profileSections = [
     {
       id: "personal",
@@ -297,8 +296,6 @@ const StudentProfile = () => {
     (total, section) => total + (section.completed ? section.weight : 0),
     0
   );
-  const { sections: profileSections, completionPercentage } =
-    calculateProfileCompletion(profileData);
 
   const branches = [
     "Computer Science Engineering",
@@ -550,17 +547,11 @@ const StudentProfile = () => {
           <div className="lg:col-span-3">
             <Tabs defaultValue="personal" className="space-y-6">
               <TabsList className="grid w-full grid-cols-6">
-                <TabsTrigger
-                  value="personal"
-                  className="flex items-center gap-1"
-                >
+                <TabsTrigger value="personal" className="flex items-center gap-1">
                   <User className="w-4 h-4" />
                   <span className="hidden sm:inline">Personal</span>
                 </TabsTrigger>
-                <TabsTrigger
-                  value="academic"
-                  className="flex items-center gap-1"
-                >
+                <TabsTrigger value="academic" className="flex items-center gap-1">
                   <GraduationCap className="w-4 h-4" />
                   <span className="hidden sm:inline">Academic</span>
                 </TabsTrigger>
@@ -568,10 +559,7 @@ const StudentProfile = () => {
                   <Code className="w-4 h-4" />
                   <span className="hidden sm:inline">Skills</span>
                 </TabsTrigger>
-                <TabsTrigger
-                  value="experience"
-                  className="flex items-center gap-1"
-                >
+                <TabsTrigger value="experience" className="flex items-center gap-1">
                   <Briefcase className="w-4 h-4" />
                   <span className="hidden sm:inline">Experience</span>
                 </TabsTrigger>
@@ -579,10 +567,7 @@ const StudentProfile = () => {
                   <FileText className="w-4 h-4" />
                   <span className="hidden sm:inline">Resume</span>
                 </TabsTrigger>
-                <TabsTrigger
-                  value="preferences"
-                  className="flex items-center gap-1"
-                >
+                <TabsTrigger value="preferences" className="flex items-center gap-1">
                   <Settings className="w-4 h-4" />
                   <span className="hidden sm:inline">Preferences</span>
                 </TabsTrigger>
@@ -722,18 +707,10 @@ const StudentProfile = () => {
                             <SelectValue placeholder="Select year" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="First Year">
-                              First Year
-                            </SelectItem>
-                            <SelectItem value="Second Year">
-                              Second Year
-                            </SelectItem>
-                            <SelectItem value="Third Year">
-                              Third Year
-                            </SelectItem>
-                            <SelectItem value="Final Year">
-                              Final Year
-                            </SelectItem>
+                            <SelectItem value="First Year">First Year</SelectItem>
+                            <SelectItem value="Second Year">Second Year</SelectItem>
+                            <SelectItem value="Third Year">Third Year</SelectItem>
+                            <SelectItem value="Final Year">Final Year</SelectItem>
                             <SelectItem value="Recent Graduate">
                               Recent Graduate
                             </SelectItem>
@@ -1141,7 +1118,8 @@ const StudentProfile = () => {
                             ...prev,
                             desiredRoles: e.target.value
                               .split(",")
-                              .map((r) => r.trim()),
+                              .map((r) => r.trim())
+                              .filter(Boolean),
                           }));
                         }}
                       />
@@ -1156,7 +1134,8 @@ const StudentProfile = () => {
                             ...prev,
                             preferredLocations: e.target.value
                               .split(",")
-                              .map((l) => l.trim()),
+                              .map((l) => l.trim())
+                              .filter(Boolean),
                           }));
                         }}
                       />
