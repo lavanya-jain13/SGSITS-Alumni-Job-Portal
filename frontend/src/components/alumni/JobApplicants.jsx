@@ -285,7 +285,8 @@
 //   );
 // }
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -302,194 +303,124 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { apiClient } from "@/lib/api";
 
-const applicantsData = [
-  {
-    id: 1,
-    name: "Jane Smith",
-    class: "Class of 2024",
-    branch: "Information Technology",
-    applicationTime: "9 Jan 2024, 07:45 pm",
-    skillMatch: 92,
-    skills: ["Java", "Spring Boot", "MySQL"],
-    status: "Shortlisted",
-    statusColor: "bg-green-100 text-green-800"
-  },
-  {
-    id: 2,
-    name: "Mike Wilson",
-    class: "Class of 2024", 
-    branch: "Information Technology",
-    applicationTime: "6 Jan 2024, 05:00 pm",
-    skillMatch: 88,
-    skills: ["Python", "Django", "AWS"],
-    status: "Interviewing",
-    statusColor: "bg-blue-100 text-blue-800"
-  },
-  {
-    id: 3,
-    name: "John Doe",
-    class: "Class of 2024",
-    branch: "Computer Science",
-    applicationTime: "10 Jan 2024, 04:00 pm", 
-    skillMatch: 85,
-    skills: ["Python", "Django", "JavaScript"],
-    status: "Submitted",
-    statusColor: "bg-yellow-100 text-yellow-800"
-  },
-  {
-    id: 4,
-    name: "Bob Johnson",
-    class: "Class of 2024",
-    branch: "Computer Science", 
-    applicationTime: "8 Jan 2024, 02:50 pm",
-    skillMatch: 78,
-    skills: ["JavaScript", "Node.js", "MongoDB"],
-    status: "Submitted", 
-    statusColor: "bg-yellow-100 text-yellow-800"
-  },
-  {
-    id: 5,
-    name: "Sarah Chen",
-    class: "Class of 2024",
-    branch: "Information Technology",
-    applicationTime: "11 Jan 2024, 09:30 am",
-    skillMatch: 94,
-    skills: ["React", "TypeScript", "GraphQL"],
-    status: "Shortlisted",
-    statusColor: "bg-green-100 text-green-800"
-  },
-  {
-    id: 6,
-    name: "David Kumar",
-    class: "Class of 2024",
-    branch: "Computer Science",
-    applicationTime: "10 Jan 2024, 11:15 am",
-    skillMatch: 87,
-    skills: ["C++", "Algorithm Design", "Data Structures"],
-    status: "Interviewing",
-    statusColor: "bg-blue-100 text-blue-800"
-  },
-  {
-    id: 7,
-    name: "Emily Rodriguez",
-    class: "Class of 2024",
-    branch: "Information Technology",
-    applicationTime: "9 Jan 2024, 03:20 pm",
-    skillMatch: 91,
-    skills: ["Angular", "Node.js", "PostgreSQL"],
-    status: "Shortlisted",
-    statusColor: "bg-green-100 text-green-800"
-  },
-  {
-    id: 8,
-    name: "Alex Thompson",
-    class: "Class of 2024",
-    branch: "Computer Science",
-    applicationTime: "8 Jan 2024, 10:45 am",
-    skillMatch: 82,
-    skills: ["Java", "Microservices", "Docker"],
-    status: "Submitted",
-    statusColor: "bg-yellow-100 text-yellow-800"
-  },
-  {
-    id: 9,
-    name: "Priya Patel",
-    class: "Class of 2024",
-    branch: "Information Technology",
-    applicationTime: "7 Jan 2024, 02:00 pm",
-    skillMatch: 89,
-    skills: ["Vue.js", "Firebase", "CI/CD"],
-    status: "Interviewing",
-    statusColor: "bg-blue-100 text-blue-800"
-  },
-  {
-    id: 10,
-    name: "James Lee",
-    class: "Class of 2024",
-    branch: "Computer Science",
-    applicationTime: "7 Jan 2024, 04:30 pm",
-    skillMatch: 86,
-    skills: ["Python", "Machine Learning", "TensorFlow"],
-    status: "Shortlisted",
-    statusColor: "bg-green-100 text-green-800"
-  },
-  {
-    id: 11,
-    name: "Maria Garcia",
-    class: "Class of 2024",
-    branch: "Information Technology",
-    applicationTime: "6 Jan 2024, 01:15 pm",
-    skillMatch: 90,
-    skills: ["React Native", "Mobile Dev", "Redux"],
-    status: "Interviewing",
-    statusColor: "bg-blue-100 text-blue-800"
-  },
-  {
-    id: 12,
-    name: "Tom Anderson",
-    class: "Class of 2024",
-    branch: "Computer Science",
-    applicationTime: "5 Jan 2024, 11:00 am",
-    skillMatch: 84,
-    skills: ["Go", "Kubernetes", "Cloud Architecture"],
-    status: "Submitted",
-    statusColor: "bg-yellow-100 text-yellow-800"
-  },
-  {
-    id: 13,
-    name: "Lisa Wang",
-    class: "Class of 2024",
-    branch: "Information Technology",
-    applicationTime: "5 Jan 2024, 03:45 pm",
-    skillMatch: 93,
-    skills: ["Full Stack", "DevOps", "Agile"],
-    status: "Shortlisted",
-    statusColor: "bg-green-100 text-green-800"
-  },
-  {
-    id: 14,
-    name: "Ryan O'Brien",
-    class: "Class of 2024",
-    branch: "Computer Science",
-    applicationTime: "4 Jan 2024, 10:20 am",
-    skillMatch: 81,
-    skills: ["PHP", "Laravel", "MySQL"],
-    status: "Submitted",
-    statusColor: "bg-yellow-100 text-yellow-800"
-  },
-  {
-    id: 15,
-    name: "Aisha Mohammed",
-    class: "Class of 2024",
-    branch: "Information Technology",
-    applicationTime: "4 Jan 2024, 02:30 pm",
-    skillMatch: 88,
-    skills: ["Ruby", "Rails", "PostgreSQL"],
-    status: "Interviewing",
-    statusColor: "bg-blue-100 text-blue-800"
-  }
-];
-
-export function JobApplicants() {
+export function JobApplicants({
+  backPath = "/alumni",
+  detailsPath = "/alumni/applicant-details",
+  heading = "Job Applicants",
+  contextText,
+} = {}) {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBranches, setSelectedBranches] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState("");
   const [sortBy, setSortBy] = useState("relevance");
+  const [jobs, setJobs] = useState([]);
+  const [selectedJobId, setSelectedJobId] = useState(null);
+  const [applicants, setApplicants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   
   const branches = ["Computer Science", "Information Technology"];
-  const statuses = ["Shortlisted", "Interviewing", "Submitted"];
+  const statuses = ["pending", "accepted", "rejected", "on_hold"];
 
-  const filteredApplicants = applicantsData.filter(applicant => {
-    const matchesSearch = applicant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         applicant.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesBranch = selectedBranches.length === 0 || selectedBranches.includes(applicant.branch);
-    const matchesStatus = !selectedStatus || applicant.status === selectedStatus;
-    
-    return matchesSearch && matchesBranch && matchesStatus;
-  });
+  const statusLabel = {
+    pending: "Pending",
+    accepted: "Accepted",
+    rejected: "Rejected",
+    on_hold: "On Hold",
+  };
+
+  const statusColor = {
+    pending: "bg-yellow-100 text-yellow-800",
+    accepted: "bg-green-100 text-green-800",
+    rejected: "bg-red-100 text-red-800",
+    on_hold: "bg-blue-100 text-blue-800",
+  };
+
+  const formatDateTime = (value) =>
+    value ? new Date(value).toLocaleString() : "Not available";
+
+  const normalizeApplicants = (rows = []) =>
+    rows.map((row) => ({
+      id: row.application_id,
+      name: row.student_name || row.user_email || "Unknown",
+      class: row.student_grad_year ? `Grad ${row.student_grad_year}` : "N/A",
+      branch: row.student_branch || "N/A",
+      applicationTime: formatDateTime(row.applied_at),
+      skillMatch: null,
+      skills: [],
+      status: row.application_status || "pending",
+      statusColor: statusColor[row.application_status] || "bg-gray-100 text-gray-800",
+    }));
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const jobsRes = await apiClient.getMyJobs();
+        const jobList = jobsRes?.jobs || [];
+        setJobs(jobList);
+        const initialJobId =
+          searchParams.get("jobId") ||
+          jobList.find((j) => j.id)?.id ||
+          null;
+        setSelectedJobId(initialJobId);
+
+        if (initialJobId) {
+          const appsRes = await apiClient.getJobApplicants(initialJobId);
+          setApplicants(normalizeApplicants(appsRes?.applicants));
+        } else {
+          setApplicants([]);
+        }
+      } catch (err) {
+        setError(err?.message || "Failed to load applications");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [searchParams]);
+
+  useEffect(() => {
+    const fetchApplicants = async () => {
+      if (!selectedJobId) return;
+      setLoading(true);
+      setError("");
+      try {
+        const appsRes = await apiClient.getJobApplicants(selectedJobId);
+        setApplicants(normalizeApplicants(appsRes?.applicants));
+      } catch (err) {
+        setError(err?.message || "Failed to load applications");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (selectedJobId) {
+      fetchApplicants();
+    }
+  }, [selectedJobId]);
+
+  const filteredApplicants = useMemo(() => {
+    return applicants.filter((applicant) => {
+      const matchesSearch =
+        applicant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        applicant.branch.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesBranch =
+        selectedBranches.length === 0 ||
+        selectedBranches.includes(applicant.branch);
+      const matchesStatus =
+        !selectedStatus || applicant.status === selectedStatus;
+
+      return matchesSearch && matchesBranch && matchesStatus;
+    });
+  }, [applicants, searchTerm, selectedBranches, selectedStatus]);
 
   const addBranchFilter = (branch) => {
     if (!selectedBranches.includes(branch)) {
@@ -507,22 +438,45 @@ export function JobApplicants() {
     setSearchTerm("");
   };
 
+  const infoText =
+    contextText ||
+    (selectedJobId
+      ? `${jobs.find((j) => j.id === selectedJobId)?.job_title || "Selected job"} • Showing ${
+          filteredApplicants.length
+        } of ${applicants.length} applications`
+      : "No job selected");
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/alumni')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate(backPath)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Job Applicants</h1>
-            <p className="text-muted-foreground">
-              Senior Software Engineer at TechCorp Inc. • Showing {filteredApplicants.length} of {applicantsData.length} applicants
-            </p>
+            <h1 className="text-2xl font-bold">{heading}</h1>
+            <p className="text-muted-foreground">{infoText}</p>
           </div>
         </div>
+        {jobs.length > 0 && (
+          <Select
+            value={selectedJobId || ""}
+            onValueChange={(value) => setSelectedJobId(value)}
+          >
+            <SelectTrigger className="w-72">
+              <SelectValue placeholder="Select job to view applicants" />
+            </SelectTrigger>
+            <SelectContent>
+              {jobs.map((job) => (
+                <SelectItem key={job.id} value={job.id}>
+                  {job.job_title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Button variant="outline" onClick={clearAllFilters}>
           <X className="h-4 w-4 mr-2" />
           Clear All
@@ -587,7 +541,7 @@ export function JobApplicants() {
                 </SelectTrigger>
                 <SelectContent>
                   {statuses.map(status => (
-                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                    <SelectItem key={status} value={status}>{statusLabel[status]}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -638,7 +592,26 @@ export function JobApplicants() {
               </tr>
             </thead>
             <tbody>
-              {filteredApplicants.map((applicant) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="p-4 text-center text-muted-foreground">
+                    Loading applications...
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={7} className="p-4 text-center text-destructive">
+                    {error}
+                  </td>
+                </tr>
+              ) : filteredApplicants.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-4 text-center text-muted-foreground">
+                    No applications found.
+                  </td>
+                </tr>
+              ) : (
+                filteredApplicants.map((applicant) => (
                 <tr key={applicant.id} className="border-b transition-colors hover:bg-muted/50">
                   <td className="p-4 align-middle font-medium">
                     <div className="flex items-center space-x-3">
@@ -656,28 +629,40 @@ export function JobApplicants() {
                   <td className="p-4 align-middle text-sm">{applicant.applicationTime}</td>
                   <td className="p-4 align-middle">
                     <div className="flex items-center space-x-2">
-                      <Progress value={applicant.skillMatch} className="w-16" />
-                      <span className="text-sm font-medium">{applicant.skillMatch}%</span>
+                      {applicant.skillMatch ? (
+                        <>
+                          <Progress value={applicant.skillMatch} className="w-16" />
+                          <span className="text-sm font-medium">{applicant.skillMatch}%</span>
+                        </>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">N/A</span>
+                      )}
                     </div>
                   </td>
                   <td className="p-4 align-middle">
-                    <div className="flex flex-wrap gap-1">
-                      {applicant.skills.map((skill, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {skill}
-                        </Badge>
-                      ))}
-                    </div>
+                    {applicant.skills?.length ? (
+                      <div className="flex flex-wrap gap-1">
+                        {applicant.skills.map((skill, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {skill}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">N/A</span>
+                    )}
                   </td>
                   <td className="p-4 align-middle">
-                    <Badge className={applicant.statusColor}>{applicant.status}</Badge>
+                    <Badge className={applicant.statusColor}>
+                      {statusLabel[applicant.status] || applicant.status}
+                    </Badge>
                   </td>
                   <td className="p-4 align-middle">
                     <div className="flex items-center space-x-2">
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => navigate("/alumni/applicant-details")}
+                        onClick={() => navigate(detailsPath)}
                       >
                         <Eye className="h-4 w-4" />
                         <span className="ml-1 hidden sm:inline">View</span>
@@ -728,7 +713,8 @@ export function JobApplicants() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>

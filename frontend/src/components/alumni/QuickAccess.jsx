@@ -43,6 +43,16 @@ export function QuickAccess() {
           variant="outline" 
           size="sm" 
           className="w-full"
+          onClick={() => navigate("/alumni/applications")}
+        >
+          <Users className="h-4 w-4 mr-2" />
+          Applications Overview
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full"
           onClick={() => navigate("/alumni/add-company")}
         >
           <FileText className="h-4 w-4 mr-2" />

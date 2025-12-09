@@ -43,6 +43,7 @@ import { ApplicantDetails } from "./components/alumni/ApplicantDetails";
 import { ExpiredPostings } from "./components/alumni/ExpiredPostings";
 import { CompaniesList } from "./components/alumni/CompaniesList";
 import { ProfileView } from "./components/alumni/ProfileView";
+import ApplicationsOverview from "./pages/admin/ApplicationsOverview";
 
 /* ------------------ Shared ------------------ */
 import NotFound from "./pages/NotFound";
@@ -90,6 +91,7 @@ export default function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="companies" element={<CompaniesManagement />} />
               <Route path="postings" element={<PostingsManagement />} />
+              <Route path="applications" element={<ApplicationsOverview />} />
               <Route path="taxonomies" element={<TaxonomiesManagement />} />
               <Route path="audit-logs" element={<AuditLogs />} />
             </Route>
