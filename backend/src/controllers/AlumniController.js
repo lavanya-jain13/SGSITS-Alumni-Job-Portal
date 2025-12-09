@@ -16,6 +16,9 @@ const completeProfile = async (req, res) => {
       company_size,
       about,
       linkedin,
+      twitter,
+      office_location,
+      company_culture,
       currentTitle,
       gradYear,
     } = req.body;
@@ -34,7 +37,11 @@ const completeProfile = async (req, res) => {
       industry: industry,
       company_size: company_size,
       about: about,
-      document_url: linkedin,
+      linkedin: linkedin || null,
+      twitter: twitter || null,
+      office_location: office_location || null,
+      company_culture: company_culture || null,
+      document_url: linkedin, // legacy field kept for backwards compatibility
       created_at: trx.fn.now(),
     });
 
@@ -95,6 +102,9 @@ const addCompany = async (req, res) => {
       company_size,
       about,
       linkedin,
+      twitter,
+      office_location,
+      company_culture,
       status,
     } = req.body || {};
 
@@ -110,7 +120,11 @@ const addCompany = async (req, res) => {
       industry: industry || null,
       company_size: company_size || null,
       about: about || null,
-      document_url: linkedin || null,
+      linkedin: linkedin || null,
+      twitter: twitter || null,
+      office_location: office_location || null,
+      company_culture: company_culture || null,
+      document_url: linkedin || null, // legacy
       status: status || "pending",
       created_at: db.fn.now(),
     };
@@ -127,6 +141,10 @@ const addCompany = async (req, res) => {
         "company_size",
         "about",
         "document_url",
+        "linkedin",
+        "twitter",
+        "office_location",
+        "company_culture",
         "status",
         "created_at",
       ]);
@@ -161,12 +179,11 @@ const getMyCompanies = async (req, res) => {
           "website",
           "about",
           "document_url",
-          "status",
-          "office_locations",
+          "linkedin",
+          "twitter",
+          "office_location",
           "company_culture",
-          "linkedin_url",
-          "twitter_url",
-          "founded_year",
+          "status",
           "created_at"
         )
         .orderBy("created_at", "desc");
@@ -189,7 +206,19 @@ const getMyCompanies = async (req, res) => {
         .orderBy("created_at", "desc");
     }
 
-    return res.json({ companies });
+    const normalized = companies.map((c) => ({
+      ...c,
+      office_locations: Array.isArray(c.office_locations)
+        ? c.office_locations
+        : c.office_location
+        ? [c.office_location]
+        : [],
+      company_culture: c.company_culture || null,
+      linkedin_url: c.linkedin_url || c.linkedin || c.document_url || null,
+      twitter_url: c.twitter_url || c.twitter || null,
+    }));
+
+    return res.json({ companies: normalized });
   } catch (error) {
     console.error("Get My Companies Error:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -218,12 +247,11 @@ const getCompanyById = async (req, res) => {
           "website",
           "about",
           "document_url",
-          "status",
-          "office_locations",
+          "linkedin",
+          "twitter",
+          "office_location",
           "company_culture",
-          "linkedin_url",
-          "twitter_url",
-          "founded_year",
+          "status",
           "created_at"
         )
         .first();
@@ -249,7 +277,20 @@ const getCompanyById = async (req, res) => {
       return res.status(404).json({ error: "Company not found" });
     }
 
-    return res.json({ company });
+    const normalized = {
+      ...company,
+      office_locations: Array.isArray(company.office_locations)
+        ? company.office_locations
+        : company.office_location
+        ? [company.office_location]
+        : [],
+      company_culture: company.company_culture || null,
+      linkedin_url:
+        company.linkedin_url || company.linkedin || company.document_url || null,
+      twitter_url: company.twitter_url || company.twitter || null,
+    };
+
+    return res.json({ company: normalized });
   } catch (error) {
     console.error("Get Company Error:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -278,11 +319,10 @@ const updateCompany = async (req, res) => {
       website,
       about,
       document_url,
-      office_locations,
+      office_location,
       company_culture,
-      linkedin_url,
-      twitter_url,
-      founded_year,
+      linkedin,
+      twitter,
     } = req.body || {};
 
     const fullUpdate = {
@@ -292,20 +332,16 @@ const updateCompany = async (req, res) => {
       website: website ?? company.website,
       about: about ?? company.about,
       document_url: document_url ?? company.document_url,
-      office_locations:
-        typeof office_locations === "undefined"
-          ? company.office_locations
-          : office_locations,
+      office_location:
+        typeof office_location === "undefined"
+          ? company.office_location
+          : office_location,
       company_culture:
         typeof company_culture === "undefined"
           ? company.company_culture
           : company_culture,
-      linkedin_url:
-        typeof linkedin_url === "undefined" ? company.linkedin_url : linkedin_url,
-      twitter_url:
-        typeof twitter_url === "undefined" ? company.twitter_url : twitter_url,
-      founded_year:
-        typeof founded_year === "undefined" ? company.founded_year : founded_year,
+      linkedin: typeof linkedin === "undefined" ? company.linkedin : linkedin,
+      twitter: typeof twitter === "undefined" ? company.twitter : twitter,
     };
 
     const basicUpdate = {
@@ -337,12 +373,11 @@ const updateCompany = async (req, res) => {
           "website",
           "about",
           "document_url",
-          "status",
-          "office_locations",
+          "linkedin",
+          "twitter",
+          "office_location",
           "company_culture",
-          "linkedin_url",
-          "twitter_url",
-          "founded_year",
+          "status",
           "created_at"
         )
         .first();
@@ -364,7 +399,25 @@ const updateCompany = async (req, res) => {
         .first();
     }
 
-    return res.json({ message: "Company updated successfully", company: updated });
+    const normalized = updated
+      ? {
+          ...updated,
+          office_locations: Array.isArray(updated.office_locations)
+            ? updated.office_locations
+            : updated.office_location
+            ? [updated.office_location]
+            : [],
+          company_culture: updated.company_culture || null,
+          linkedin_url:
+            updated.linkedin_url || updated.linkedin || updated.document_url || null,
+          twitter_url: updated.twitter_url || updated.twitter || null,
+        }
+      : updated;
+
+    return res.json({
+      message: "Company updated successfully",
+      company: normalized,
+    });
   } catch (error) {
     console.error("Update Company Error:", error);
     return res.status(500).json({ error: error.message || "Internal server error" });
