@@ -374,6 +374,8 @@ export function ActivePostings() {
   const location = useLocation();
   const { toast } = useToast();
   const [jobs, setJobs] = useState([]);
+  const [companiesMap, setCompaniesMap] = useState({});
+  const [defaultCompanyName, setDefaultCompanyName] = useState("My Company");
   const [loading, setLoading] = useState(true);
   const [selectedCompanies, setSelectedCompanies] = useState([]);
   const [selectedJobTypes, setSelectedJobTypes] = useState([]);
@@ -403,11 +405,29 @@ export function ActivePostings() {
     const fetchJobs = async () => {
       setLoading(true);
       try {
-        const data = await apiClient.getMyJobs();
-        const normalized = (data?.jobs || []).map((job) => ({
+        const [companiesRes, jobsRes] = await Promise.all([
+          apiClient.getMyCompanies(),
+          apiClient.getMyJobs(),
+        ]);
+
+        const map = {};
+        (companiesRes?.companies || []).forEach((c) => {
+          map[c.id] = c.name || c.company_name || "My Company";
+        });
+        setCompaniesMap(map);
+        const fallbackName =
+          Object.values(map)[0] || "My Company";
+        setDefaultCompanyName(fallbackName);
+
+        const normalized = (jobsRes?.jobs || []).map((job) => ({
           id: job.id,
           title: job.job_title,
-          company: job.company_name || "My Company",
+          companyId: job.company_id,
+          company:
+            job.company_name ||
+            map[job.company_id] ||
+            job.company ||
+            defaultCompanyName,
           type: job.job_type || "Job",
           location: job.location || "—",
           applyBy: job.application_deadline
@@ -818,25 +838,25 @@ export function ActivePostings() {
                   <tr key={job.id} className="border-b transition-colors hover:bg-muted/50 cursor-pointer">
                     <td
                       className="p-4 align-middle font-medium"
-                      onClick={() => navigate('/alumni/job-details', { state: { job } })}
+                      onClick={() => navigate(`/alumni/job/${job.id}`)}
                     >
                       {job.title}
                     </td>
-                    <td className="p-4 align-middle" onClick={() => navigate('/alumni/job-details', { state: { job } })}>
+                    <td className="p-4 align-middle" onClick={() => navigate(`/alumni/job/${job.id}`)}>
                       {job.company}
                     </td>
-                    <td className="p-4 align-middle" onClick={() => navigate('/alumni/job-details', { state: { job } })}>
+                    <td className="p-4 align-middle" onClick={() => navigate(`/alumni/job/${job.id}`)}>
                       <Badge variant="outline" className="text-xs">
                         {job.type}
                       </Badge>
                     </td>
-                    <td className="p-4 align-middle" onClick={() => navigate('/alumni/job-details', { state: { job } })}>
+                    <td className="p-4 align-middle" onClick={() => navigate(`/alumni/job/${job.id}`)}>
                       {job.location}
                     </td>
-                    <td className="p-4 align-middle" onClick={() => navigate('/alumni/job-details', { state: { job } })}>
+                    <td className="p-4 align-middle" onClick={() => navigate(`/alumni/job/${job.id}`)}>
                       {job.applyBy}
                     </td>
-                    <td className="p-4 align-middle" onClick={() => navigate('/alumni/job-details', { state: { job } })}>
+                    <td className="p-4 align-middle" onClick={() => navigate(`/alumni/job/${job.id}`)}>
                       <Badge className={`text-xs ${getStatusColor(job.status)}`}>
                         {job.status}
                       </Badge>

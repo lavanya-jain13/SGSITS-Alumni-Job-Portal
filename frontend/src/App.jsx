@@ -44,6 +44,7 @@ import { ExpiredPostings } from "./components/alumni/ExpiredPostings";
 import { CompaniesList } from "./components/alumni/CompaniesList";
 import { ProfileView } from "./components/alumni/ProfileView";
 import ApplicationsOverview from "./pages/admin/ApplicationsOverview";
+import AlumniJobDetails from "./pages/AlumniJobDetails";
 
 /* ------------------ Shared ------------------ */
 import NotFound from "./pages/NotFound";
@@ -108,6 +109,8 @@ export default function App() {
               <Route index element={<AlumniIndex />} />
               <Route path="postings" element={<PostingsPage />} />
               <Route path="post-job" element={<PostJobPage />} />
+              <Route path="job/:id" element={<AlumniJobDetails />} />
+              <Route path="post-project" element={<PostProjectPage />} />
               <Route path="add-company" element={<AddCompany />} />
               <Route path="company-profile" element={<CompanyProfilePage />} />
               <Route path="edit-company-profile" element={<EditCompanyProfilePage />} />

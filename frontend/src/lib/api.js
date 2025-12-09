@@ -180,4 +180,12 @@ export const apiClient = {
       method: "POST",
       body: JSON.stringify({ message, targetRole }),
     }),
+
+  // Job application status updates (alumni)
+  acceptJobApplication: (applicationId) =>
+    apiFetch(`/job/applications/${applicationId}/accept`, { method: "PATCH" }),
+  rejectJobApplication: (applicationId) =>
+    apiFetch(`/job/applications/${applicationId}/reject`, { method: "PATCH" }),
+  holdJobApplication: (applicationId) =>
+    apiFetch(`/job/applications/${applicationId}/hold`, { method: "PATCH" }),
 };

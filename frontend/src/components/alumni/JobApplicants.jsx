@@ -343,20 +343,34 @@ export function JobApplicants({
     on_hold: "bg-blue-100 text-blue-800",
   };
 
+  const splitSkills = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.filter(Boolean).map((s) => String(s).trim());
+    return String(value)
+      .split(/[,|]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  };
+
   const formatDateTime = (value) =>
     value ? new Date(value).toLocaleString() : "Not available";
 
   const normalizeApplicants = (rows = []) =>
     rows.map((row) => ({
       id: row.application_id,
+      applicationId: row.application_id,
       name: row.student_name || row.user_email || "Unknown",
       class: row.student_grad_year ? `Grad ${row.student_grad_year}` : "N/A",
       branch: row.student_branch || "N/A",
       applicationTime: formatDateTime(row.applied_at),
       skillMatch: null,
-      skills: [],
+      skills: splitSkills(row.student_skills),
       status: row.application_status || "pending",
       statusColor: statusColor[row.application_status] || "bg-gray-100 text-gray-800",
+      resume_url: row.resume_url || "",
+      user_email: row.user_email || "",
+      user_id: row.user_id,
+      job_id: row.job_id || selectedJobId,
     }));
 
   const fetchJobs = loadJobs || (async () => {
@@ -453,6 +467,52 @@ export function JobApplicants({
     setSelectedBranches([]);
     setSelectedStatus("");
     setSearchTerm("");
+  };
+
+  const updateStatus = async (applicationId, nextStatus) => {
+    try {
+      if (nextStatus === "accepted") {
+        await apiClient.acceptJobApplication(applicationId);
+      } else if (nextStatus === "rejected") {
+        await apiClient.rejectJobApplication(applicationId);
+      } else {
+        await apiClient.holdJobApplication(applicationId);
+      }
+      setApplicants((prev) =>
+        prev.map((app) =>
+          app.id === applicationId
+            ? {
+                ...app,
+                status: nextStatus,
+                statusColor: statusColor[nextStatus] || app.statusColor,
+              }
+            : app
+        )
+      );
+      toast({
+        title: "Status updated",
+        description: `Application marked as ${statusLabel[nextStatus] || nextStatus}.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Update failed",
+        description: err?.message || "Could not update application status.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadResume = (applicant) => {
+    const url = applicant.resume_url;
+    if (!url) {
+      toast({
+        title: "Resume not available",
+        description: "This applicant did not upload a resume.",
+        variant: "destructive",
+      });
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const infoText =
@@ -679,12 +739,18 @@ export function JobApplicants({
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => navigate(detailsPath)}
+                        onClick={() =>
+                          navigate(detailsPath, { state: { applicant } })
+                        }
                       >
                         <Eye className="h-4 w-4" />
                         <span className="ml-1 hidden sm:inline">View</span>
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDownloadResume(applicant)}
+                      >
                         <Download className="h-4 w-4" />
                       </Button>
                       
@@ -696,32 +762,17 @@ export function JobApplicants({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-40 bg-card z-50">
                           <DropdownMenuItem 
-                            onClick={() => {
-                              toast({
-                                title: "Applicant Shortlisted",
-                                description: `${applicant.name} has been shortlisted.`,
-                              });
-                            }}
+                            onClick={() => updateStatus(applicant.id, "accepted")}
                           >
                             Shortlist
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            onClick={() => {
-                              toast({
-                                title: "Applicant Rejected",
-                                description: `${applicant.name} has been rejected.`,
-                              });
-                            }}
+                            onClick={() => updateStatus(applicant.id, "rejected")}
                           >
                             Reject
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            onClick={() => {
-                              toast({
-                                title: "Applicant On Hold",
-                                description: `${applicant.name} has been put on hold.`,
-                              });
-                            }}
+                            onClick={() => updateStatus(applicant.id, "on_hold")}
                           >
                             Hold
                           </DropdownMenuItem>
