@@ -175,7 +175,7 @@ const registerAlumni = async (req, res) => {
           user_id: newUser.id,
           grad_year,
           current_title,
-          // status: "pending", // will update after admin approval
+          status: "pending", // will update after admin approval
         },
         ["id"]
       );
