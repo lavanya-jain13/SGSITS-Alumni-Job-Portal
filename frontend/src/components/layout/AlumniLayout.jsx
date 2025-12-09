@@ -36,21 +36,7 @@ export function AlumniLayout() {
       {/* Main Section */}
       <div className="flex flex-1 flex-col">
         {/* Header */}
-        <header className="flex h-16 items-center justify-between border-b border-border px-6 bg-card shadow-sm">
-          <div className="flex items-center space-x-4">
-            {/* ✅ Conditional Global Search */}
-            {!shouldHideGlobalSearch && (
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search postings, applicants..."
-                  className="w-64 pl-10"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Right Header Controls */}
+        <header className="flex h-16 items-center justify-end border-b border-border px-6 bg-card shadow-sm">
           <div className="flex items-center space-x-4">
             <Button
               variant="ghost"

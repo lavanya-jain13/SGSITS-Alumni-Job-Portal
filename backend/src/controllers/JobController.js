@@ -358,6 +358,7 @@ exports.viewJobApplicants = async (req, res) => {
         "u.email as user_email",
         "sp.name as student_name",
         "sp.branch as student_branch",
+        "sp.skills as student_skills",
         "sp.grad_year as student_grad_year"
       )
       .orderBy("ja.applied_at", "desc");
