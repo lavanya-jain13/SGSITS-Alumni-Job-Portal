@@ -1,9 +1,17 @@
 const express = require("express");
-const { getMyProfile, upsertProfile } = require("../controllers/StudentController");
-const { authenticate } = require("../middleware/authMiddleware");
+const {
+  getMyProfile,
+  upsertProfile,
+} = require("../controllers/StudentController");
 const roleMiddleware = require("../middleware/roleMiddleware");
 const validate = require("../middleware/validationMiddleware");
 const Joi = require("joi");
+const {
+  authenticate,
+  isAdmin,
+  isAlumni,
+  isStudent,
+} = require("../middleware/authMiddleware");
 const uploadResume = require("../middleware/resumeUpload");
 
 const router = express.Router();
@@ -26,10 +34,15 @@ const putProfileSchema = {
     studentId: Joi.string().min(2).max(50).optional(),
     branch: Joi.string().min(2).max(100).optional(),
     gradYear: Joi.number().integer().min(1950).max(2100).optional(),
-    skills: Joi.alternatives(Joi.string(), Joi.array().items(Joi.string())).optional(),
+    skills: Joi.alternatives(
+      Joi.string(),
+      Joi.array().items(Joi.string())
+    ).optional(),
     resumeUrl: Joi.string().uri().allow("").optional(),
     phone: Joi.string().max(20).allow("").optional(),
-    dateOfBirth: Joi.alternatives().try(Joi.date(), Joi.string().allow("")).optional(),
+    dateOfBirth: Joi.alternatives()
+      .try(Joi.date(), Joi.string().allow(""))
+      .optional(),
     currentYear: Joi.string().max(50).allow("").optional(),
     cgpa: Joi.number().min(0).max(10).optional(),
     achievements: Joi.string().allow("").optional(),
@@ -59,7 +72,8 @@ const putProfileSchema = {
 router.get(
   "/profile",
   authenticate,
-  roleMiddleware("student"),
+
+  isStudent,
   getMyProfile
 );
 
@@ -67,7 +81,8 @@ router.get(
 router.put(
   "/profile",
   authenticate,
-  roleMiddleware("student"),
+  isStudent,
+  // roleMiddleware("student"),
   // only parse file upload when multipart/form-data is used
   (req, res, next) => {
     if (req.is("multipart/form-data")) {
