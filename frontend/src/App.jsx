@@ -17,7 +17,7 @@ import PostingsManagement from "./pages/admin/PostingsManagement";
 import TaxonomiesManagement from "./pages/admin/TaxonomiesManagement";
 //import Analytics from "./pages/admin/Analytics";
 import AuditLogs from "./pages/admin/AuditLogs";
-import Settings from "./pages/admin/Settings";
+//import Settings from "./pages/admin/Settings";
 
 /* ------------------ Student / Public module imports ------------------ */
 import Index from "./pages/Index";
@@ -84,7 +84,6 @@ export default function App() {
               <Route path="companies" element={<CompaniesManagement />} />
               <Route path="postings" element={<PostingsManagement />} />
               <Route path="taxonomies" element={<TaxonomiesManagement />} />
-              <Route path="settings" element={<Settings />} />
               <Route path="audit-logs" element={<AuditLogs />} />
             </Route>
 

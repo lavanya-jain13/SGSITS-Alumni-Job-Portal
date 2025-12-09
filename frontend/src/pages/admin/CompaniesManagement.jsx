@@ -136,7 +136,7 @@ export default function CompaniesManagement() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           title="Total Companies"
           value="92"
@@ -148,12 +148,6 @@ export default function CompaniesManagement() {
           value="15"
           icon={Users}
           variant="warning"
-        />
-        <StatCard
-          title="Featured Partners"
-          value="8"
-          icon={Star}
-          variant="success"
         />
         <StatCard
           title="Active Job Postings"

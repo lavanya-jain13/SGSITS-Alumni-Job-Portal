@@ -2,11 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   GraduationCap,
-  Users,
-  Briefcase,
-  TrendingUp,
   ArrowRight,
-  CheckCircle,
   Menu,
   X,
 } from "lucide-react";
@@ -21,33 +17,6 @@ import {
 
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const features = [
-    {
-      icon: Users,
-      title: "Alumni Network",
-      description:
-        "Connect with SGSITS alumni working in top companies worldwide",
-    },
-    {
-      icon: Briefcase,
-      title: "Job Opportunities",
-      description:
-        "Access exclusive job postings and internships from alumni companies",
-    },
-    {
-      icon: TrendingUp,
-      title: "Career Growth",
-      description:
-        "Get mentorship and career guidance from experienced professionals",
-    },
-    {
-      icon: CheckCircle,
-      title: "Quality Matches",
-      description:
-        "Smart matching based on your skills, branch, and preferences",
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -142,45 +111,6 @@ const Index = () => {
                 <Link to="/signup/alumni">Join as Alumni</Link>
               </Button>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ✅ Features Section */}
-      <section className="py-20 bg-background/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Why Choose SGSITS Alumni Portal?
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Built specifically for the SGSITS community to create meaningful
-              connections and career opportunities.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => {
-              const Icon = feature.icon;
-              return (
-                <Card
-                  key={index}
-                  className="text-center hover:shadow-lg transition-shadow"
-                >
-                  <CardHeader>
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                      <Icon className="w-6 h-6 text-primary" />
-                    </div>
-                    <CardTitle className="text-xl">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-base">
-                      {feature.description}
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-              );
-            })}
           </div>
         </div>
       </section>

@@ -54,7 +54,7 @@ export default function Header() {
               value={term}
               onChange={(e) => setTerm(e.target.value)}
               placeholder="Search jobs, companies..."
-              className="pl-10 pr-24 bg-white/10 border-white/20 text-white placeholder:text-white/70 focus:bg-white/20"
+              className="pl-10 pr-24 bg-white/10 border-white/20 text-white placeholder:text-white/90 focus:bg-white/20"
             />
             <Button
               type="submit"
