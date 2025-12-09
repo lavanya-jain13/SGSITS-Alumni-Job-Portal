@@ -7,13 +7,76 @@ import { useNavigate } from "react-router-dom";
 import { calculateProfileCompletion } from "@/lib/profileProgress";
 
 const recommendedJobs = [
-  { id: "1", title: "Junior Frontend Developer", company: "InnovaTech - New York, NY", location: "New York, NY", type: "Full-time" },
-  { id: "2", title: "Data Analyst Intern", company: "Global Insights - Remote", location: "Remote", type: "Internship" },
-  { id: "3", title: "Cloud Support Engineer", company: "CloudWorks - Seattle, WA", location: "Seattle, WA", type: "Full-time" },
-  { id: "4", title: "UI/UX Designer", company: "CreativeFlow - Austin, TX", location: "Austin, TX", type: "Contract" },
-  { id: "5", title: "Backend Developer", company: "CodeForge - San Francisco, CA", location: "San Francisco, CA", type: "Full-time" },
-  { id: "6", title: "Software Engineering Intern", company: "Apex Solutions - Boston, MA", location: "Boston, MA", type: "Internship" },
+  {
+    id: "1",
+    title: "Junior Frontend Developer",
+    company: "InnovaTech - New York, NY",
+    location: "New York, NY",
+    type: "Full-time",
+  },
+  {
+    id: "2",
+    title: "Data Analyst Intern",
+    company: "Global Insights - Remote",
+    location: "Remote",
+    type: "Internship",
+  },
+  {
+    id: "3",
+    title: "Cloud Support Engineer",
+    company: "CloudWorks - Seattle, WA",
+    location: "Seattle, WA",
+    type: "Full-time",
+  },
+  {
+    id: "4",
+    title: "UI/UX Designer",
+    company: "CreativeFlow - Austin, TX",
+    location: "Austin, TX",
+    type: "Contract",
+  },
+  {
+    id: "5",
+    title: "Backend Developer",
+    company: "CodeForge - San Francisco, CA",
+    location: "San Francisco, CA",
+    type: "Full-time",
+  },
+  {
+    id: "6",
+    title: "Software Engineering Intern",
+    company: "Apex Solutions - Boston, MA",
+    location: "Boston, MA",
+    type: "Internship",
+  },
 ];
+
+// 🔧 Normalize skills from backend → always array of { name }
+const normalizeSkills = (skills) => {
+  if (!skills) return [];
+
+  // If it's already an array (new format)
+  if (Array.isArray(skills)) {
+    return skills
+      .map((s) => {
+        if (typeof s === "string") return { name: s };
+        if (s && typeof s === "object" && s.name) return { name: s.name };
+        return null;
+      })
+      .filter(Boolean);
+  }
+
+  // If it's a comma-separated string (old format)
+  if (typeof skills === "string") {
+    return skills
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((name) => ({ name }));
+  }
+
+  return [];
+};
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
@@ -54,16 +117,14 @@ export default function StudentDashboard() {
           student_id: profile.student_id || "",
           branch: profile.branch || "",
           grad_year: profile.grad_year || "",
-          skills: profile.skills
-            ? profile.skills
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean)
-                .map((name) => ({ name }))
+          // ✅ use normalizer instead of .split()
+          skills: normalizeSkills(profile.skills),
+          experiences: Array.isArray(profile.experiences)
+            ? profile.experiences
             : [],
-          experiences: profile.experiences || [],
           resumeUploaded: !!profile.resume_url,
           desiredRoles: extras.desiredRoles || [],
+          summary: profile.proficiency || "",
         }));
       } catch (err) {
         console.error("Failed to load profile for dashboard", err);
