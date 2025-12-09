@@ -34,7 +34,6 @@ import { AlumniLayout } from "@/components/layout/AlumniLayout";
 import AlumniIndex from "./pages/AlumniIndex";
 import PostingsPage from "./pages/PostingsPage";
 import PostJobPage from "./pages/PostJobPage";
-import PostProjectPage from "./pages/PostProjectPage";
 import AddCompany from "./pages/AddCompany";
 import CompanyProfilePage from "./pages/CompanyProfilePage";
 import EditCompanyProfilePage from "./pages/EditCompanyProfilePage";
@@ -109,7 +108,6 @@ export default function App() {
               <Route index element={<AlumniIndex />} />
               <Route path="postings" element={<PostingsPage />} />
               <Route path="post-job" element={<PostJobPage />} />
-              <Route path="post-project" element={<PostProjectPage />} />
               <Route path="add-company" element={<AddCompany />} />
               <Route path="company-profile" element={<CompanyProfilePage />} />
               <Route path="edit-company-profile" element={<EditCompanyProfilePage />} />

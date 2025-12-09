@@ -6,6 +6,51 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { calculateProfileCompletion } from "@/lib/profileProgress";
 
+const recommendedJobs = [
+  {
+    id: "1",
+    title: "Junior Frontend Developer",
+    company: "InnovaTech - New York, NY",
+    location: "New York, NY",
+    type: "Full-time",
+  },
+  {
+    id: "2",
+    title: "Data Analyst Intern",
+    company: "Global Insights - Remote",
+    location: "Remote",
+    type: "Internship",
+  },
+  {
+    id: "3",
+    title: "Cloud Support Engineer",
+    company: "CloudWorks - Seattle, WA",
+    location: "Seattle, WA",
+    type: "Full-time",
+  },
+  {
+    id: "4",
+    title: "UI/UX Designer",
+    company: "CreativeFlow - Austin, TX",
+    location: "Austin, TX",
+    type: "Contract",
+  },
+  {
+    id: "5",
+    title: "Backend Developer",
+    company: "CodeForge - San Francisco, CA",
+    location: "San Francisco, CA",
+    type: "Full-time",
+  },
+  {
+    id: "6",
+    title: "Software Engineering Intern",
+    company: "Apex Solutions - Boston, MA",
+    location: "Boston, MA",
+    type: "Internship",
+  },
+];
+
 // 🔧 Normalize skills from backend → always array of { name }
 const normalizeSkills = (skills) => {
   if (!skills) return [];
@@ -49,18 +94,10 @@ export default function StudentDashboard() {
     desiredRoles: [],
   });
 
-  const [recommendedJobs, setRecommendedJobs] = useState([]);
-  const [jobsLoading, setJobsLoading] = useState(false);
-
   useEffect(() => {
     const loadExtras = () => {
       try {
-        // scope by logged-in user to avoid bleeding data across sessions
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        const extrasKey = user?.id
-          ? `student_profile_extras_${user.id}`
-          : "student_profile_extras";
-        const raw = localStorage.getItem(extrasKey);
+        const raw = localStorage.getItem("student_profile_extras");
         return raw ? JSON.parse(raw) : {};
       } catch {
         return {};
@@ -96,33 +133,6 @@ export default function StudentDashboard() {
     };
 
     loadProfile();
-    const loadJobs = async () => {
-      setJobsLoading(true);
-      try {
-        const { apiFetch } = await import("@/lib/api");
-        const res = await apiFetch("/job/get-all-jobs-student");
-        const jobs = res?.jobs || [];
-        // map backend fields to JobCard props
-        const mapped = jobs.map((job) => ({
-          id: job.id || job.job_id || job.jobId,
-          title: job.job_title || job.title || "Job",
-          company:
-            job.company_name ||
-            job.company ||
-            job.company_website ||
-            "Company",
-          location: job.location || "Location",
-          type: job.job_type || job.type || "Job",
-        }));
-        setRecommendedJobs(mapped);
-      } catch (err) {
-        console.error("Failed to load recommended jobs", err);
-        setRecommendedJobs([]);
-      } finally {
-        setJobsLoading(false);
-      }
-    };
-    loadJobs();
   }, [navigate]);
 
   const { completionPercentage } = calculateProfileCompletion(profileData);
@@ -214,26 +224,18 @@ export default function StudentDashboard() {
               View All Jobs
             </Button>
           </div>
-          {jobsLoading ? (
-            <p className="text-sm text-muted-foreground">Loading jobs...</p>
-          ) : recommendedJobs.length ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recommendedJobs.map((job) => (
-                <JobCard
-                  key={job.id}
-                  id={job.id}
-                  title={job.title}
-                  company={job.company}
-                  location={job.location}
-                  type={job.type}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              No recommended jobs right now. Check back soon or view all jobs.
-            </p>
-          )}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {recommendedJobs.map((job) => (
+              <JobCard
+                key={job.id}
+                id={job.id}
+                title={job.title}
+                company={job.company}
+                location={job.location}
+                type={job.type}
+              />
+            ))}
+          </div>
         </div>
 
         {/* Application History */}
