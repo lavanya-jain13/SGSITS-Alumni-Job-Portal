@@ -5,6 +5,53 @@ const knex = require("../config/db");
 function getAlumniProfileId(req) {
   return req.user.alumni_profile_id; // adjust if different
 }
+// src/controllers/jobController.js
+const db = require("../config/db");
+const cloudinary = require("../config/cloudinary");
+
+// ---------- Helpers ----------
+const normalizeListText = (value) => {
+  if (value == null) return null;
+  if (Array.isArray(value)) return value.filter(Boolean).join(", ");
+  return String(value);
+};
+
+const toNumberOrNull = (val) => {
+  const n = Number(val);
+  return Number.isNaN(n) ? null : n;
+};
+
+const buildJobPayload = (body, companyId, alumniId) => ({
+  ...(companyId && { company_id: companyId }),
+  ...(alumniId && { alumni_id: alumniId }),
+
+  job_title: body.job_title,
+  job_description: body.job_description,
+  job_type: body.job_type || null,
+  location: body.location || null,
+  salary_range: body.salary_range || null,
+  experience_required: body.experience_required || null,
+  skills_required: body.skills_required || null,
+  stipend: body.stipend || null,
+  application_deadline: body.application_deadline || null,
+
+  max_applicants_allowed:
+    body.max_applicants_allowed && Number(body.max_applicants_allowed) > 0
+      ? Number(body.max_applicants_allowed)
+      : 50,
+
+  allowed_branches: normalizeListText(body.allowed_branches),
+  nice_to_have_skills: normalizeListText(body.nice_to_have_skills),
+  work_mode: body.work_mode || null,
+  number_of_openings: toNumberOrNull(body.number_of_openings),
+  custom_questions: normalizeListText(body.custom_questions),
+  nda_required: body.nda_required === true || body.nda_required === "true",
+  ctc_type: body.ctc_type || null,
+  min_ctc: toNumberOrNull(body.min_ctc),
+  max_ctc: toNumberOrNull(body.max_ctc),
+  key_responsibilities: normalizeListText(body.key_responsibilities),
+  requirements: normalizeListText(body.requirements),
+});
 
 function getUserId(req) {
   return req.user.id;
@@ -21,65 +68,22 @@ exports.postJob = async (req, res) => {
   try {
     const alumniProfileId = getAlumniProfileId(req);
 
-    const {
-      company_id,
-      job_title,
-      job_description,
-      job_type,
-      location,
-      salary_range,
-      experience_required,
-      skills_required,
-      stipend,
-      application_deadline,
-      allowed_branches,
-      nice_to_have_skills,
-      work_mode,
-      number_of_openings,
-      custom_questions,
-      nda_required,
-      ctc_type,
-      min_ctc,
-      max_ctc,
-      key_responsibilities,
-      requirements,
-      max_applicants_allowed,
-      status,
-    } = req.body;
+    const payload = buildJobPayload(req.body, company.id, alumniProfile.id);
 
-    if (!company_id || !job_title || !job_description) {
-      return res.status(400).json({
-        message: "company_id, job_title and job_description are required.",
-      });
+    if (!payload.job_title || !payload.job_description) {
+      return res
+        .status(400)
+        .json({ error: "job_title and job_description are required." });
     }
 
-    const [newJob] = await knex("jobs")
-      .insert({
-        company_id,
-        alumni_id: alumniProfileId,
-        job_title,
-        job_description,
-        job_type,
-        location,
-        salary_range,
-        experience_required,
-        skills_required,
-        stipend,
-        application_deadline,
-        allowed_branches,
-        nice_to_have_skills,
-        work_mode,
-        number_of_openings,
-        custom_questions,
-        nda_required,
-        ctc_type,
-        min_ctc,
-        max_ctc,
-        key_responsibilities,
-        requirements,
-        max_applicants_allowed,
-        status: status || "active",
-      })
+    const [job] = await db("jobs")
+      .insert(
+        {
+          ...payload,
+          status: "active",
+        },
+        "*"
+      )
       .returning("*");
 
     return res.status(201).json({
@@ -102,6 +106,15 @@ exports.getMyJobs = async (req, res) => {
     const pageNumber = Number(page) || 1;
     const pageSize = Number(limit) || 10;
     const offset = (pageNumber - 1) * pageSize;
+    // Join companies + count applications (for ActivePostings UI)
+    const jobs = await db("jobs as j")
+      .leftJoin("companies as c", "j.company_id", "c.id")
+      .leftJoin("job_applications as ja", "j.id", "ja.job_id")
+      .where("j.alumni_id", alumniProfile.id)
+      .groupBy("j.id", "c.name")
+      .orderBy("j.created_at", "desc")
+      .select("j.*", "c.name as company_name")
+      .count({ applicant_count: "ja.id" });
 
     const baseQuery = knex("jobs").where("alumni_id", alumniProfileId);
 
@@ -127,6 +140,23 @@ exports.getMyJobs = async (req, res) => {
 
     const [jobs, countResult] = await Promise.all([jobsQuery, countQuery]);
     const total = Number(countResult[0]?.total || 0);
+    const normalizedUpdate = {
+      ...updateData,
+      allowed_branches: normalizeListText(updateData.allowed_branches),
+      nice_to_have_skills: normalizeListText(updateData.nice_to_have_skills),
+      work_mode: updateData.work_mode || null,
+      number_of_openings: toNumberOrNull(updateData.number_of_openings),
+      custom_questions: normalizeListText(updateData.custom_questions),
+      nda_required:
+        updateData.nda_required === true || updateData.nda_required === "true",
+      ctc_type: updateData.ctc_type || null,
+      min_ctc: toNumberOrNull(updateData.min_ctc),
+      max_ctc: toNumberOrNull(updateData.max_ctc),
+      key_responsibilities: normalizeListText(updateData.key_responsibilities),
+      requirements: normalizeListText(updateData.requirements),
+    };
+
+    await db("jobs").where({ id }).update(normalizedUpdate);
 
     return res.status(200).json({
       jobs,
@@ -311,6 +341,53 @@ exports.getAllActiveJobs = async (req, res) => {
       page = 1,
       limit = 10,
     } = req.query;
+    const jobs = await db("jobs")
+      .where("status", "active")
+      .orderBy("created_at", "desc");
+
+    return res.json({ jobs });
+  } catch (err) {
+    console.error("getAllJobsStudent error:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+};
+
+// 15. getJobByIdStudent
+exports.getJobByIdStudent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const job = await db("jobs as j")
+      .leftJoin("companies as c", "j.company_id", "c.id")
+      .select(
+        "j.*",
+        "c.name as company_name",
+        "c.website as company_website",
+        "c.industry as company_industry",
+        "c.company_size",
+        "c.about as company_about"
+      )
+      .where("j.id", id)
+      .first();
+
+    if (!job) {
+      return res.status(404).json({ error: "Job not found." });
+    }
+
+    return res.json({ job });
+  } catch (err) {
+    console.error("getJobByIdStudent error:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+};
+
+// 16. applyJob (with Cloudinary resume upload)
+exports.applyJob = async (req, res) => {
+  const userId = req.user?.id;
+  const { job_id } = req.body;
+
+  if (!userId || req.user.role !== "student") {
+    return res.status(403).json({ error: "Only students can apply to jobs." });
+  }
 
     const pageNumber = Number(page) || 1;
     const pageSize = Number(limit) || 10;
@@ -367,9 +444,41 @@ exports.getAllActiveJobs = async (req, res) => {
         totalPages: Math.ceil(total / pageSize),
       },
     });
-  } catch (error) {
-    console.error("Error in getAllActiveJobs:", error);
-    return res.status(500).json({ message: "Internal server error." });
+  } catch (err) {
+    console.error("applyJob error:", err);
+    if (err.message === "You have already applied to this job.") {
+      return res.status(400).json({ error: err.message });
+    }
+    return res.status(500).json({ error: "Server error" });
+  }
+};
+
+// 17. withdrawJobApplication
+exports.withdrawJobApplication = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { applicationId } = req.params;
+
+    if (!userId || req.user.role !== "student") {
+      return res
+        .status(403)
+        .json({ error: "Only students can withdraw applications." });
+    }
+
+    const application = await db("job_applications")
+      .where({ id: applicationId, user_id: userId })
+      .first();
+
+    if (!application) {
+      return res.status(404).json({ error: "Application not found." });
+    }
+
+    await db("job_applications").where({ id: applicationId }).del();
+
+    return res.json({ message: "Application withdrawn successfully." });
+  } catch (err) {
+    console.error("withdrawJobApplication error:", err);
+    return res.status(500).json({ error: "Server error" });
   }
 };
 
