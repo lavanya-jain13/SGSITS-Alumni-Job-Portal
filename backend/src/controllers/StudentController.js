@@ -4,10 +4,34 @@ const cloudinary = require("../config/cloudinary");
 // helper: support both { userId } and { id } in JWT
 const getUserIdFromReq = (req) => req?.user?.userId || req?.user?.id;
 
-// normalize skills to text column (allow string or array)
+// normalize skills to store in text[] (accept array or string)
 const normalizeSkills = (skills) => {
   if (skills == null) return null;
-  return Array.isArray(skills) ? skills.join(", ") : String(skills);
+  if (Array.isArray(skills)) return skills;
+
+  // try parsing JSON array string
+  try {
+    const parsed = JSON.parse(skills);
+    if (Array.isArray(parsed)) return parsed;
+  } catch (e) {
+    // ignore
+  }
+
+  // fallback: comma-separated string -> array of trimmed
+  return String(skills)
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+};
+
+// parse DB skills to array for the frontend
+const parseSkills = (skills) => {
+  if (!skills) return [];
+  if (Array.isArray(skills)) return skills;
+  return String(skills)
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 };
 
 /**
@@ -18,9 +42,21 @@ const getMyProfile = async (req, res) => {
     const userId = getUserIdFromReq(req);
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    const profile = await db("student_profiles")
-      .where({ user_id: userId })
+    const profile = await db("student_profiles as sp")
+      .leftJoin("users as u", "sp.user_id", "u.id")
+      .select("sp.*", "u.email")
+      .where("sp.user_id", userId)
       .first();
+
+    if (profile) {
+      const experiences = await db("student_experience")
+        .where({ student_id: profile.id })
+        .select("id", "position", "company", "duration", "description")
+        .orderBy("created_at", "desc");
+
+      profile.skills = parseSkills(profile.skills);
+      profile.experiences = experiences || [];
+    }
 
     return res.status(200).json({
       exists: !!profile,
@@ -41,8 +77,34 @@ const upsertProfile = async (req, res) => {
     const userId = getUserIdFromReq(req);
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    const { name, studentId, branch, gradYear, skills, resumeUrl } =
-      req.body || {};
+    let {
+      name,
+      studentId,
+      branch,
+      gradYear,
+      skills,
+      resumeUrl,
+      experiences,
+      phone,
+      dateOfBirth,
+      currentYear,
+      cgpa,
+      achievements,
+      summary,
+      yearsOfExperience,
+    } = req.body || {};
+
+    // convert experiences string -> JSON if needed
+    if (typeof experiences === "string") {
+      try {
+        experiences = JSON.parse(experiences);
+      } catch (e) {
+        experiences = [];
+      }
+    }
+
+    // ensure skills are normalized to array or null
+    skills = normalizeSkills(skills);
 
     let finalResumeUrl = resumeUrl || null;
 
@@ -88,6 +150,15 @@ const upsertProfile = async (req, res) => {
       ...(gradYear !== undefined && { grad_year: Number(gradYear) }),
       ...(skills !== undefined && { skills: normalizeSkills(skills) }),
       ...(finalResumeUrl !== undefined && { resume_url: finalResumeUrl }),
+      ...(phone !== undefined && { phone_number: phone }),
+      ...(dateOfBirth !== undefined && { dob: dateOfBirth }),
+      ...(currentYear !== undefined && { current_year: currentYear }),
+      ...(cgpa !== undefined && { cgpa }),
+      ...(achievements !== undefined && { achievements }),
+      ...(summary !== undefined && { proficiency: summary }),
+      ...(yearsOfExperience !== undefined && {
+        years_of_experience: Number(yearsOfExperience),
+      }),
     };
 
     // If profile EXISTS → update
@@ -97,13 +168,38 @@ const upsertProfile = async (req, res) => {
       }
 
       await db("student_profiles").where({ user_id: userId }).update(patch);
+
+      // replace experiences if provided
+      if (Array.isArray(experiences)) {
+        await db("student_experience").where({ student_id: existing.id }).del();
+        const rows = experiences
+          .filter((exp) => exp && (exp.position || exp.title || exp.company))
+          .map((exp) => ({
+            student_id: existing.id,
+            position: exp.position || exp.title || "",
+            company: exp.company || "",
+            duration: exp.duration || "",
+            description:
+              exp.description || (exp.link ? `Link: ${exp.link}` : "") || "",
+          }));
+        if (rows.length) await db("student_experience").insert(rows);
+      }
+
       const updated = await db("student_profiles")
         .where({ user_id: userId })
         .first();
+      const updatedExperiences = await db("student_experience")
+        .where({ student_id: updated.id })
+        .select("id", "position", "company", "duration", "description")
+        .orderBy("created_at", "desc");
 
       return res.status(200).json({
         message: "Profile updated successfully",
-        profile: updated,
+        profile: {
+          ...updated,
+          skills: parseSkills(updated.skills),
+          experiences: updatedExperiences || [],
+        },
       });
     }
 
@@ -135,6 +231,14 @@ const upsertProfile = async (req, res) => {
       grad_year: Number(gradYear),
       skills: normalizeSkills(skills) || null,
       resume_url: finalResumeUrl || null,
+      phone_number: phone || null,
+      dob: dateOfBirth || null,
+      current_year: currentYear || null,
+      cgpa: cgpa || null,
+      achievements: achievements || null,
+      proficiency: summary || null,
+      years_of_experience:
+        yearsOfExperience !== undefined ? Number(yearsOfExperience) : null,
     };
 
     await db("student_profiles").insert(insertRow);
@@ -142,9 +246,28 @@ const upsertProfile = async (req, res) => {
       .where({ user_id: userId })
       .first();
 
+    // insert experiences if provided
+    if (Array.isArray(experiences)) {
+      const rows = experiences
+        .filter((exp) => exp && (exp.position || exp.title || exp.company))
+        .map((exp) => ({
+          student_id: created.id,
+          position: exp.position || exp.title || "",
+          company: exp.company || "",
+          duration: exp.duration || "",
+          description:
+            exp.description || (exp.link ? `Link: ${exp.link}` : "") || "",
+        }));
+      if (rows.length) await db("student_experience").insert(rows);
+    }
+
     return res.status(201).json({
       message: "Profile created successfully",
-      profile: created,
+      profile: {
+        ...created,
+        skills: parseSkills(created.skills),
+        experiences: experiences || [],
+      },
     });
   } catch (error) {
     console.error("Upsert Student Profile Error:", error);

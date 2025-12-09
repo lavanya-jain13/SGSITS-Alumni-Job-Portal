@@ -43,16 +43,19 @@ const StudentProfile = () => {
     email: "",
     phone: "",
     dateOfBirth: "",
+    currentYear: "",
     student_id: "",
     branch: "",
     grad_year: "",
     cgpa: "",
     achievements: "",
+    summary: "",
     skills: [],
     experiences: [],
     resumeUploaded: false,
     resumeFileName: "",
     resumeUrl: "",
+    resumeFile: null,
     desiredRoles: [],
     preferredLocations: [],
     workMode: "hybrid",
@@ -90,24 +93,46 @@ const StudentProfile = () => {
         if (!profile) return;
         const extras = loadExtras();
 
+        const skillNames = Array.isArray(profile.skills)
+          ? profile.skills
+          : (profile.skills || "")
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean);
+
+        const experienceList = Array.isArray(profile.experiences)
+          ? profile.experiences.map((exp) => ({
+              title: exp.title || exp.position || "",
+              company: exp.company || "",
+              duration: exp.duration || "",
+              description: exp.description || "",
+              link: exp.link || "",
+            }))
+          : [];
+
         setProfileData((prev) => ({
           ...prev,
           name: profile.name || "",
           email: profile.email || "",
+          phone: profile.phone_number || extras.phone || "",
+          dateOfBirth: profile.dob || extras.dateOfBirth || "",
+          currentYear: profile.current_year || extras.currentYear || "",
           student_id: profile.student_id || "",
           branch: profile.branch || "",
           grad_year: profile.grad_year || "",
-          skills: profile.skills
-            ? profile.skills
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean)
-                .map((name) => ({ name, proficiency: 3, experience: 1 }))
-            : [],
-          experiences: profile.experiences || [],
+          cgpa: profile.cgpa ?? extras.cgpa ?? "",
+          achievements: profile.achievements ?? extras.achievements ?? "",
+          summary: profile.proficiency ?? extras.summary ?? "",
+          skills: skillNames.map((name) => ({
+            name,
+            proficiency: 3,
+            experience: 1,
+          })),
+          experiences: experienceList,
           resumeUrl: profile.resume_url || "",
           resumeUploaded: !!profile.resume_url,
           resumeFileName: profile.resume_url ? "Uploaded Resume" : "",
+          resumeFile: null,
           desiredRoles: extras.desiredRoles || [],
           preferredLocations: extras.preferredLocations || [],
           workMode: extras.workMode || "hybrid",
@@ -149,6 +174,11 @@ const StudentProfile = () => {
     "Information Technology",
   ];
 
+  const graduationYears = (() => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 8 }, (_, i) => String(currentYear + i));
+  })();
+
   const skillOptions = [
     "React",
     "Angular",
@@ -183,23 +213,96 @@ const StudentProfile = () => {
     setIsLoading(true);
     try {
       const { apiFetch } = await import("@/lib/api");
-      const dataToSend = {
+
+      const cleanedExperiences = (profileData.experiences || [])
+        .map((exp) => ({
+          position: exp.title || exp.position || "",
+          company: exp.company || "",
+          duration: exp.duration || "",
+          description: exp.description || "",
+          link: exp.link || "",
+        }))
+        .filter(
+          (exp) =>
+            exp.position ||
+            exp.company ||
+            exp.duration ||
+            exp.description ||
+            exp.link
+        );
+
+      const basePayload = {
         name: profileData.name,
         studentId: profileData.student_id,
         branch: profileData.branch,
-        gradYear: parseInt(profileData.grad_year) || 2025,
-        // backend expects a string or array of strings; map skill objects to names
+        gradYear: parseInt(profileData.grad_year) || undefined,
+        phone: profileData.phone || "",
+        dateOfBirth: profileData.dateOfBirth || "",
+        currentYear: profileData.currentYear || "",
+        cgpa: profileData.cgpa || "",
+        achievements: profileData.achievements || "",
+        summary: profileData.summary || "",
+        yearsOfExperience: cleanedExperiences.length || 0,
         skills: profileData.skills
           .map((s) => (typeof s === "string" ? s : s.name))
-          .filter(Boolean)
-          .join(","),
+          .filter(Boolean),
         resumeUrl: profileData.resumeUrl || "",
-        experiences: profileData.experiences,
+        experiences: cleanedExperiences,
       };
-      const res = await apiFetch("/student/profile", {
-        method: "PUT",
-        body: JSON.stringify(dataToSend),
+
+      // remove empty/undefined values so validation passes
+      Object.keys(basePayload).forEach((key) => {
+        const val = basePayload[key];
+        const isEmptyArray = Array.isArray(val) && val.length === 0;
+        const isEmptyString = val === "";
+        const isUndefined = val === undefined || val === null;
+        if (isEmptyArray || isEmptyString || isUndefined) {
+          delete basePayload[key];
+        }
       });
+
+      if (!basePayload.resumeUrl) delete basePayload.resumeUrl;
+
+      let res;
+      if (profileData.resumeFile) {
+        const formData = new FormData();
+        Object.entries(basePayload).forEach(([key, value]) => {
+          if (Array.isArray(value)) {
+            formData.append(key, JSON.stringify(value));
+          } else {
+            formData.append(key, value);
+          }
+        });
+        formData.append("resume", profileData.resumeFile);
+
+        const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+        res = await fetch(`${apiBase}/student/profile`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: formData,
+        }).then(async (r) => {
+          const text = await r.text();
+          let parsed = null;
+          try {
+            parsed = text ? JSON.parse(text) : null;
+          } catch (err) {
+            parsed = null;
+          }
+          if (!r.ok) {
+            const err = new Error(parsed?.error || parsed?.message || r.statusText);
+            err.status = r.status;
+            throw err;
+          }
+          return parsed;
+        });
+      } else {
+        res = await apiFetch("/student/profile", {
+          method: "PUT",
+          body: JSON.stringify(basePayload),
+        });
+      }
 
       // Persist extra client-only fields locally so they survive refresh
       const extras = {
@@ -440,6 +543,20 @@ const StudentProfile = () => {
                         </Select>
                       </div>
                       <div className="space-y-2">
+                        <Label htmlFor="studentId">Student ID</Label>
+                        <Input
+                          id="studentId"
+                          value={profileData.student_id}
+                          onChange={(e) =>
+                            setProfileData((prev) => ({
+                              ...prev,
+                              student_id: e.target.value,
+                            }))
+                          }
+                          placeholder="Enter your student ID"
+                        />
+                      </div>
+                      <div className="space-y-2">
                         <Label htmlFor="year">Current Year</Label>
                         <Select
                           value={profileData.currentYear}
@@ -469,6 +586,29 @@ const StudentProfile = () => {
                             <SelectItem value="Recent Graduate">
                               Recent Graduate
                             </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="gradYear">Graduation Year</Label>
+                        <Select
+                          value={profileData.grad_year}
+                          onValueChange={(value) =>
+                            setProfileData((prev) => ({
+                              ...prev,
+                              grad_year: value,
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select graduation year" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {graduationYears.map((year) => (
+                              <SelectItem key={year} value={year}>
+                                {year}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -726,53 +866,107 @@ const StudentProfile = () => {
 
               {/* Resume */}
               <TabsContent value="resume">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="w-5 h-5" /> Resume/CV
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {!profileData.resumeUploaded ? (
-                      <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-                        <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="font-medium mb-2">Upload your resume</h3>
-                        <Button
-                          variant="outline"
-                          onClick={() =>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" /> Resume/CV
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-4">
+                    <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                      <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="font-medium mb-2">Upload your resume</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        PDF, DOC, DOCX up to 5MB
+                      </p>
+                      <input
+                        id="resume-file"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
                             setProfileData((prev) => ({
                               ...prev,
+                              resumeFile: file,
                               resumeUploaded: true,
-                              resumeFileName: "sample_resume.pdf",
-                              resumeUrl:
-                                "https://example.com/sample_resume.pdf",
-                            }))
+                              resumeFileName: file.name,
+                            }));
                           }
-                        >
-                          <Upload className="w-4 h-4 mr-2" /> Choose File
-                        </Button>
-                      </div>
-                    ) : (
+                        }}
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          document.getElementById("resume-file")?.click()
+                        }
+                      >
+                        <Upload className="w-4 h-4 mr-2" /> Choose File
+                      </Button>
+                      {profileData.resumeFileName && (
+                        <p className="mt-2 text-sm font-medium">
+                          Selected: {profileData.resumeFileName}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Or paste a resume URL</Label>
+                      <Input
+                        type="url"
+                        placeholder="https://..."
+                        value={profileData.resumeUrl}
+                        onChange={(e) =>
+                          setProfileData((prev) => ({
+                            ...prev,
+                            resumeUrl: e.target.value,
+                            resumeUploaded: !!e.target.value,
+                            resumeFile: null,
+                            resumeFileName: e.target.value
+                              ? "Linked resume"
+                              : "",
+                          }))
+                        }
+                      />
+                    </div>
+
+                    {(profileData.resumeUrl || profileData.resumeFileName) && (
                       <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
                         <div className="flex items-center gap-3">
                           <FileText className="w-8 h-8 text-primary" />
                           <div>
                             <p className="font-medium">
-                              {profileData.resumeFileName}
+                              {profileData.resumeFileName ||
+                                "Resume attached"}
                             </p>
-                            <p className="text-sm text-muted-foreground">
-                              Uploaded successfully
+                            <p className="text-sm text-muted-foreground truncate max-w-xs">
+                              {profileData.resumeUrl ||
+                                "Will be uploaded on save"}
                             </p>
                           </div>
                         </div>
-                        <Button variant="outline">
-                          <Upload className="w-4 h-4 mr-2" /> Replace
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            setProfileData((prev) => ({
+                              ...prev,
+                              resumeUploaded: false,
+                              resumeFileName: "",
+                              resumeUrl: "",
+                              resumeFile: null,
+                            }))
+                          }
+                        >
+                          <X className="w-4 h-4" />
                         </Button>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
               {/* Preferences */}
               <TabsContent value="preferences">

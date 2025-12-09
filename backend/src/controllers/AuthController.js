@@ -158,16 +158,18 @@ const registerAlumni = async (req, res) => {
 
     const role = "alumni";
   
-    const hashedPassword = await bcrypt.hash(password_hash, 10);
-    await db.transaction(async (trx) => {
-      const [newUser] = await trx("users").insert(
-        {
-          email,
-          password_hash: hashedPassword,
-          role,
-        },
-        ["id"] // important: this returns the id (Postgres syntax)
-      );
+  const hashedPassword = await bcrypt.hash(password_hash, 10);
+  await db.transaction(async (trx) => {
+    const [newUser] = await trx("users").insert(
+      {
+        email,
+        password_hash: hashedPassword,
+        role,
+        status: "pending",
+        is_verified: false,
+      },
+      ["id"] // important: this returns the id (Postgres syntax)
+    );
 
       const [newAlumni] = await trx("alumni_profiles").insert(
         {
@@ -175,7 +177,7 @@ const registerAlumni = async (req, res) => {
           user_id: newUser.id,
           grad_year,
           current_title,
-          // status: "pending", // will update after admin approval
+          status: "pending", // will update after admin approval
         },
         ["id"]
       );
@@ -183,6 +185,7 @@ const registerAlumni = async (req, res) => {
       await trx("companies").insert({
         alumni_id: newAlumni.id,
         user_id: newUser.id,
+        status: "pending",
       });
     });
 
