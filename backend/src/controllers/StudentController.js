@@ -34,6 +34,22 @@ const parseSkills = (skills) => {
     .filter(Boolean);
 };
 
+// normalize list-like fields (array or comma string) to comma-separated string
+const normalizeList = (value) => {
+  if (value == null) return null;
+  if (Array.isArray(value)) return value.filter(Boolean).join(", ");
+  return String(value);
+};
+
+const parseList = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  return String(value)
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+};
+
 /**
  * GET /student/profile
  */
@@ -55,6 +71,8 @@ const getMyProfile = async (req, res) => {
         .orderBy("created_at", "desc");
 
       profile.skills = parseSkills(profile.skills);
+      profile.desired_roles = parseList(profile.desired_roles);
+      profile.preferred_locations = parseList(profile.preferred_locations);
       profile.experiences = experiences || [];
     }
 
@@ -92,6 +110,16 @@ const upsertProfile = async (req, res) => {
       achievements,
       summary,
       yearsOfExperience,
+
+      // EXTRA FIELDS (NEW)
+      address,
+      desiredRoles,
+      preferredLocations,
+      workMode,
+      dataConsent,
+      contactPermissions,
+      profileVisibility,
+      codeOfConduct,
     } = req.body || {};
 
     // convert experiences string -> JSON if needed
@@ -159,6 +187,28 @@ const upsertProfile = async (req, res) => {
       ...(yearsOfExperience !== undefined && {
         years_of_experience: Number(yearsOfExperience),
       }),
+
+      // new fields
+      ...(address !== undefined && { address }),
+      ...(desiredRoles !== undefined && {
+        desired_roles: normalizeList(desiredRoles),
+      }),
+      ...(preferredLocations !== undefined && {
+        preferred_locations: normalizeList(preferredLocations),
+      }),
+      ...(workMode !== undefined && { work_mode: workMode }),
+      ...(dataConsent !== undefined && {
+        consent_data_sharing: !!dataConsent,
+      }),
+      ...(contactPermissions !== undefined && {
+        consent_marketing: !!contactPermissions,
+      }),
+      ...(profileVisibility !== undefined && {
+        consent_profile_visibility: !!profileVisibility,
+      }),
+      ...(codeOfConduct !== undefined && {
+        consent_terms: !!codeOfConduct,
+      }),
     };
 
     // If profile EXISTS → update
@@ -199,6 +249,8 @@ const upsertProfile = async (req, res) => {
           ...updated,
           skills: parseSkills(updated.skills),
           experiences: updatedExperiences || [],
+          desired_roles: parseList(updated.desired_roles),
+          preferred_locations: parseList(updated.preferred_locations),
         },
       });
     }
@@ -239,6 +291,16 @@ const upsertProfile = async (req, res) => {
       proficiency: summary || null,
       years_of_experience:
         yearsOfExperience !== undefined ? Number(yearsOfExperience) : null,
+
+      // new fields
+      address: address || null,
+      desired_roles: normalizeList(desiredRoles) || null,
+      preferred_locations: normalizeList(preferredLocations) || null,
+      work_mode: workMode || null,
+      consent_data_sharing: dataConsent ? true : false,
+      consent_marketing: contactPermissions ? true : false,
+      consent_profile_visibility: profileVisibility ? true : false,
+      consent_terms: codeOfConduct ? true : false,
     };
 
     await db("student_profiles").insert(insertRow);
@@ -267,6 +329,8 @@ const upsertProfile = async (req, res) => {
         ...created,
         skills: parseSkills(created.skills),
         experiences: experiences || [],
+        desired_roles: parseList(created.desired_roles),
+        preferred_locations: parseList(created.preferred_locations),
       },
     });
   } catch (error) {

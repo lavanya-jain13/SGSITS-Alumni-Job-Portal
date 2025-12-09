@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,7 +37,7 @@ const ProfileEditor = ({ profileData, setProfileData, onSave }) => {
   const [isOpen, setIsOpen] = useState(false);
   
   // Local state for editing
-  const [editData, setEditData] = useState({
+  const buildInitial = () => ({
     ...profileData,
     academics: profileData.academics || [
       {
@@ -51,16 +51,17 @@ const ProfileEditor = ({ profileData, setProfileData, onSave }) => {
     ],
     preferences: profileData.preferences || {
       jobTypes: ["Full-time", "Internship"],
-      preferredLocations: ["Indore", "Bangalore"],
-      workMode: "hybrid"
+      preferredLocations: profileData.preferredLocations || [],
+      workMode: profileData.workMode || "hybrid"
     },
     consent: profileData.consent || {
-      dataSharing: true,
-      marketingEmails: false,
-      profileVisibility: true,
-      termsConditions: true
+      dataSharing: profileData.dataConsent || false,
+      marketingEmails: profileData.contactPermissions || false,
+      profileVisibility: profileData.codeOfConduct || false,
+      termsConditions: profileData.codeOfConduct || false
     }
   });
+  const [editData, setEditData] = useState(buildInitial());
 
   const skillOptions = [
     "React", "Angular", "Vue.js", "Node.js", "Python", "Java", "JavaScript", "TypeScript",
@@ -94,6 +95,13 @@ const ProfileEditor = ({ profileData, setProfileData, onSave }) => {
       setIsLoading(false);
     }
   };
+
+  // Refresh modal data when opened or when base profile changes
+  useEffect(() => {
+    if (isOpen) {
+      setEditData(buildInitial());
+    }
+  }, [isOpen, profileData]);
 
   const addSkill = (skillName) => {
     if (skillName && !editData.skills.find(s => s.name === skillName)) {

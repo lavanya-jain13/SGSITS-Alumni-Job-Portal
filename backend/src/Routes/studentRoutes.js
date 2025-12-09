@@ -36,6 +36,22 @@ const putProfileSchema = {
     summary: Joi.string().allow("").optional(),
     yearsOfExperience: Joi.number().integer().min(0).max(50).optional(),
     experiences: Joi.array().items(experienceSchema).optional(),
+
+    // NEW EXTRA FIELDS
+    address: Joi.string().allow("").optional(),
+    desiredRoles: Joi.alternatives(
+      Joi.string(),
+      Joi.array().items(Joi.string())
+    ).optional(),
+    preferredLocations: Joi.alternatives(
+      Joi.string(),
+      Joi.array().items(Joi.string())
+    ).optional(),
+    workMode: Joi.string().max(50).allow("").optional(),
+    dataConsent: Joi.boolean().optional(),
+    contactPermissions: Joi.boolean().optional(),
+    profileVisibility: Joi.boolean().optional(),
+    codeOfConduct: Joi.boolean().optional(),
   }),
 };
 

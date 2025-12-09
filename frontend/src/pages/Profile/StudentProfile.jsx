@@ -29,14 +29,31 @@ import {
   Upload,
   Plus,
   X,
-  MapPin,
   Star,
 } from "lucide-react";
+
+// Helper: get current user id from localStorage
+const getCurrentUserId = () => {
+  try {
+    const raw = localStorage.getItem("user");
+    if (!raw) return null;
+    const user = JSON.parse(raw);
+    return user?.id || null;
+  } catch {
+    return null;
+  }
+};
 
 const StudentProfile = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  const currentUserId = getCurrentUserId();
+  // Per-user key so one user's extras don't leak into another
+  const extrasKey = currentUserId
+    ? `student_profile_extras_${currentUserId}`
+    : "student_profile_extras";
 
   const [profileData, setProfileData] = useState({
     name: "",
@@ -62,12 +79,15 @@ const StudentProfile = () => {
     dataConsent: false,
     codeOfConduct: false,
     contactPermissions: false,
+    // extra fields mapped to DB
+    address: "",
+    profileVisibility: false,
   });
 
   useEffect(() => {
     const loadExtras = () => {
       try {
-        const raw = localStorage.getItem("student_profile_extras");
+        const raw = localStorage.getItem(extrasKey);
         return raw ? JSON.parse(raw) : {};
       } catch {
         return {};
@@ -90,8 +110,28 @@ const StudentProfile = () => {
         const { apiFetch } = await import("@/lib/api");
         const res = await apiFetch("/student/profile");
         const profile = res?.profile;
-        if (!profile) return;
         const extras = loadExtras();
+
+        if (!profile) {
+          // no profile yet → just use extras (if any)
+          setProfileData((prev) => ({
+            ...prev,
+            desiredRoles: extras.desiredRoles || [],
+            preferredLocations: extras.preferredLocations || [],
+            workMode: extras.workMode || "hybrid",
+            summary: extras.summary || "",
+            achievements: extras.achievements || "",
+            cgpa: extras.cgpa || "",
+            phone: extras.phone || "",
+            dateOfBirth: extras.dateOfBirth || "",
+            dataConsent: extras.dataConsent || false,
+            codeOfConduct: extras.codeOfConduct || false,
+            contactPermissions: extras.contactPermissions || false,
+            address: extras.address || "",
+            profileVisibility: extras.profileVisibility || false,
+          }));
+          return;
+        }
 
         const skillNames = Array.isArray(profile.skills)
           ? profile.skills
@@ -122,6 +162,7 @@ const StudentProfile = () => {
           grad_year: profile.grad_year || "",
           cgpa: profile.cgpa ?? extras.cgpa ?? "",
           achievements: profile.achievements ?? extras.achievements ?? "",
+          // backend uses "proficiency" column for summary
           summary: profile.proficiency ?? extras.summary ?? "",
           skills: skillNames.map((name) => ({
             name,
@@ -133,17 +174,29 @@ const StudentProfile = () => {
           resumeUploaded: !!profile.resume_url,
           resumeFileName: profile.resume_url ? "Uploaded Resume" : "",
           resumeFile: null,
-          desiredRoles: extras.desiredRoles || [],
-          preferredLocations: extras.preferredLocations || [],
-          workMode: extras.workMode || "hybrid",
-          summary: extras.summary || "",
-          achievements: extras.achievements || "",
-          cgpa: extras.cgpa || "",
-          phone: extras.phone || "",
-          dateOfBirth: extras.dateOfBirth || "",
-          dataConsent: extras.dataConsent || false,
-          codeOfConduct: extras.codeOfConduct || false,
-          contactPermissions: extras.contactPermissions || false,
+
+          // prefer DB values, fallback to extras
+          desiredRoles: profile.desired_roles || extras.desiredRoles || [],
+          preferredLocations:
+            profile.preferred_locations || extras.preferredLocations || [],
+          workMode: profile.work_mode || extras.workMode || "hybrid",
+          dataConsent:
+            typeof profile.consent_data_sharing === "boolean"
+              ? profile.consent_data_sharing
+              : extras.dataConsent || false,
+          contactPermissions:
+            typeof profile.consent_marketing === "boolean"
+              ? profile.consent_marketing
+              : extras.contactPermissions || false,
+          profileVisibility:
+            typeof profile.consent_profile_visibility === "boolean"
+              ? profile.consent_profile_visibility
+              : extras.profileVisibility || false,
+          codeOfConduct:
+            typeof profile.consent_terms === "boolean"
+              ? profile.consent_terms
+              : extras.codeOfConduct || false,
+          address: profile.address || extras.address || "",
         }));
       } catch (err) {
         console.error("Failed to load profile", err);
@@ -159,9 +212,91 @@ const StudentProfile = () => {
         }
       }
     };
-    loadProfile();
-  }, []);
 
+    // reset state when user changes
+    setProfileData((prev) => ({
+      ...prev,
+      name: "",
+      email: "",
+      phone: "",
+      dateOfBirth: "",
+      currentYear: "",
+      student_id: "",
+      branch: "",
+      grad_year: "",
+      cgpa: "",
+      achievements: "",
+      summary: "",
+      skills: [],
+      experiences: [],
+      resumeUploaded: false,
+      resumeFileName: "",
+      resumeUrl: "",
+      resumeFile: null,
+      desiredRoles: [],
+      preferredLocations: [],
+      workMode: "hybrid",
+      dataConsent: false,
+      codeOfConduct: false,
+      contactPermissions: false,
+      address: "",
+      profileVisibility: false,
+    }));
+
+    loadProfile();
+  }, [extrasKey, navigate, toast]);
+
+  const profileSections = [
+    {
+      id: "personal",
+      title: "Personal Information",
+      description: "Add your basic details like name and contact info",
+      completed: !!(profileData.name && profileData.student_id),
+      weight: 20,
+    },
+    {
+      id: "academic",
+      title: "Academic Details",
+      description: "Enter your branch and graduation year",
+      completed: !!(profileData.branch && profileData.grad_year),
+      weight: 20,
+    },
+    {
+      id: "skills",
+      title: "Skills & Expertise",
+      description: "List your technical skills",
+      completed: profileData.skills.length >= 1,
+      weight: 20,
+    },
+    {
+      id: "experience",
+      title: "Experience",
+      description: "Add your work experience or projects",
+      completed:
+        profileData.experiences && profileData.experiences.length >= 1,
+      weight: 20,
+    },
+    {
+      id: "resume",
+      title: "Resume/CV",
+      description: "Upload your resume to apply for jobs",
+      completed: profileData.resumeUploaded,
+      weight: 10,
+    },
+    {
+      id: "preferences",
+      title: "Job Preferences",
+      description: "Set your preferred roles and locations",
+      completed:
+        profileData.desiredRoles && profileData.desiredRoles.length > 0,
+      weight: 10,
+    },
+  ];
+
+  const completionPercentage = profileSections.reduce(
+    (total, section) => total + (section.completed ? section.weight : 0),
+    0
+  );
   const { sections: profileSections, completionPercentage } =
     calculateProfileCompletion(profileData);
 
@@ -248,6 +383,16 @@ const StudentProfile = () => {
           .filter(Boolean),
         resumeUrl: profileData.resumeUrl || "",
         experiences: cleanedExperiences,
+
+        // extra fields → backend
+        address: profileData.address || "",
+        desiredRoles: profileData.desiredRoles || [],
+        preferredLocations: profileData.preferredLocations || [],
+        workMode: profileData.workMode || "",
+        dataConsent: profileData.dataConsent || false,
+        contactPermissions: profileData.contactPermissions || false,
+        profileVisibility: profileData.profileVisibility || false,
+        codeOfConduct: profileData.codeOfConduct || false,
       };
 
       // remove empty/undefined values so validation passes
@@ -275,7 +420,8 @@ const StudentProfile = () => {
         });
         formData.append("resume", profileData.resumeFile);
 
-        const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+        const apiBase =
+          import.meta.env.VITE_API_URL || "http://localhost:5000/api";
         res = await fetch(`${apiBase}/student/profile`, {
           method: "PUT",
           headers: {
@@ -291,7 +437,9 @@ const StudentProfile = () => {
             parsed = null;
           }
           if (!r.ok) {
-            const err = new Error(parsed?.error || parsed?.message || r.statusText);
+            const err = new Error(
+              parsed?.error || parsed?.message || r.statusText
+            );
             err.status = r.status;
             throw err;
           }
@@ -317,14 +465,17 @@ const StudentProfile = () => {
         dataConsent: profileData.dataConsent || false,
         codeOfConduct: profileData.codeOfConduct || false,
         contactPermissions: profileData.contactPermissions || false,
+        address: profileData.address || "",
+        profileVisibility: profileData.profileVisibility || false,
       };
-      localStorage.setItem("student_profile_extras", JSON.stringify(extras));
+      localStorage.setItem(extrasKey, JSON.stringify(extras));
 
       toast({
         title: "Profile updated!",
         description: "Your profile has been saved successfully.",
       });
     } catch (err) {
+      console.error(err);
       toast({
         title: "Error",
         description: "Failed to save profile.",
@@ -866,107 +1017,110 @@ const StudentProfile = () => {
 
               {/* Resume */}
               <TabsContent value="resume">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-5 h-5" /> Resume/CV
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-4">
-                    <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-                      <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-medium mb-2">Upload your resume</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        PDF, DOC, DOCX up to 5MB
-                      </p>
-                      <input
-                        id="resume-file"
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setProfileData((prev) => ({
-                              ...prev,
-                              resumeFile: file,
-                              resumeUploaded: true,
-                              resumeFileName: file.name,
-                            }));
-                          }
-                        }}
-                      />
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          document.getElementById("resume-file")?.click()
-                        }
-                      >
-                        <Upload className="w-4 h-4 mr-2" /> Choose File
-                      </Button>
-                      {profileData.resumeFileName && (
-                        <p className="mt-2 text-sm font-medium">
-                          Selected: {profileData.resumeFileName}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="w-5 h-5" /> Resume/CV
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-4">
+                      <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                        <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="font-medium mb-2">
+                          Upload your resume
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          PDF, DOC, DOCX up to 5MB
                         </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Or paste a resume URL</Label>
-                      <Input
-                        type="url"
-                        placeholder="https://..."
-                        value={profileData.resumeUrl}
-                        onChange={(e) =>
-                          setProfileData((prev) => ({
-                            ...prev,
-                            resumeUrl: e.target.value,
-                            resumeUploaded: !!e.target.value,
-                            resumeFile: null,
-                            resumeFileName: e.target.value
-                              ? "Linked resume"
-                              : "",
-                          }))
-                        }
-                      />
-                    </div>
-
-                    {(profileData.resumeUrl || profileData.resumeFileName) && (
-                      <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <FileText className="w-8 h-8 text-primary" />
-                          <div>
-                            <p className="font-medium">
-                              {profileData.resumeFileName ||
-                                "Resume attached"}
-                            </p>
-                            <p className="text-sm text-muted-foreground truncate max-w-xs">
-                              {profileData.resumeUrl ||
-                                "Will be uploaded on save"}
-                            </p>
-                          </div>
-                        </div>
+                        <input
+                          id="resume-file"
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setProfileData((prev) => ({
+                                ...prev,
+                                resumeFile: file,
+                                resumeUploaded: true,
+                                resumeFileName: file.name,
+                              }));
+                            }
+                          }}
+                        />
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           onClick={() =>
-                            setProfileData((prev) => ({
-                              ...prev,
-                              resumeUploaded: false,
-                              resumeFileName: "",
-                              resumeUrl: "",
-                              resumeFile: null,
-                            }))
+                            document.getElementById("resume-file")?.click()
                           }
                         >
-                          <X className="w-4 h-4" />
+                          <Upload className="w-4 h-4 mr-2" /> Choose File
                         </Button>
+                        {profileData.resumeFileName && (
+                          <p className="mt-2 text-sm font-medium">
+                            Selected: {profileData.resumeFileName}
+                          </p>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+
+                      <div className="space-y-2">
+                        <Label>Or paste a resume URL</Label>
+                        <Input
+                          type="url"
+                          placeholder="https://..."
+                          value={profileData.resumeUrl}
+                          onChange={(e) =>
+                            setProfileData((prev) => ({
+                              ...prev,
+                              resumeUrl: e.target.value,
+                              resumeUploaded: !!e.target.value,
+                              resumeFile: null,
+                              resumeFileName: e.target.value
+                                ? "Linked resume"
+                                : "",
+                            }))
+                          }
+                        />
+                      </div>
+
+                      {(profileData.resumeUrl ||
+                        profileData.resumeFileName) && (
+                        <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <FileText className="w-8 h-8 text-primary" />
+                            <div>
+                              <p className="font-medium">
+                                {profileData.resumeFileName ||
+                                  "Resume attached"}
+                              </p>
+                              <p className="text-sm text-muted-foreground truncate max-w-xs">
+                                {profileData.resumeUrl ||
+                                  "Will be uploaded on save"}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            onClick={() =>
+                              setProfileData((prev) => ({
+                                ...prev,
+                                resumeUploaded: false,
+                                resumeFileName: "",
+                                resumeUrl: "",
+                                resumeFile: null,
+                              }))
+                            }
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
               {/* Preferences */}
               <TabsContent value="preferences">
