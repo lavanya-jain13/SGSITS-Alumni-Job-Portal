@@ -19,6 +19,8 @@
     --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
     --primary-glow: 221 83% 65%;
+    --primary: 203 96% 18%;/*changed*/
+    --primary-hover: 203 96% 22%;/*changed*/
 
     /* Sidebar theme (dark blue unified) */
     --sidebar-background: 221 44% 15%; /* 🌌 Dark Blue */

@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import ProfileCompletionMeter from "@/components/profile/ProfileCompletionMeter";
 import ProfileEditor from "@/components/profile/ProfileEditor";
+import { calculateProfileCompletion } from "@/lib/profileProgress";
 import { getToken, setToken } from "@/lib/api";
 import {
   User,
@@ -161,56 +162,8 @@ const StudentProfile = () => {
     loadProfile();
   }, []);
 
-  const profileSections = [
-    {
-      id: "personal",
-      title: "Personal Information",
-      description: "Add your basic details like name and contact info",
-      completed: !!(profileData.name && profileData.student_id),
-      weight: 20,
-    },
-    {
-      id: "academic",
-      title: "Academic Details",
-      description: "Enter your branch and graduation year",
-      completed: !!(profileData.branch && profileData.grad_year),
-      weight: 20,
-    },
-    {
-      id: "skills",
-      title: "Skills & Expertise",
-      description: "List your technical skills",
-      completed: profileData.skills.length >= 1,
-      weight: 20,
-    },
-    {
-      id: "experience",
-      title: "Experience",
-      description: "Add your work experience or projects",
-      completed: profileData.experiences && profileData.experiences.length >= 1,
-      weight: 20,
-    },
-    {
-      id: "resume",
-      title: "Resume/CV",
-      description: "Upload your resume to apply for jobs",
-      completed: profileData.resumeUploaded,
-      weight: 10,
-    },
-    {
-      id: "preferences",
-      title: "Job Preferences",
-      description: "Set your preferred roles and locations",
-      completed:
-        profileData.desiredRoles && profileData.desiredRoles.length > 0,
-      weight: 10,
-    },
-  ];
-
-  const completionPercentage = profileSections.reduce(
-    (total, section) => total + (section.completed ? section.weight : 0),
-    0
-  );
+  const { sections: profileSections, completionPercentage } =
+    calculateProfileCompletion(profileData);
 
   const branches = [
     "Computer Science Engineering",
