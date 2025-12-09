@@ -1,5 +1,5 @@
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
 
 const express = require("express");
 const app = express();
@@ -13,7 +13,6 @@ const adminRoutes = require("./Routes/adminRoutes");
 const authUtilityRoutes = require("./Routes/authUtilityRoutes");
 const JobRoutes = require("./Routes/JobRoutes");
 const utilityRoutes = require("./Routes/utilityRoutes");
-const ProjectRoutes = require("./Routes/projectRoutes");
 const OtherRoutes = require("./Routes/otherRoutes");
 
 // const app = require("./app");
@@ -22,7 +21,6 @@ const PORT = process.env.PORT || 5004;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
 
 // ==================== MIDDLEWARE ====================
 app.use(cors());
@@ -36,7 +34,6 @@ app.use("/api/alumni", alumniRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/authUtil", authUtilityRoutes);
 app.use("/api/job", JobRoutes);
-app.use("/api/project", ProjectRoutes);
 app.use("/api/other", OtherRoutes);
 app.use("/api", utilityRoutes);
 
@@ -49,8 +46,6 @@ app.get("/", (req, res) => {
 app.use((err, req, res, next) => {
   console.error("❌ Server Error:", err.stack);
   res.status(500).json({ error: "Internal server error" });
-
-
 });
 
 module.exports = app;

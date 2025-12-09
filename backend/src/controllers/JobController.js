@@ -1,3 +1,10 @@
+// src/controllers/JobController.js
+const knex = require("../config/db");
+
+// ---------- Helpers ----------
+function getAlumniProfileId(req) {
+  return req.user.alumni_profile_id; // adjust if different
+}
 // src/controllers/jobController.js
 const db = require("../config/db");
 const cloudinary = require("../config/cloudinary");
@@ -46,65 +53,20 @@ const buildJobPayload = (body, companyId, alumniId) => ({
   requirements: normalizeListText(body.requirements),
 });
 
-// upload a buffer (from multer.memoryStorage) to Cloudinary
-const uploadBufferToCloudinary = (buffer, folder) => {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      { folder },
-      (error, result) => {
-        if (error) return reject(error);
-        resolve(result);
-      }
-    );
-    stream.end(buffer);
-  });
-};
+function getUserId(req) {
+  return req.user.id;
+}
 
-// get alumni_profile.id for current user
-const getAlumniProfileByUserId = async (userId) => {
-  return db("alumni_profiles").where({ user_id: userId }).first();
-};
+async function findOwnedJob(jobId, alumniProfileId) {
+  return knex("jobs").where({ id: jobId, alumni_id: alumniProfileId }).first();
+}
 
-// ensure that current user (alumni) owns this job
-const ensureJobOwnedByAlumniUser = async (jobId, userId) => {
-  const alumniProfile = await getAlumniProfileByUserId(userId);
-  if (!alumniProfile) return null;
+// ================== ALUMNI SIDE: JOB MANAGEMENT ==================
 
-  const job = await db("jobs")
-    .where({ id: jobId, alumni_id: alumniProfile.id })
-    .first();
-
-  return job || null;
-};
-
-// ---------------------- ALUMNI SIDE ----------------------
-
-// 1. postJob
+// 1. Post a new job
 exports.postJob = async (req, res) => {
   try {
-    const userId = req.user?.id;
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({ error: "Only alumni can post jobs." });
-    }
-
-    const alumniProfile = await getAlumniProfileByUserId(userId);
-    if (!alumniProfile) {
-      return res
-        .status(400)
-        .json({ error: "Alumni profile not found. Complete profile first." });
-    }
-
-    // Find company linked to this alumni (simple version: first company)
-    const company = await db("companies")
-      .where({ alumni_id: alumniProfile.id })
-      .first();
-
-    if (!company) {
-      return res.status(400).json({
-        error:
-          "No company found for your profile. Please submit your company details first.",
-      });
-    }
+    const alumniProfileId = getAlumniProfileId(req);
 
     const payload = buildJobPayload(req.body, company.id, alumniProfile.id);
 
@@ -124,30 +86,26 @@ exports.postJob = async (req, res) => {
       )
       .returning("*");
 
-    return res
-      .status(201)
-      .json({ message: "Job posted successfully.", job: job });
-  } catch (err) {
-    console.error("postJob error:", err);
-    return res.status(500).json({ error: "Server error" });
+    return res.status(201).json({
+      message: "Job posted successfully.",
+      job: newJob,
+    });
+  } catch (error) {
+    console.error("Error in postJob:", error);
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
-// 2. getMyJobs (alumni)
+// 2. Get jobs posted by logged-in alumni
 exports.getMyJobs = async (req, res) => {
   try {
-    const userId = req.user?.id;
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({ error: "Only alumni can view their jobs." });
-    }
+    const alumniProfileId = getAlumniProfileId(req);
 
-    const alumniProfile = await getAlumniProfileByUserId(userId);
-    if (!alumniProfile) {
-      return res
-        .status(400)
-        .json({ error: "Alumni profile not found. Complete profile first." });
-    }
+    const { status, search, page = 1, limit = 10 } = req.query;
 
+    const pageNumber = Number(page) || 1;
+    const pageSize = Number(limit) || 10;
+    const offset = (pageNumber - 1) * pageSize;
     // Join companies + count applications (for ActivePostings UI)
     const jobs = await db("jobs as j")
       .leftJoin("companies as c", "j.company_id", "c.id")
@@ -158,61 +116,30 @@ exports.getMyJobs = async (req, res) => {
       .select("j.*", "c.name as company_name")
       .count({ applicant_count: "ja.id" });
 
-    return res.json({ jobs });
-  } catch (err) {
-    console.error("getMyJobs error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
+    const baseQuery = knex("jobs").where("alumni_id", alumniProfileId);
 
-// 3. getJobById (alumni – only own job)
-exports.getJobById = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const { id } = req.params;
-
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({ error: "Only alumni can view this." });
+    if (status) {
+      baseQuery.andWhere("status", status);
     }
 
-    const job = await ensureJobOwnedByAlumniUser(id, userId);
-    if (!job) {
-      return res
-        .status(404)
-        .json({ error: "Job not found or not owned by you." });
+    if (search) {
+      baseQuery.andWhere((qb) => {
+        qb.whereILike("job_title", `%${search}%`)
+          .orWhereILike("location", `%${search}%`)
+          .orWhereILike("skills_required", `%${search}%`);
+      });
     }
 
-    return res.json({ job });
-  } catch (err) {
-    console.error("getJobById error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
+    const jobsQuery = baseQuery
+      .clone()
+      .orderBy("created_at", "desc")
+      .limit(pageSize)
+      .offset(offset);
 
-// 4. updateJob
-exports.updateJob = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const { id } = req.params;
+    const countQuery = baseQuery.clone().count("* as total");
 
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({ error: "Only alumni can update jobs." });
-    }
-
-    const job = await ensureJobOwnedByAlumniUser(id, userId);
-    if (!job) {
-      return res
-        .status(404)
-        .json({ error: "Job not found or not owned by you." });
-    }
-
-    const updateData = { ...req.body, updated_at: db.fn.now() };
-
-    // don't allow changing ids
-    delete updateData.id;
-    delete updateData.company_id;
-    delete updateData.alumni_id;
-
+    const [jobs, countResult] = await Promise.all([jobsQuery, countQuery]);
+    const total = Number(countResult[0]?.total || 0);
     const normalizedUpdate = {
       ...updateData,
       allowed_branches: normalizeListText(updateData.allowed_branches),
@@ -231,274 +158,189 @@ exports.updateJob = async (req, res) => {
 
     await db("jobs").where({ id }).update(normalizedUpdate);
 
-    const updated = await db("jobs").where({ id }).first();
-    return res.json({ message: "Job updated successfully.", job: updated });
-  } catch (err) {
-    console.error("updateJob error:", err);
-    return res.status(500).json({ error: "Server error" });
+    return res.status(200).json({
+      jobs,
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: pageSize,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    });
+  } catch (error) {
+    console.error("Error in getMyJobs:", error);
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
-// 5. deleteJob
+// 3. Get single job (owned by alumni)
+exports.getMyJobById = async (req, res) => {
+  try {
+    const alumniProfileId = getAlumniProfileId(req);
+    const { jobId } = req.params;
+
+    const job = await findOwnedJob(jobId, alumniProfileId);
+    if (!job) {
+      return res
+        .status(404)
+        .json({ message: "Job not found or not owned by you." });
+    }
+
+    return res.status(200).json({ job });
+  } catch (error) {
+    console.error("Error in getMyJobById:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// 4. Update job (full + partial)
+exports.updateJob = async (req, res) => {
+  try {
+    const alumniProfileId = getAlumniProfileId(req);
+    const { jobId } = req.params;
+
+    const job = await findOwnedJob(jobId, alumniProfileId);
+    if (!job) {
+      return res
+        .status(404)
+        .json({ message: "Job not found or not owned by you." });
+    }
+
+    const allowedFields = [
+      "company_id",
+      "job_title",
+      "job_description",
+      "job_type",
+      "location",
+      "salary_range",
+      "experience_required",
+      "skills_required",
+      "stipend",
+      "application_deadline",
+      "allowed_branches",
+      "nice_to_have_skills",
+      "work_mode",
+      "number_of_openings",
+      "custom_questions",
+      "nda_required",
+      "ctc_type",
+      "min_ctc",
+      "max_ctc",
+      "key_responsibilities",
+      "requirements",
+      "max_applicants_allowed",
+      "status",
+    ];
+
+    const updateData = {};
+    allowedFields.forEach((field) => {
+      if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+        updateData[field] = req.body[field];
+      }
+    });
+
+    if (Object.keys(updateData).length === 0) {
+      return res
+        .status(400)
+        .json({ message: "No valid fields provided for update." });
+    }
+
+    updateData.updated_at = knex.fn.now();
+
+    const [updatedJob] = await knex("jobs")
+      .where({ id: jobId, alumni_id: alumniProfileId })
+      .update(updateData)
+      .returning("*");
+
+    return res.status(200).json({
+      message: "Job updated successfully.",
+      job: updatedJob,
+    });
+  } catch (error) {
+    console.error("Error in updateJob:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// 5. Delete job
 exports.deleteJob = async (req, res) => {
   try {
-    const userId = req.user?.id;
-    const { id } = req.params;
+    const alumniProfileId = getAlumniProfileId(req);
+    const { jobId } = req.params;
 
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({ error: "Only alumni can delete jobs." });
-    }
-
-    const job = await ensureJobOwnedByAlumniUser(id, userId);
+    const job = await findOwnedJob(jobId, alumniProfileId);
     if (!job) {
       return res
         .status(404)
-        .json({ error: "Job not found or not owned by you." });
+        .json({ message: "Job not found or not owned by you." });
     }
 
-    await db("jobs").where({ id }).del();
-    return res.json({ message: "Job deleted successfully." });
-  } catch (err) {
-    console.error("deleteJob error:", err);
-    return res.status(500).json({ error: "Server error" });
+    await knex("jobs").where({ id: jobId, alumni_id: alumniProfileId }).del();
+
+    return res.status(200).json({ message: "Job deleted successfully." });
+  } catch (error) {
+    console.error("Error in deleteJob:", error);
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
-// 6. repostJob (set status active, optionally change max_applicants_allowed)
+// 6. Repost / duplicate job
 exports.repostJob = async (req, res) => {
   try {
-    const userId = req.user?.id;
-    const { id } = req.params;
-    const { max_applicants_allowed } = req.body;
+    const alumniProfileId = getAlumniProfileId(req);
+    const { jobId } = req.params;
 
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({ error: "Only alumni can repost jobs." });
-    }
-
-    const job = await ensureJobOwnedByAlumniUser(id, userId);
-    if (!job) {
+    const existingJob = await findOwnedJob(jobId, alumniProfileId);
+    if (!existingJob) {
       return res
         .status(404)
-        .json({ error: "Job not found or not owned by you." });
+        .json({ message: "Job not found or not owned by you." });
     }
 
-    const updateObj = {
-      status: "active",
-      updated_at: db.fn.now(),
+    const {
+      application_deadline: newDeadline,
+      status,
+      ...restBody
+    } = req.body || {};
+
+    const jobToCopy = { ...existingJob };
+    delete jobToCopy.id;
+    delete jobToCopy.created_at;
+    delete jobToCopy.updated_at;
+
+    const insertData = {
+      ...jobToCopy,
+      ...restBody,
+      application_deadline: newDeadline || existingJob.application_deadline,
+      status: status || "active",
+      alumni_id: alumniProfileId,
     };
 
-    if (max_applicants_allowed && Number(max_applicants_allowed) > 0) {
-      updateObj.max_applicants_allowed = Number(max_applicants_allowed);
-    }
+    const [newJob] = await knex("jobs").insert(insertData).returning("*");
 
-    await db("jobs").where({ id }).update(updateObj);
-
-    const updated = await db("jobs").where({ id }).first();
-    return res.json({ message: "Job reposted.", job: updated });
-  } catch (err) {
-    console.error("repostJob error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// 7. getJobApplicationsCount (per job)
-exports.getJobApplicationsCount = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const { jobId } = req.params;
-
-    if (!userId || req.user.role !== "alumni") {
-      return res
-        .status(403)
-        .json({ error: "Only alumni can view application counts." });
-    }
-
-    const job = await ensureJobOwnedByAlumniUser(jobId, userId);
-    if (!job) {
-      return res
-        .status(404)
-        .json({ error: "Job not found or not owned by you." });
-    }
-
-    const row = await db("job_applications")
-      .where({ job_id: jobId })
-      .count("* as count")
-      .first();
-
-    return res.json({ jobId, totalApplications: Number(row?.count || 0) });
-  } catch (err) {
-    console.error("getJobApplicationsCount error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// 8. getJobUnreadApplicationsCount
-exports.getJobUnreadApplicationsCount = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const { jobId } = req.params;
-
-    if (!userId || req.user.role !== "alumni") {
-      return res
-        .status(403)
-        .json({ error: "Only alumni can view unread application counts." });
-    }
-
-    const job = await ensureJobOwnedByAlumniUser(jobId, userId);
-    if (!job) {
-      return res
-        .status(404)
-        .json({ error: "Job not found or not owned by you." });
-    }
-
-    const row = await db("job_applications")
-      .where({ job_id: jobId, is_read: false })
-      .count("* as count")
-      .first();
-
-    return res.json({ jobId, unreadApplications: Number(row?.count || 0) });
-  } catch (err) {
-    console.error("getJobUnreadApplicationsCount error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// 9. viewJobApplicants (detailed list)
-exports.viewJobApplicants = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const { jobId } = req.params;
-
-    if (!userId || req.user.role !== "alumni") {
-      return res
-        .status(403)
-        .json({ error: "Only alumni can view applicants." });
-    }
-
-    const job = await ensureJobOwnedByAlumniUser(jobId, userId);
-    if (!job) {
-      return res
-        .status(404)
-        .json({ error: "Job not found or not owned by you." });
-    }
-
-    const applicants = await db("job_applications as ja")
-      .join("users as u", "ja.user_id", "u.id")
-      .leftJoin("student_profiles as sp", "sp.user_id", "u.id")
-      .where("ja.job_id", jobId)
-      .select(
-        "ja.id as application_id",
-        "ja.status as application_status",
-        "ja.is_read",
-        "ja.resume_url",
-        "ja.applied_at",
-        "u.id as user_id",
-        "u.email as user_email",
-        "sp.name as student_name",
-        "sp.branch as student_branch",
-        "sp.skills as student_skills",
-        "sp.grad_year as student_grad_year"
-      )
-      .orderBy("ja.applied_at", "desc");
-
-    return res.json({ jobId, applicants });
-  } catch (err) {
-    console.error("viewJobApplicants error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// 10. markJobApplicationRead
-exports.markJobApplicationRead = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const { applicationId } = req.params;
-
-    if (!userId || req.user.role !== "alumni") {
-      return res
-        .status(403)
-        .json({ error: "Only alumni can mark applications as read." });
-    }
-
-    const application = await db("job_applications")
-      .where({ id: applicationId })
-      .first();
-
-    if (!application) {
-      return res.status(404).json({ error: "Application not found." });
-    }
-
-    const job = await ensureJobOwnedByAlumniUser(application.job_id, userId);
-    if (!job) {
-      return res
-        .status(403)
-        .json({ error: "You are not authorized to modify this job." });
-    }
-
-    await db("job_applications")
-      .where({ id: applicationId })
-      .update({ is_read: true });
-
-    return res.json({ message: "Application marked as read." });
-  } catch (err) {
-    console.error("markJobApplicationRead error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// 11–13. accept / reject / hold job application
-const updateJobApplicationStatus = async (req, res, newStatus) => {
-  try {
-    const userId = req.user?.id;
-    const { applicationId } = req.params;
-
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({
-        error: "Only alumni can change job application status.",
-      });
-    }
-
-    const application = await db("job_applications")
-      .where({ id: applicationId })
-      .first();
-
-    if (!application) {
-      return res.status(404).json({ error: "Application not found." });
-    }
-
-    const job = await ensureJobOwnedByAlumniUser(application.job_id, userId);
-    if (!job) {
-      return res
-        .status(403)
-        .json({ error: "You are not authorized to modify this job." });
-    }
-
-    await db("job_applications")
-      .where({ id: applicationId })
-      .update({ status: newStatus, is_read: true });
-
-    return res.json({
-      message: `Application marked as ${newStatus}.`,
+    return res.status(201).json({
+      message: "Job reposted successfully.",
+      job: newJob,
     });
-  } catch (err) {
-    console.error("updateJobApplicationStatus error:", err);
-    return res.status(500).json({ error: "Server error" });
+  } catch (error) {
+    console.error("Error in repostJob:", error);
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
-exports.acceptJobApplication = (req, res) =>
-  updateJobApplicationStatus(req, res, "accepted");
 
-exports.rejectJobApplication = (req, res) =>
-  updateJobApplicationStatus(req, res, "rejected");
+// ================== STUDENT SIDE: JOB BROWSING ==================
 
-exports.holdJobApplication = (req, res) =>
-  updateJobApplicationStatus(req, res, "on_hold");
-
-// ---------------------- STUDENT SIDE ----------------------
-
-// 14. getAllJobsStudent
-exports.getAllJobsStudent = async (req, res) => {
+// 7. Get all active jobs (for students)
+exports.getAllActiveJobs = async (req, res) => {
   try {
+    const {
+      search,
+      job_type,
+      work_mode,
+      location: locationQuery,
+      page = 1,
+      limit = 10,
+    } = req.query;
     const jobs = await db("jobs")
       .where("status", "active")
       .orderBy("created_at", "desc");
@@ -547,102 +389,60 @@ exports.applyJob = async (req, res) => {
     return res.status(403).json({ error: "Only students can apply to jobs." });
   }
 
-  if (!job_id) {
-    return res.status(400).json({ error: "job_id is required." });
-  }
+    const pageNumber = Number(page) || 1;
+    const pageSize = Number(limit) || 10;
+    const offset = (pageNumber - 1) * pageSize;
 
-  try {
-    // 1) Fetch job
-    const job = await db("jobs").where({ id: job_id }).first();
-    if (!job) {
-      return res.status(404).json({ error: "Job not found." });
+    const baseQuery = knex("jobs as j")
+      .join("companies as c", "j.company_id", "c.id")
+      .leftJoin("alumni_profiles as ap", "j.alumni_id", "ap.id")
+      .where("j.status", "active");
+
+    if (job_type) {
+      baseQuery.andWhere("j.job_type", job_type);
     }
 
-    // 2) Check job status
-    if (job.status !== "active") {
-      return res.status(400).json({
-        error: `This job is currently ${job.status} and cannot accept new applications.`,
+    if (work_mode) {
+      baseQuery.andWhere("j.work_mode", work_mode);
+    }
+
+    if (locationQuery) {
+      baseQuery.andWhereILike("j.location", `%${locationQuery}%`);
+    }
+
+    if (search) {
+      baseQuery.andWhere((qb) => {
+        qb.whereILike("j.job_title", `%${search}%`)
+          .orWhereILike("j.location", `%${search}%`)
+          .orWhereILike("j.skills_required", `%${search}%`)
+          .orWhereILike("c.name", `%${search}%`);
       });
     }
 
-    // 3) Current applications count
-    const countRow = await db("job_applications")
-      .where({ job_id })
-      .count("id as count")
-      .first();
-    const currentCount = Number(countRow?.count || 0);
+    const jobsQuery = baseQuery
+      .clone()
+      .select(
+        "j.*",
+        "c.name as company_name",
+        "ap.name as posted_by_alumni_name"
+      )
+      .orderBy("j.created_at", "desc")
+      .limit(pageSize)
+      .offset(offset);
 
-    if (currentCount >= job.max_applicants_allowed) {
-      return res.status(400).json({
-        error: "Application limit reached for this job.",
-      });
-    }
+    const countQuery = baseQuery.clone().count("j.id as total");
 
-    // 4) Check duplicate application
-    const existing = await db("job_applications")
-      .where({ job_id, user_id: userId })
-      .first();
-    if (existing) {
-      return res
-        .status(400)
-        .json({ error: "You have already applied to this job." });
-    }
+    const [jobs, countResult] = await Promise.all([jobsQuery, countQuery]);
+    const total = Number(countResult[0]?.total || 0);
 
-    // 5) Handle resume upload
-    let resumeUrl = null;
-    if (req.file && req.file.buffer) {
-      const uploadResult = await uploadBufferToCloudinary(
-        req.file.buffer,
-        "alumni-portal/resumes"
-      );
-      resumeUrl = uploadResult.secure_url;
-    } else if (req.body.resume_url) {
-      resumeUrl = req.body.resume_url;
-    } else {
-      return res
-        .status(400)
-        .json({ error: "Resume file (resume) is required." });
-    }
-
-    // 6) Do everything in a transaction
-    const application = await db.transaction(async (trx) => {
-      const [app] = await trx("job_applications")
-        .insert(
-          {
-            job_id,
-            user_id: userId,
-            resume_url: resumeUrl,
-            status: "pending",
-            is_read: false,
-          },
-          ["id", "job_id", "user_id", "resume_url", "status", "applied_at"]
-        )
-        .catch((err) => {
-          if (err.code === "23505") {
-            throw new Error("You have already applied to this job.");
-          }
-          throw err;
-        });
-
-      // recalc count and pause if needed
-      const newCountRow = await trx("job_applications")
-        .where({ job_id })
-        .count("id as count")
-        .first();
-      const newCount = Number(newCountRow?.count || 0);
-
-      if (newCount >= job.max_applicants_allowed) {
-        await trx("jobs")
-          .where({ id: job_id })
-          .update({ status: "paused", updated_at: trx.fn.now() });
-      }
-
-      return app;
-    });
-
-    return res.status(201).json({
-      message: "Job application submitted successfully.",
-      application,
+    return res.status(200).json({
+      jobs,
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: pageSize,
+        totalPages: Math.ceil(total / pageSize),
+      },
     });
   } catch (err) {
     console.error("applyJob error:", err);
@@ -682,69 +482,38 @@ exports.withdrawJobApplication = async (req, res) => {
   }
 };
 
-// 18. getAppliedJobs (student)
-exports.getAppliedJobs = async (req, res) => {
+// 8. Get single job details (for students + already_applied flag)
+exports.getJobDetails = async (req, res) => {
   try {
-    const userId = req.user?.id;
-
-    if (!userId || req.user.role !== "student") {
-      return res
-        .status(403)
-        .json({ error: "Only students can view their applied jobs." });
-    }
-
-    const rows = await db("job_applications as ja")
-      .join("jobs as j", "ja.job_id", "j.id")
-      .leftJoin("companies as c", "j.company_id", "c.id")
-      .select(
-        "ja.id as application_id",
-        "ja.status as application_status",
-        "ja.applied_at",
-        "ja.resume_url",
-        "j.id as job_id",
-        "j.job_title",
-        "j.location",
-        "j.status as job_status",
-        "c.name as company_name",
-        "c.website as company_website"
-      )
-      .where("ja.user_id", userId)
-      .orderBy("ja.applied_at", "desc");
-
-    return res.json({ applications: rows });
-  } catch (err) {
-    console.error("getAppliedJobs error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// 19. checkJobApplicationStatus – has this student already applied?
-exports.checkJobApplicationStatus = async (req, res) => {
-  try {
-    const userId = req.user?.id;
     const { jobId } = req.params;
+    const userId = getUserId(req);
 
-    if (!userId || req.user.role !== "student") {
-      return res
-        .status(403)
-        .json({ error: "Only students can check application status." });
+    const job = await knex("jobs as j")
+      .join("companies as c", "j.company_id", "c.id")
+      .leftJoin("alumni_profiles as ap", "j.alumni_id", "ap.id")
+      .where("j.id", jobId)
+      .select(
+        "j.*",
+        "c.name as company_name",
+        "ap.name as posted_by_alumni_name"
+      )
+      .first();
+
+    if (!job || job.status !== "active") {
+      return res.status(404).json({ message: "Job not found or not active." });
     }
 
-    const app = await db("job_applications")
+    const existingApplication = await knex("job_applications")
       .where({ job_id: jobId, user_id: userId })
       .first();
 
-    if (!app) {
-      return res.json({ applied: false });
-    }
-
-    return res.json({
-      applied: true,
-      status: app.status,
-      applied_at: app.applied_at,
+    return res.status(200).json({
+      job,
+      already_applied: !!existingApplication,
+      application_status: existingApplication?.status || null,
     });
-  } catch (err) {
-    console.error("checkJobApplicationStatus error:", err);
-    return res.status(500).json({ error: "Server error" });
+  } catch (error) {
+    console.error("Error in getJobDetails:", error);
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
