@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,34 +12,35 @@ import {
 } from "@/components/ui/table";
 import { Search } from "lucide-react";
 
-const mockUsers = [
-  { id: "1", name: "Priya Sharma", role: "Alumni", status: "Pending", email: "priya.sharma@gmail.com" },
-  { id: "2", name: "Anita Singh", role: "Alumni", status: "Active", email: "anita.singh@company.com" },
-  { id: "3", name: "Rajesh Kumar", role: "Alumni", status: "Pending", email: "rajesh.kumar@infosys.com" },
-  { id: "4", name: "Sneha Patel", role: "Alumni", status: "Active", email: "sneha.patel@tcs.com" },
-  { id: "5", name: "Amit Gupta", role: "Alumni", status: "Inactive", email: "amit.gupta@wipro.com" },
-  { id: "6", name: "Kavya Reddy", role: "Alumni", status: "Pending", email: "kavya.reddy@microsoft.com" },
-  { id: "7", name: "Rohit Sharma", role: "Faculty", status: "Active", email: "rohit.sharma@sgsits.ac.in" },
-  { id: "8", name: "Dr. Meena Agarwal", role: "Faculty", status: "Active", email: "meena.agarwal@sgsits.ac.in" },
-];
-
-export function UserManagement() {
+export function UserManagement({
+  users = [],
+  loading = false,
+  onApproveAlumni,
+  onDeleteUser,
+  onPromoteUser,
+}) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [users, setUsers] = useState(mockUsers);
 
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const term = searchTerm.toLowerCase();
+      return (
+        user.name?.toLowerCase().includes(term) ||
+        user.role?.toLowerCase().includes(term) ||
+        user.email?.toLowerCase().includes(term)
+      );
+    });
+  }, [users, searchTerm]);
 
   const getStatusVariant = (status) => {
     switch (status) {
-      case "Active":
+      case "approved":
+      case "active":
         return "default";
-      case "Pending":
+      case "pending":
         return "secondary";
-      case "Inactive":
+      case "rejected":
+      case "inactive":
         return "outline";
       default:
         return "secondary";
@@ -48,30 +49,17 @@ export function UserManagement() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Active":
+      case "approved":
+      case "active":
         return "bg-success text-success-foreground";
-      case "Pending":
+      case "pending":
         return "bg-warning text-warning-foreground";
-      case "Inactive":
+      case "rejected":
+      case "inactive":
         return "bg-muted text-muted-foreground";
       default:
         return "bg-muted text-muted-foreground";
     }
-  };
-
-  const handleUserAction = (userId, action) => {
-    setUsers(prevUsers =>
-      prevUsers.map(user =>
-        user.id === userId
-          ? {
-              ...user,
-              status: action === "ban" ? "Inactive" : 
-                     action === "approve" ? "Active" : 
-                     "Active"
-            }
-          : user
-      )
-    );
   };
 
   return (
@@ -94,11 +82,11 @@ export function UserManagement() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="font-semibold">Name</TableHead>
-              <TableHead className="font-semibold">Role</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
-              <TableHead className="font-semibold">Actions</TableHead>
-            </TableRow>
+            <TableHead className="font-semibold">Name</TableHead>
+            <TableHead className="font-semibold">Role</TableHead>
+            <TableHead className="font-semibold">Status</TableHead>
+            <TableHead className="font-semibold">Actions</TableHead>
+          </TableRow>
           </TableHeader>
           <TableBody>
             {filteredUsers.map((user) => (
@@ -112,50 +100,53 @@ export function UserManagement() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm font-medium text-foreground">{user.role}</span>
+                  <span className="text-sm font-medium text-foreground">
+                    {user.role}
+                  </span>
                 </TableCell>
                 <TableCell>
                   <Badge 
-                    variant={getStatusVariant(user.status)}
-                    className={`${getStatusColor(user.status)} font-medium`}
+                    variant={getStatusVariant(user.status?.toLowerCase())}
+                    className={`${getStatusColor(user.status?.toLowerCase())} font-medium`}
                   >
-                    {user.status}
+                    {user.status || "pending"}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    {user.role === "Alumni" && user.status === "Pending" && (
+                    {user.role === "alumni" &&
+                      (user.status || "pending").toLowerCase() === "pending" &&
+                      onApproveAlumni && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={loading}
+                          onClick={() => onApproveAlumni(user.id)}
+                          className="text-success border-success hover:bg-success hover:text-success-foreground"
+                        >
+                          Approve
+                        </Button>
+                      )}
+                    {user.role !== "admin" && onPromoteUser && (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleUserAction(user.id, "approve")}
-                        className="text-success border-success hover:bg-success hover:text-success-foreground"
+                        disabled={loading}
+                        onClick={() => onPromoteUser(user.id)}
                       >
-                        Approve
+                        Promote to Admin
                       </Button>
                     )}
-                    {user.role === "Alumni" && user.status === "Active" && (
+                    {onDeleteUser && (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleUserAction(user.id, "ban")}
+                        disabled={loading}
+                        onClick={() => onDeleteUser(user.id)}
                         className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
                       >
-                        Ban
+                        Delete
                       </Button>
-                    )}
-                    {user.role === "Alumni" && user.status === "Inactive" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleUserAction(user.id, "activate")}
-                        className="text-success border-success hover:bg-success hover:text-success-foreground"
-                      >
-                        Activate
-                      </Button>
-                    )}
-                    {user.role === "Faculty" && (
-                      <span className="text-sm text-muted-foreground">No actions</span>
                     )}
                   </div>
                 </TableCell>

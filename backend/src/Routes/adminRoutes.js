@@ -10,10 +10,14 @@ const {
   deleteUser,
   sendNotification,
   promoteUserToAdmin,
+  getAdminStats,
 } = require("../controllers/AdminController");
 const { authenticate, isAdmin } = require("../middleware/authMiddleware");
 
 const router = express.Router();
+
+// Dashboard stats
+router.get("/stats", authenticate, isAdmin, getAdminStats);
 
 // Alumni Verification
 router.get("/alumni/pending", authenticate, isAdmin, getPendingAlumni);
