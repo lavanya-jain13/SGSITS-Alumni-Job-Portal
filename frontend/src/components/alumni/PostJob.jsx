@@ -764,13 +764,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ArrowRight, Plus, Trash2 } from "lucide-react";
@@ -813,25 +807,11 @@ const steps = [
 ];
 
 const jobTypes = ["Full-time", "Part-time", "Contract", "Internship"];
-const branches = [
-  "Computer Science",
-  "Information Technology",
-  "Electronics",
-  "Mechanical",
-  "Civil",
-];
+const branches = ["Computer Science", "Information Technology", "Electronics", "Mechanical", "Civil"];
 const skills = ["JavaScript", "React", "Node.js", "Python", "Java", "SQL", "AWS"];
 const ctcTypes = ["CTC", "Stipend"];
 const experienceBands = ["0-1 years", "1-3 years", "3-5 years", "5+ years"];
 const workModes = ["Remote", "On-site", "Hybrid"];
-
-const parseCsv = (value) =>
-  value
-    ? value
-        .split(",")
-        .map((v) => v.trim())
-        .filter(Boolean)
-    : [];
 
 export function PostJob() {
   const navigate = useNavigate();
@@ -852,10 +832,7 @@ export function PostJob() {
     if (formData.jobTitle && formData.jobType && formData.description) {
       completedWeight += steps[0].weight;
     }
-    if (
-      formData.allowedBranches.length > 0 &&
-      formData.requiredSkills.length > 0
-    ) {
+    if (formData.allowedBranches.length > 0 && formData.requiredSkills.length > 0) {
       completedWeight += steps[1].weight;
     }
     if (formData.ctcType && formData.workMode && formData.location) {
@@ -876,9 +853,7 @@ export function PostJob() {
   const handleArrayUpdate = (field, value, checked) => {
     setFormData((prev) => ({
       ...prev,
-      [field]: checked
-        ? [...prev[field], value]
-        : prev[field].filter((item) => item !== value),
+      [field]: checked ? [...prev[field], value] : prev[field].filter((item) => item !== value),
     }));
   };
 
@@ -901,9 +876,7 @@ export function PostJob() {
   const updateCustomQuestion = (index, value) => {
     setFormData((prev) => ({
       ...prev,
-      customQuestions: prev.customQuestions.map((q, i) =>
-        i === index ? value : q
-      ),
+      customQuestions: prev.customQuestions.map((q, i) => (i === index ? value : q)),
     }));
   };
 
@@ -936,9 +909,7 @@ export function PostJob() {
         const data = await apiClient.getJobById(jobId);
         const job = data?.job;
         if (job) {
-          const [minCtcFromRange, maxCtcFromRange] =
-            job.salary_range?.split("-").map((v) => v.trim()) || [];
-
+          const [minCtc, maxCtc] = job.salary_range?.split("-").map((v) => v.trim()) || [];
           setFormData({
             ...initialFormData,
             jobTitle: job.job_title || "",
@@ -965,27 +936,20 @@ export function PostJob() {
               (job.max_ctc != null
                 ? String(job.max_ctc)
                 : maxCtcFromRange || "") || "",
+            keyResponsibilities: job.requirements || "",
+            requirements: job.experience_required || "",
+            requiredSkills: job.skills_required
+              ? job.skills_required.split(",").map((s) => s.trim()).filter(Boolean)
+              : [],
+            ctcType: job.stipend ? "Stipend" : "CTC",
+            minCtc: minCtc || "",
+            maxCtc: maxCtc || "",
             workMode: job.work_mode || "",
             location: job.location || "",
-            applyByDate: job.application_deadline
-              ? job.application_deadline.split("T")[0]
-              : "",
-            numberOfOpenings:
-              job.number_of_openings != null
-                ? String(job.number_of_openings)
-                : "",
-            applicationLimit:
-              job.max_applicants_allowed != null
-                ? String(job.max_applicants_allowed)
-                : "",
-            customQuestions:
-              job.custom_questions && job.custom_questions.trim().length
-                ? job.custom_questions
-                    .split(",")
-                    .map((v) => v.trim())
-                    .filter(Boolean)
-                : [""],
-            ndaRequired: !!job.nda_required,
+            applyByDate: job.application_deadline ? job.application_deadline.split("T")[0] : "",
+            numberOfOpenings: job.number_of_openings || "",
+            applicationLimit: job.max_applicants_allowed || "",
+            ndaRequired: job.nda_required || false,
           });
         }
       } catch (error) {
@@ -1048,10 +1012,14 @@ export function PostJob() {
         job_description: formData.description,
         job_type: formData.jobType || null,
         location: formData.location || null,
-        salary_range: salaryRange,
+        salary_range:
+          formData.minCtc && formData.maxCtc
+            ? `${formData.minCtc}-${formData.maxCtc}`
+            : formData.minCtc || formData.maxCtc || null,
         experience_required: formData.experienceBand || null,
         skills_required:
           requiredSkills.length > 0 ? requiredSkills.join(", ") : null,
+          formData.requiredSkills.length > 0 ? formData.requiredSkills.join(", ") : null,
         stipend:
           formData.ctcType === "Stipend"
             ? formData.maxCtc || formData.minCtc || null
@@ -1075,16 +1043,10 @@ export function PostJob() {
 
       if (jobId) {
         await apiClient.updateJob(jobId, payload);
-        toast({
-          title: "Job updated",
-          description: "Your job posting has been updated.",
-        });
+        toast({ title: "Job updated", description: "Your job posting has been updated." });
       } else {
         await apiClient.postJob(payload);
-        toast({
-          title: "Job published",
-          description: "Your job posting is now live.",
-        });
+        toast({ title: "Job published", description: "Your job posting is now live." });
       }
       navigate("/alumni/postings", { state: { refreshJobs: true } });
     } catch (error) {
@@ -1141,12 +1103,7 @@ export function PostJob() {
                 id="jobTitle"
                 placeholder="e.g. Senior Software Engineer"
                 value={formData.jobTitle}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    jobTitle: e.target.value,
-                  }))
-                }
+                onChange={(e) => setFormData((prev) => ({ ...prev, jobTitle: e.target.value }))}
               />
             </div>
 
@@ -1154,9 +1111,7 @@ export function PostJob() {
               <Label htmlFor="jobType">Job Type *</Label>
               <Select
                 value={formData.jobType}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, jobType: value }))
-                }
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, jobType: value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select job type" />
@@ -1178,12 +1133,7 @@ export function PostJob() {
                 placeholder="Describe the role, what the candidate will be doing..."
                 className="min-h-32"
                 value={formData.description}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    description: e.target.value,
-                  }))
-                }
+                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
               />
               <div className="text-sm text-muted-foreground">
                 {formData.description.length}/2200 characters minimum
@@ -1197,10 +1147,7 @@ export function PostJob() {
                 placeholder="List the main responsibilities..."
                 value={formData.keyResponsibilities}
                 onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    keyResponsibilities: e.target.value,
-                  }))
+                  setFormData((prev) => ({ ...prev, keyResponsibilities: e.target.value }))
                 }
               />
             </div>
@@ -1211,12 +1158,7 @@ export function PostJob() {
                 id="requirements"
                 placeholder="List the required qualifications, skills..."
                 value={formData.requirements}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    requirements: e.target.value,
-                  }))
-                }
+                onChange={(e) => setFormData((prev) => ({ ...prev, requirements: e.target.value }))}
               />
             </div>
           </div>
@@ -1233,9 +1175,7 @@ export function PostJob() {
                     <Checkbox
                       id={branch}
                       checked={formData.allowedBranches.includes(branch)}
-                      onCheckedChange={(checked) =>
-                        handleArrayUpdate("allowedBranches", branch, checked)
-                      }
+                      onCheckedChange={(checked) => handleArrayUpdate("allowedBranches", branch, checked)}
                     />
                     <Label htmlFor={branch}>{branch}</Label>
                   </div>
@@ -1265,9 +1205,7 @@ export function PostJob() {
                     <Checkbox
                       id={`req-${skill}`}
                       checked={formData.requiredSkills.includes(skill)}
-                      onCheckedChange={(checked) =>
-                        handleArrayUpdate("requiredSkills", skill, checked)
-                      }
+                      onCheckedChange={(checked) => handleArrayUpdate("requiredSkills", skill, checked)}
                     />
                     <Label htmlFor={`req-${skill}`}>{skill}</Label>
                   </div>
@@ -1297,9 +1235,7 @@ export function PostJob() {
                     <Checkbox
                       id={`nice-${skill}`}
                       checked={formData.niceToHaveSkills.includes(skill)}
-                      onCheckedChange={(checked) =>
-                        handleArrayUpdate("niceToHaveSkills", skill, checked)
-                      }
+                      onCheckedChange={(checked) => handleArrayUpdate("niceToHaveSkills", skill, checked)}
                     />
                     <Label htmlFor={`nice-${skill}`}>{skill}</Label>
                   </div>
@@ -1331,9 +1267,7 @@ export function PostJob() {
                 <Label>CTC/Stipend Type</Label>
                 <Select
                   value={formData.ctcType}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, ctcType: value }))
-                  }
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, ctcType: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
@@ -1352,9 +1286,7 @@ export function PostJob() {
                 <Label>Experience Band</Label>
                 <Select
                   value={formData.experienceBand}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, experienceBand: value }))
-                  }
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, experienceBand: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select experience" />
@@ -1376,9 +1308,7 @@ export function PostJob() {
                 <Input
                   placeholder="e.g. 500000"
                   value={formData.minCtc}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, minCtc: e.target.value }))
-                  }
+                  onChange={(e) => setFormData((prev) => ({ ...prev, minCtc: e.target.value }))}
                 />
               </div>
 
@@ -1387,9 +1317,7 @@ export function PostJob() {
                 <Input
                   placeholder="e.g. 800000"
                   value={formData.maxCtc}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, maxCtc: e.target.value }))
-                  }
+                  onChange={(e) => setFormData((prev) => ({ ...prev, maxCtc: e.target.value }))}
                 />
               </div>
             </div>
@@ -1398,9 +1326,7 @@ export function PostJob() {
               <Label>Work Mode *</Label>
               <Select
                 value={formData.workMode}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, workMode: value }))
-                }
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, workMode: value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select work mode" />
@@ -1420,12 +1346,7 @@ export function PostJob() {
               <Input
                 placeholder="e.g. Mumbai, Maharashtra, India"
                 value={formData.location}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    location: e.target.value,
-                  }))
-                }
+                onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
               />
             </div>
           </div>
@@ -1439,12 +1360,7 @@ export function PostJob() {
               <Input
                 type="date"
                 value={formData.applyByDate}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    applyByDate: e.target.value,
-                  }))
-                }
+                onChange={(e) => setFormData((prev) => ({ ...prev, applyByDate: e.target.value }))}
               />
             </div>
 
@@ -1455,12 +1371,7 @@ export function PostJob() {
                   type="number"
                   placeholder="1"
                   value={formData.numberOfOpenings}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      numberOfOpenings: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => setFormData((prev) => ({ ...prev, numberOfOpenings: e.target.value }))}
                 />
               </div>
 
@@ -1470,12 +1381,7 @@ export function PostJob() {
                   type="number"
                   placeholder="50"
                   value={formData.applicationLimit}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      applicationLimit: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => setFormData((prev) => ({ ...prev, applicationLimit: e.target.value }))}
                 />
               </div>
             </div>
@@ -1543,16 +1449,10 @@ export function PostJob() {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center space-x-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate("/alumni/postings")}
-        >
+        <Button variant="ghost" size="sm" onClick={() => navigate("/alumni/postings")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">
-          {jobId ? "Edit Job" : "Post a Job"}
-        </h1>
+        <h1 className="text-2xl font-bold">{jobId ? "Edit Job" : "Post a Job"}</h1>
       </div>
 
       {/* Progress Section */}
@@ -1561,19 +1461,14 @@ export function PostJob() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Progress</span>
-              <span className="text-sm text-primary font-medium">
-                {progress}% Complete
-              </span>
+              <span className="text-sm text-primary font-medium">{progress}% Complete</span>
             </div>
 
             <Progress value={progress} className="h-2" />
 
             <div className="flex justify-between items-center">
               {steps.map((step) => (
-                <div
-                  key={step.id}
-                  className="flex flex-col items-center space-y-2"
-                >
+                <div key={step.id} className="flex flex-col items-center space-y-2">
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                       currentStep === step.id
@@ -1597,9 +1492,7 @@ export function PostJob() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {isLoadingJob
-              ? "Loading..."
-              : `Step ${currentStep}: ${steps[currentStep - 1].title}`}
+            {isLoadingJob ? "Loading..." : `Step ${currentStep}: ${steps[currentStep - 1].title}`}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">{renderStepContent()}</CardContent>
@@ -1607,11 +1500,7 @@ export function PostJob() {
 
       {/* Navigation */}
       <div className="flex justify-between">
-        <Button
-          variant="outline"
-          onClick={handlePrevious}
-          disabled={currentStep === 1}
-        >
+        <Button variant="outline" onClick={handlePrevious} disabled={currentStep === 1}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Previous
         </Button>
@@ -1626,13 +1515,7 @@ export function PostJob() {
             </Button>
           ) : (
             <Button onClick={handlePublish} disabled={isSubmitting}>
-              {isSubmitting
-                ? jobId
-                  ? "Updating..."
-                  : "Publishing..."
-                : jobId
-                ? "Update Job"
-                : "Publish Job"}
+              {isSubmitting ? (jobId ? "Updating..." : "Publishing...") : jobId ? "Update Job" : "Publish Job"}
             </Button>
           )}
         </div>

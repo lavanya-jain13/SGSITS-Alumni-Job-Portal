@@ -57,7 +57,7 @@ export default function Header() {
               className="pl-10 pr-24 bg-white/10 border-white/20 text-white placeholder:text-white/90 focus:bg-white/20"
             />
             <Button
-              type="submit" 
+              type="submit"
               variant="secondary"
               className="absolute right-1 top-1/2 -translate-y-1/2 h-8"
               size="sm"

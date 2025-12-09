@@ -34,7 +34,6 @@ import { AlumniLayout } from "@/components/layout/AlumniLayout";
 import AlumniIndex from "./pages/AlumniIndex";
 import PostingsPage from "./pages/PostingsPage";
 import PostJobPage from "./pages/PostJobPage";
-import PostProjectPage from "./pages/PostProjectPage";
 import AddCompany from "./pages/AddCompany";
 import CompanyProfilePage from "./pages/CompanyProfilePage";
 import EditCompanyProfilePage from "./pages/EditCompanyProfilePage";

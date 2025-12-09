@@ -875,18 +875,13 @@ exports.postJob = async (req, res) => {
     }
 
     const [job] = await db("jobs")
-      .insert(
-        {
-          ...payload,
-          status: "active",
-        },
-        "*"
-      )
+      .insert({
+        ...payload,
+        status: "active",
+      })
       .returning("*");
 
-    return res
-      .status(201)
-      .json({ message: "Job posted successfully.", job: job });
+    return res.status(201).json({ message: "Job posted successfully.", job });
   } catch (err) {
     console.error("postJob error:", err);
     return res.status(500).json({ error: "Server error" });
@@ -898,7 +893,9 @@ exports.getMyJobs = async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({ error: "Only alumni can view their jobs." });
+      return res
+        .status(403)
+        .json({ error: "Only alumni can view their jobs." });
     }
 
     const alumniProfile = await getAlumniProfileByUserId(userId);
@@ -1244,12 +1241,11 @@ const updateJobApplicationStatus = async (req, res, newStatus) => {
     return res.status(500).json({ error: "Server error" });
   }
 };
+
 exports.acceptJobApplication = (req, res) =>
   updateJobApplicationStatus(req, res, "accepted");
-
 exports.rejectJobApplication = (req, res) =>
   updateJobApplicationStatus(req, res, "rejected");
-
 exports.holdJobApplication = (req, res) =>
   updateJobApplicationStatus(req, res, "on_hold");
 
