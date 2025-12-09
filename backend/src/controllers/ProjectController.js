@@ -1,56 +1,27 @@
-// src/controllers/projectController.js
-const db = require("../config/db");
-const cloudinary = require("../config/cloudinary");
+// src/controllers/ProjectController.js
+const knex = require("../config/db");
 
 // ---------- Helpers ----------
+function getAlumniProfileId(req) {
+  return req.user.alumni_profile_id; // adjust if different
+}
 
-// upload a buffer (from multer.memoryStorage) to Cloudinary
-const uploadBufferToCloudinary = (buffer, folder) => {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      { folder },
-      (error, result) => {
-        if (error) return reject(error);
-        resolve(result);
-      }
-    );
-    stream.end(buffer);
-  });
-};
+function getUserId(req) {
+  return req.user.id;
+}
 
-// get alumni_profile.id for current user
-const getAlumniProfileByUserId = async (userId) => {
-  return db("alumni_profiles").where({ user_id: userId }).first();
-};
-
-// ensure that current user (alumni) owns this project
-const ensureProjectOwnedByAlumniUser = async (projectId, userId) => {
-  const alumniProfile = await getAlumniProfileByUserId(userId);
-  if (!alumniProfile) return null;
-
-  const project = await db("project_posts")
-    .where({ id: projectId, alumni_id: alumniProfile.id })
+async function findOwnedProject(projectId, alumniProfileId) {
+  return knex("project_posts")
+    .where({ id: projectId, alumni_id: alumniProfileId })
     .first();
+}
 
-  return project || null;
-};
+// ================== ALUMNI SIDE: PROJECT MANAGEMENT ==================
 
-// ---------------------- ALUMNI SIDE ----------------------
-
-// 1. postProject
+// 1. Post a new project
 exports.postProject = async (req, res) => {
   try {
-    const userId = req.user?.id;
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({ error: "Only alumni can post projects." });
-    }
-
-    const alumniProfile = await getAlumniProfileByUserId(userId);
-    if (!alumniProfile) {
-      return res
-        .status(400)
-        .json({ error: "Alumni profile not found. Complete profile first." });
-    }
+    const alumniProfileId = getAlumniProfileId(req);
 
     const {
       project_title,
@@ -59,628 +30,314 @@ exports.postProject = async (req, res) => {
       skills_required,
       duration,
       max_applicants_allowed,
+      status,
     } = req.body;
 
     if (!project_title || !project_description) {
       return res.status(400).json({
-        error: "project_title and project_description are required.",
+        message: "project_title and project_description are required.",
       });
     }
 
-    const [project] = await db("project_posts")
-      .insert(
-        {
-          alumni_id: alumniProfile.id,
-          project_title,
-          project_description,
-          stipend: stipend || null,
-          skills_required: skills_required || null,
-          duration: duration || null,
-          max_applicants_allowed:
-            max_applicants_allowed && Number(max_applicants_allowed) > 0
-              ? Number(max_applicants_allowed)
-              : 50,
-          status: "active",
-        },
-        "*"
-      )
+    const [newProject] = await knex("project_posts")
+      .insert({
+        alumni_id: alumniProfileId,
+        project_title,
+        project_description,
+        stipend,
+        skills_required,
+        duration,
+        max_applicants_allowed,
+        status: status || "active",
+      })
       .returning("*");
 
     return res.status(201).json({
       message: "Project posted successfully.",
-      project,
+      project: newProject,
     });
-  } catch (err) {
-    console.error("postProject error:", err);
-    return res.status(500).json({ error: "Server error" });
+  } catch (error) {
+    console.error("Error in postProject:", error);
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
-// 2. getMyProjects (alumni)
+// 2. Get projects posted by logged-in alumni
 exports.getMyProjects = async (req, res) => {
   try {
-    const userId = req.user?.id;
-    if (!userId || req.user.role !== "alumni") {
-      return res
-        .status(403)
-        .json({ error: "Only alumni can view their projects." });
+    const alumniProfileId = getAlumniProfileId(req);
+    const { status, search, page = 1, limit = 10 } = req.query;
+
+    const pageNumber = Number(page) || 1;
+    const pageSize = Number(limit) || 10;
+    const offset = (pageNumber - 1) * pageSize;
+
+    const baseQuery = knex("project_posts").where("alumni_id", alumniProfileId);
+
+    if (status) {
+      baseQuery.andWhere("status", status);
     }
 
-    const alumniProfile = await getAlumniProfileByUserId(userId);
-    if (!alumniProfile) {
-      return res
-        .status(400)
-        .json({ error: "Alumni profile not found. Complete profile first." });
-    }
-
-    const projects = await db("project_posts")
-      .where({ alumni_id: alumniProfile.id })
-      .orderBy("created_at", "desc");
-
-    return res.json({ projects });
-  } catch (err) {
-    console.error("getMyProjects error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// 3. getProjectById (alumni – only own project)
-exports.getProjectById = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const { id } = req.params;
-
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({ error: "Only alumni can view this." });
-    }
-
-    const project = await ensureProjectOwnedByAlumniUser(id, userId);
-    if (!project) {
-      return res.status(404).json({
-        error: "Project not found or not owned by you.",
+    if (search) {
+      baseQuery.andWhere((qb) => {
+        qb.whereILike("project_title", `%${search}%`)
+          .orWhereILike("skills_required", `%${search}%`)
+          .orWhereILike("duration", `%${search}%`);
       });
     }
 
-    return res.json({ project });
-  } catch (err) {
-    console.error("getProjectById error:", err);
-    return res.status(500).json({ error: "Server error" });
+    const projectsQuery = baseQuery
+      .clone()
+      .orderBy("created_at", "desc")
+      .limit(pageSize)
+      .offset(offset);
+
+    const countQuery = baseQuery.clone().count("* as total");
+
+    const [projects, countResult] = await Promise.all([
+      projectsQuery,
+      countQuery,
+    ]);
+
+    const total = Number(countResult[0]?.total || 0);
+
+    return res.status(200).json({
+      projects,
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: pageSize,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    });
+  } catch (error) {
+    console.error("Error in getMyProjects:", error);
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
-// 4. updateProject
+// 3. Get single project (owned by alumni)
+exports.getMyProjectById = async (req, res) => {
+  try {
+    const alumniProfileId = getAlumniProfileId(req);
+    const { projectId } = req.params;
+
+    const project = await findOwnedProject(projectId, alumniProfileId);
+    if (!project) {
+      return res
+        .status(404)
+        .json({ message: "Project not found or not owned by you." });
+    }
+
+    return res.status(200).json({ project });
+  } catch (error) {
+    console.error("Error in getMyProjectById:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// 4. Update project (full + partial)
 exports.updateProject = async (req, res) => {
   try {
-    const userId = req.user?.id;
-    const { id } = req.params;
+    const alumniProfileId = getAlumniProfileId(req);
+    const { projectId } = req.params;
 
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({ error: "Only alumni can update projects." });
-    }
-
-    const project = await ensureProjectOwnedByAlumniUser(id, userId);
+    const project = await findOwnedProject(projectId, alumniProfileId);
     if (!project) {
-      return res.status(404).json({
-        error: "Project not found or not owned by you.",
-      });
+      return res
+        .status(404)
+        .json({ message: "Project not found or not owned by you." });
     }
 
-    const updateData = { ...req.body, updated_at: db.fn.now() };
+    const allowedFields = [
+      "project_title",
+      "project_description",
+      "stipend",
+      "skills_required",
+      "duration",
+      "max_applicants_allowed",
+      "status",
+    ];
 
-    delete updateData.id;
-    delete updateData.alumni_id;
-
-    await db("project_posts").where({ id }).update(updateData);
-
-    const updated = await db("project_posts").where({ id }).first();
-    return res.json({
-      message: "Project updated successfully.",
-      project: updated,
+    const updateData = {};
+    allowedFields.forEach((field) => {
+      if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+        updateData[field] = req.body[field];
+      }
     });
-  } catch (err) {
-    console.error("updateProject error:", err);
-    return res.status(500).json({ error: "Server error" });
+
+    if (Object.keys(updateData).length === 0) {
+      return res
+        .status(400)
+        .json({ message: "No valid fields provided for update." });
+    }
+
+    updateData.updated_at = knex.fn.now();
+
+    const [updatedProject] = await knex("project_posts")
+      .where({ id: projectId, alumni_id: alumniProfileId })
+      .update(updateData)
+      .returning("*");
+
+    return res.status(200).json({
+      message: "Project updated successfully.",
+      project: updatedProject,
+    });
+  } catch (error) {
+    console.error("Error in updateProject:", error);
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
-// 5. deleteProject
+// 5. Delete project
 exports.deleteProject = async (req, res) => {
   try {
-    const userId = req.user?.id;
-    const { id } = req.params;
+    const alumniProfileId = getAlumniProfileId(req);
+    const { projectId } = req.params;
 
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({ error: "Only alumni can delete projects." });
-    }
-
-    const project = await ensureProjectOwnedByAlumniUser(id, userId);
+    const project = await findOwnedProject(projectId, alumniProfileId);
     if (!project) {
-      return res.status(404).json({
-        error: "Project not found or not owned by you.",
-      });
+      return res
+        .status(404)
+        .json({ message: "Project not found or not owned by you." });
     }
 
-    await db("project_posts").where({ id }).del();
-    return res.json({ message: "Project deleted successfully." });
-  } catch (err) {
-    console.error("deleteProject error:", err);
-    return res.status(500).json({ error: "Server error" });
+    await knex("project_posts")
+      .where({ id: projectId, alumni_id: alumniProfileId })
+      .del();
+
+    return res.status(200).json({ message: "Project deleted successfully." });
+  } catch (error) {
+    console.error("Error in deleteProject:", error);
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
-// 6. repostProject
+// 6. Repost / duplicate project
 exports.repostProject = async (req, res) => {
   try {
-    const userId = req.user?.id;
-    const { id } = req.params;
-    const { max_applicants_allowed } = req.body;
+    const alumniProfileId = getAlumniProfileId(req);
+    const { projectId } = req.params;
 
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({ error: "Only alumni can repost projects." });
+    const existingProject = await findOwnedProject(projectId, alumniProfileId);
+    if (!existingProject) {
+      return res
+        .status(404)
+        .json({ message: "Project not found or not owned by you." });
     }
 
-    const project = await ensureProjectOwnedByAlumniUser(id, userId);
-    if (!project) {
-      return res.status(404).json({
-        error: "Project not found or not owned by you.",
-      });
-    }
+    const { status, ...restBody } = req.body || {};
 
-    const updateObj = {
-      status: "active",
-      updated_at: db.fn.now(),
+    const projectToCopy = { ...existingProject };
+    delete projectToCopy.id;
+    delete projectToCopy.created_at;
+    delete projectToCopy.updated_at;
+
+    const insertData = {
+      ...projectToCopy,
+      ...restBody,
+      status: status || "active",
+      alumni_id: alumniProfileId,
     };
 
-    if (max_applicants_allowed && Number(max_applicants_allowed) > 0) {
-      updateObj.max_applicants_allowed = Number(max_applicants_allowed);
-    }
-
-    await db("project_posts").where({ id }).update(updateObj);
-
-    const updated = await db("project_posts").where({ id }).first();
-    return res.json({ message: "Project reposted.", project: updated });
-  } catch (err) {
-    console.error("repostProject error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// 7. getProjectApplicationsCount
-exports.getProjectApplicationsCount = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const { projectId } = req.params;
-
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({
-        error: "Only alumni can view application counts.",
-      });
-    }
-
-    const project = await ensureProjectOwnedByAlumniUser(projectId, userId);
-    if (!project) {
-      return res.status(404).json({
-        error: "Project not found or not owned by you.",
-      });
-    }
-
-    const row = await db("project_applications")
-      .where({ project_id: projectId })
-      .count("* as count")
-      .first();
-
-    return res.json({
-      projectId,
-      totalApplications: Number(row?.count || 0),
-    });
-  } catch (err) {
-    console.error("getProjectApplicationsCount error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// 8. getProjectUnreadApplicationsCount
-exports.getProjectUnreadApplicationsCount = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const { projectId } = req.params;
-
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({
-        error: "Only alumni can view unread application counts.",
-      });
-    }
-
-    const project = await ensureProjectOwnedByAlumniUser(projectId, userId);
-    if (!project) {
-      return res.status(404).json({
-        error: "Project not found or not owned by you.",
-      });
-    }
-
-    const row = await db("project_applications")
-      .where({ project_id: projectId, is_read: false })
-      .count("* as count")
-      .first();
-
-    return res.json({
-      projectId,
-      unreadApplications: Number(row?.count || 0),
-    });
-  } catch (err) {
-    console.error("getProjectUnreadApplicationsCount error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// 9. viewProjectApplicants
-exports.viewProjectApplicants = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const { projectId } = req.params;
-
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({ error: "Only alumni can view applicants." });
-    }
-
-    const project = await ensureProjectOwnedByAlumniUser(projectId, userId);
-    if (!project) {
-      return res.status(404).json({
-        error: "Project not found or not owned by you.",
-      });
-    }
-
-    const applicants = await db("project_applications as pa")
-      .join("users as u", "pa.user_id", "u.id")
-      .leftJoin("student_profiles as sp", "sp.user_id", "u.id")
-      .select(
-        "pa.id as application_id",
-        "pa.status as application_status",
-        "pa.is_read",
-        "pa.resume_url",
-        "pa.applied_at",
-        "u.id as user_id",
-        "u.email as user_email",
-        "sp.name as student_name",
-        "sp.branch as student_branch",
-        "sp.grad_year as student_grad_year"
-      )
-      .where("pa.project_id", projectId)
-      .orderBy("pa.applied_at", "desc");
-
-    return res.json({ projectId, applicants });
-  } catch (err) {
-    console.error("viewProjectApplicants error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// 10. markProjectApplicationRead
-exports.markProjectApplicationRead = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const { applicationId } = req.params;
-
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({
-        error: "Only alumni can mark applications as read.",
-      });
-    }
-
-    const application = await db("project_applications")
-      .where({ id: applicationId })
-      .first();
-
-    if (!application) {
-      return res.status(404).json({ error: "Application not found." });
-    }
-
-    const project = await ensureProjectOwnedByAlumniUser(
-      application.project_id,
-      userId
-    );
-    if (!project) {
-      return res.status(403).json({
-        error: "You are not authorized to modify this project.",
-      });
-    }
-
-    await db("project_applications")
-      .where({ id: applicationId })
-      .update({ is_read: true });
-
-    return res.json({ message: "Application marked as read." });
-  } catch (err) {
-    console.error("markProjectApplicationRead error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// 11–13. accept / reject / hold project application
-const updateProjectApplicationStatus = async (req, res, newStatus) => {
-  try {
-    const userId = req.user?.id;
-    const { applicationId } = req.params;
-
-    if (!userId || req.user.role !== "alumni") {
-      return res.status(403).json({
-        error: "Only alumni can change project application status.",
-      });
-    }
-
-    const application = await db("project_applications")
-      .where({ id: applicationId })
-      .first();
-
-    if (!application) {
-      return res.status(404).json({ error: "Application not found." });
-    }
-
-    const project = await ensureProjectOwnedByAlumniUser(
-      application.project_id,
-      userId
-    );
-
-    if (!project) {
-      return res.status(403).json({
-        error: "You are not authorized to modify this project.",
-      });
-    }
-
-    await db("project_applications")
-      .where({ id: applicationId })
-      .update({ status: newStatus, is_read: true });
-
-    return res.json({
-      message: `Application marked as ${newStatus}.`,
-    });
-  } catch (err) {
-    console.error("updateProjectApplicationStatus error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// ---------------------- STUDENT SIDE ----------------------
-
-// 14. getAllProjectsStudent
-exports.getAllProjectsStudent = async (req, res) => {
-  try {
-    const projects = await db("project_posts")
-      .where("status", "active")
-      .orderBy("created_at", "desc");
-
-    return res.json({ projects });
-  } catch (err) {
-    console.error("getAllProjectsStudent error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// 15. getProjectByIdStudent
-exports.getProjectByIdStudent = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const project = await db("project_posts").where({ id }).first();
-
-    if (!project) {
-      return res.status(404).json({ error: "Project not found." });
-    }
-
-    return res.json({ project });
-  } catch (err) {
-    console.error("getProjectByIdStudent error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// 16. applyProject (with Cloudinary resume upload)
-exports.applyProject = async (req, res) => {
-  const userId = req.user?.id;
-  const { project_id } = req.body;
-
-  if (!userId || req.user.role !== "student") {
-    return res
-      .status(403)
-      .json({ error: "Only students can apply to projects." });
-  }
-
-  if (!project_id) {
-    return res.status(400).json({ error: "project_id is required." });
-  }
-
-  try {
-    // 1) Fetch project
-    const project = await db("project_posts").where({ id: project_id }).first();
-    if (!project) {
-      return res.status(404).json({ error: "Project not found." });
-    }
-
-    // 2) Check status
-    if (project.status !== "active") {
-      return res.status(400).json({
-        error: `This project is currently ${project.status} and cannot accept new applications.`,
-      });
-    }
-
-    // 3) Current applications count
-    const countRow = await db("project_applications")
-      .where({ project_id })
-      .count("id as count")
-      .first();
-    const currentCount = Number(countRow?.count || 0);
-
-    if (currentCount >= project.max_applicants_allowed) {
-      return res.status(400).json({
-        error: "Application limit reached for this project.",
-      });
-    }
-
-    // 4) Duplicate application check
-    const existing = await db("project_applications")
-      .where({ project_id, user_id: userId })
-      .first();
-    if (existing) {
-      return res
-        .status(400)
-        .json({ error: "You have already applied to this project." });
-    }
-
-    // 5) Resume upload
-    let resumeUrl = null;
-    if (req.file && req.file.buffer) {
-      const uploadResult = await uploadBufferToCloudinary(
-        req.file.buffer,
-        "alumni-portal/resumes"
-      );
-      resumeUrl = uploadResult.secure_url;
-    } else if (req.body.resume_url) {
-      resumeUrl = req.body.resume_url;
-    } else {
-      return res
-        .status(400)
-        .json({ error: "Resume file (resume) is required." });
-    }
-
-    // 6) Transaction
-    const application = await db.transaction(async (trx) => {
-      const [app] = await trx("project_applications")
-        .insert(
-          {
-            project_id,
-            user_id: userId,
-            resume_url: resumeUrl,
-            status: "pending",
-            is_read: false,
-          },
-          ["id", "project_id", "user_id", "resume_url", "status", "applied_at"]
-        )
-        .catch((err) => {
-          if (err.code === "23505") {
-            throw new Error("You have already applied to this project.");
-          }
-          throw err;
-        });
-
-      const newCountRow = await trx("project_applications")
-        .where({ project_id })
-        .count("id as count")
-        .first();
-      const newCount = Number(newCountRow?.count || 0);
-
-      if (newCount >= project.max_applicants_allowed) {
-        await trx("project_posts")
-          .where({ id: project_id })
-          .update({ status: "paused", updated_at: trx.fn.now() });
-      }
-
-      return app;
-    });
+    const [newProject] = await knex("project_posts")
+      .insert(insertData)
+      .returning("*");
 
     return res.status(201).json({
-      message: "Project application submitted successfully.",
-      application,
+      message: "Project reposted successfully.",
+      project: newProject,
     });
-  } catch (err) {
-    console.error("applyProject error:", err);
-    if (err.message === "You have already applied to this project.") {
-      return res.status(400).json({ error: err.message });
-    }
-    return res.status(500).json({ error: "Server error" });
+  } catch (error) {
+    console.error("Error in repostProject:", error);
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
-// 17. withdrawProjectApplication
-exports.withdrawProjectApplication = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const { applicationId } = req.params;
+// ================== STUDENT SIDE: PROJECT BROWSING ==================
 
-    if (!userId || req.user.role !== "student") {
-      return res.status(403).json({
-        error: "Only students can withdraw project applications.",
+// 7. Get all active projects (for students)
+exports.getAllActiveProjects = async (req, res) => {
+  try {
+    const { search, page = 1, limit = 10 } = req.query;
+
+    const pageNumber = Number(page) || 1;
+    const pageSize = Number(limit) || 10;
+    const offset = (pageNumber - 1) * pageSize;
+
+    const baseQuery = knex("project_posts as p")
+      .leftJoin("alumni_profiles as ap", "p.alumni_id", "ap.id")
+      .where("p.status", "active");
+
+    if (search) {
+      baseQuery.andWhere((qb) => {
+        qb.whereILike("p.project_title", `%${search}%`)
+          .orWhereILike("p.skills_required", `%${search}%`)
+          .orWhereILike("p.duration", `%${search}%`)
+          .orWhereILike("ap.name", `%${search}%`);
       });
     }
 
-    const application = await db("project_applications")
-      .where({ id: applicationId, user_id: userId })
+    const projectsQuery = baseQuery
+      .clone()
+      .select("p.*", "ap.name as posted_by_alumni_name")
+      .orderBy("p.created_at", "desc")
+      .limit(pageSize)
+      .offset(offset);
+
+    const countQuery = baseQuery.clone().count("p.id as total");
+
+    const [projects, countResult] = await Promise.all([
+      projectsQuery,
+      countQuery,
+    ]);
+
+    const total = Number(countResult[0]?.total || 0);
+
+    return res.status(200).json({
+      projects,
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: pageSize,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    });
+  } catch (error) {
+    console.error("Error in getAllActiveProjects:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// 8. Get single project details (for students + already_applied flag)
+exports.getProjectDetails = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const userId = getUserId(req);
+
+    const project = await knex("project_posts as p")
+      .leftJoin("alumni_profiles as ap", "p.alumni_id", "ap.id")
+      .where("p.id", projectId)
+      .select("p.*", "ap.name as posted_by_alumni_name")
       .first();
 
-    if (!application) {
-      return res.status(404).json({ error: "Application not found." });
+    if (!project || project.status !== "active") {
+      return res
+        .status(404)
+        .json({ message: "Project not found or not active." });
     }
 
-    await db("project_applications").where({ id: applicationId }).del();
-
-    return res.json({ message: "Project application withdrawn successfully." });
-  } catch (err) {
-    console.error("withdrawProjectApplication error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// 18. getAppliedProjects
-exports.getAppliedProjects = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-
-    if (!userId || req.user.role !== "student") {
-      return res.status(403).json({
-        error: "Only students can view their applied projects.",
-      });
-    }
-
-    const rows = await db("project_applications as pa")
-      .join("project_posts as p", "pa.project_id", "p.id")
-      .leftJoin("alumni_profiles as a", "p.alumni_id", "a.id")
-      .select(
-        "pa.id as application_id",
-        "pa.status as application_status",
-        "pa.applied_at",
-        "pa.resume_url",
-        "p.id as project_id",
-        "p.project_title",
-        "p.duration",
-        "p.status as project_status",
-        "a.name as alumni_name",
-        "a.grad_year as alumni_grad_year"
-      )
-      .where("pa.user_id", userId)
-      .orderBy("pa.applied_at", "desc");
-
-    return res.json({ applications: rows });
-  } catch (err) {
-    console.error("getAppliedProjects error:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
-// 19. checkProjectApplicationStatus
-exports.checkProjectApplicationStatus = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const { projectId } = req.params;
-
-    if (!userId || req.user.role !== "student") {
-      return res.status(403).json({
-        error: "Only students can check project application status.",
-      });
-    }
-
-    const app = await db("project_applications")
+    const existingApplication = await knex("project_applications")
       .where({ project_id: projectId, user_id: userId })
       .first();
 
-    if (!app) {
-      return res.json({ applied: false });
-    }
-
-    return res.json({
-      applied: true,
-      status: app.status,
-      applied_at: app.applied_at,
+    return res.status(200).json({
+      project,
+      already_applied: !!existingApplication,
+      application_status: existingApplication?.status || null,
     });
-  } catch (err) {
-    console.error("checkProjectApplicationStatus error:", err);
-    return res.status(500).json({ error: "Server error" });
+  } catch (error) {
+    console.error("Error in getProjectDetails:", error);
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
