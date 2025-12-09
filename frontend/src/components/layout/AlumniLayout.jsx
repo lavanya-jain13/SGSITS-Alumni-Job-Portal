@@ -20,7 +20,7 @@ export function AlumniLayout() {
   // ✅ Pages that have their own search bars
   const pagesWithOwnSearch = [
     "/alumni/postings",    // ActivePostings.jsx
-    "/alumni/applicants",  // JobApplicants.jsx
+    "/alumni/applications",  // JobApplicants.jsx
   ];
 
   // ✅ Hide global search on these pages

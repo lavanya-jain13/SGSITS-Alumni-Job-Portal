@@ -133,6 +133,9 @@ export const apiClient = {
 
   getMyJobs: () => apiFetch("/job/my-jobs"),
 
+  getJobApplicants: (jobId) =>
+    apiFetch(`/job/job/${jobId}/applicants`),
+
   updateJob: (id, body) =>
     apiFetch(`/job/job/${id}`, {
       method: "PUT",
