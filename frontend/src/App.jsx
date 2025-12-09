@@ -110,7 +110,6 @@ export default function App() {
               <Route path="postings" element={<PostingsPage />} />
               <Route path="post-job" element={<PostJobPage />} />
               <Route path="job/:id" element={<AlumniJobDetails />} />
-              <Route path="post-project" element={<PostProjectPage />} />
               <Route path="add-company" element={<AddCompany />} />
               <Route path="company-profile" element={<CompanyProfilePage />} />
               <Route path="edit-company-profile" element={<EditCompanyProfilePage />} />
