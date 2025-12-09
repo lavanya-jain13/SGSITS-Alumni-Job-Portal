@@ -23,16 +23,6 @@ export function QuickAccess() {
         </Button>
 
         <Button 
-          size="sm" 
-          variant="secondary"
-          className="w-full"
-          onClick={() => navigate("/alumni/post-project")}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Post New Project
-        </Button>
-        
-        <Button 
           variant="outline" 
           size="sm" 
           className="w-full"

@@ -264,7 +264,11 @@ export function TopApplicants() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => navigate("/alumni/applicant-details")}
+                  onClick={() =>
+                    navigate("/alumni/applicant-details", {
+                      state: { applicant: { ...applicant, job_id: selectedJobId } },
+                    })
+                  }
                 >
                   <Eye className="h-4 w-4" />
                   <span className="ml-1 hidden sm:inline">View</span>
