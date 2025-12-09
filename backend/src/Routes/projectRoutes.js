@@ -35,7 +35,6 @@ router.get(
   "/project/:id",
   authenticate,
   isAlumni,
-  isAdmin,
   projectController.getProjectById
 );
 
@@ -44,7 +43,6 @@ router.put(
   "/project/:id",
   authenticate,
   isAlumni,
-  isAdmin,
   projectController.updateProject
 );
 
@@ -53,7 +51,6 @@ router.delete(
   "/project/:id",
   authenticate,
   isAlumni,
-  isAdmin,
   projectController.deleteProject
 );
 
@@ -62,7 +59,6 @@ router.post(
   "/project/:id/repost",
   authenticate,
   isAlumni,
-  isAdmin,
   projectController.repostProject
 );
 

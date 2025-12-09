@@ -13,19 +13,14 @@ const authorizeRoles = require("../middleware/roleMiddleware");
 router.get(
   "/search/students",
   authenticate,
-  isAdmin,
-  isAlumni,
-  isStudent,
+  authorizeRoles("student", "alumni", "admin"),
   utilityController.searchStudents
 );
 
 router.get(
   "/search/alumni",
   authenticate,
-  isAdmin,
-  isAlumni,
-  isStudent,
-  // authorizeRoles("student", "alumni", "admin"),
+  authorizeRoles("student", "alumni", "admin"),
   utilityController.searchAlumni
 );
 

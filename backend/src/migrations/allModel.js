@@ -97,40 +97,39 @@ exports.up = function (knex) {
 
       // ---------------- COMPANIES ----------------
       // ---------------- COMPANIES ----------------
-.createTable("companies", (table) => {
-  table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+      .createTable("companies", (table) => {
+        table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
 
-  table
-    .uuid("alumni_id")
-    .notNullable()
-    .references("id")
-    .inTable("alumni_profiles")
-    .onDelete("CASCADE");
+        table
+          .uuid("alumni_id")
+          .notNullable()
+          .references("id")
+          .inTable("alumni_profiles")
+          .onDelete("CASCADE");
 
-  table
-    .uuid("user_id")
-    .notNullable()
-    .references("id")
-    .inTable("users")
-    .onDelete("CASCADE");
+        table
+          .uuid("user_id")
+          .notNullable()
+          .references("id")
+          .inTable("users")
+          .onDelete("CASCADE");
 
-  table.string("name", 140);
-  table.text("website");
-  table.string("industry", 100);
-  table.string("company_size", 50);
-  table.text("about");
-  table.text("document_url");
-  table.string("status", 20);
+        table.string("name", 140);
+        table.text("website");
+        table.string("industry", 100);
+        table.string("company_size", 50);
+        table.text("about");
+        table.text("document_url");
+        table.string("status", 20);
 
-  // 🔹 NEW FIELDS
-  table.text("company_culture");          // describe work culture, values, etc.
-  table.string("office_location", 255);   // main office location
-  table.string("twitter", 255);           // twitter/X handle or URL
-  table.string("linkedin", 255);          // LinkedIn page URL
+        // 🔹 NEW FIELDS
+        table.text("company_culture"); // describe work culture, values, etc.
+        table.string("office_location", 255); // main office location
+        table.string("twitter", 255); // twitter/X handle or URL
+        table.string("linkedin", 255); // LinkedIn page URL
 
-  table.timestamp("created_at").defaultTo(knex.fn.now());
-})
-
+        table.timestamp("created_at").defaultTo(knex.fn.now());
+      })
 
       // ---------------- JOB POSTS ----------------
       .createTable("jobs", (table) => {
