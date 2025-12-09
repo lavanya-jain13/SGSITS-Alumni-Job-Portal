@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ApplicationModal from "@/components/ApplicationModals";
+import { useToast } from "@/hooks/use-toast";
+import { getToken } from "@/lib/api";
 
 export default function JobDetails() {
   const { id } = useParams();
@@ -18,6 +20,19 @@ export default function JobDetails() {
   const [applicantCount, setApplicantCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
+  const { toast } = useToast();
+
+  const toArray = (val) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === "string")
+      return val
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    return [];
+  };
 
   React.useEffect(() => {
     let mounted = true;
@@ -28,12 +43,11 @@ export default function JobDetails() {
         const res = await apiFetch(`/job/get-job-by-id-student/${id}`);
         if (mounted) {
           setJobDetails(res?.job || null);
-        }
-        try {
-          const applicants = await apiFetch(`/job/view-applicants/${id}`);
-          if (mounted) setApplicantCount(applicants?.count || applicants?.applicants?.length || 0);
-        } catch (err) {
-          // ignore applicant load failures for now
+          setApplicantCount(
+            res?.job?.applicants_count ||
+              res?.job?.applications_count ||
+              0
+          );
         }
       } catch (err) {
         console.error("Failed to load job details", err);
@@ -45,13 +59,60 @@ export default function JobDetails() {
     return () => { mounted = false };
   }, [id]);
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (!profileComplete) {
       alert("Redirecting to complete your profile...");
       navigate("/?complete-profile=true");
       return;
     }
-    setIsApplicationModalOpen(true);
+
+    const token = getToken();
+    if (!token) {
+      toast({
+        title: "Please log in",
+        description: "You need to sign in as a student to apply.",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
+    setIsApplying(true);
+    try {
+      const { apiFetch } = await import("@/lib/api");
+      // fetch student profile to get resume_url
+      const profileRes = await apiFetch("/student/profile");
+      const resumeUrl = profileRes?.profile?.resume_url;
+      if (!resumeUrl) {
+        toast({
+          title: "Upload resume first",
+          description: "Please upload your resume in your profile before applying.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await apiFetch("/job/apply-job", {
+        method: "POST",
+        body: JSON.stringify({
+          job_id: id,
+          resume_url: resumeUrl,
+        }),
+      });
+
+      toast({
+        title: "Application submitted",
+        description: "Your job application was submitted successfully.",
+      });
+    } catch (err) {
+      toast({
+        title: "Could not apply",
+        description: err?.message || "Failed to submit application.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsApplying(false);
+    }
   };
 
   const displayJob = {
@@ -146,7 +207,7 @@ export default function JobDetails() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-6">
-                  {(jobDetails?.skills || []).map((skill, i) => (
+                  {toArray(jobDetails?.skills).map((skill, i) => (
                     <Badge key={`${skill}-${i}`} variant="outline">
                       {skill}
                     </Badge>
@@ -183,7 +244,7 @@ export default function JobDetails() {
                     <div>
                       <h3 className="font-semibold mb-3">Benefits</h3>
                       <ul className="space-y-2">
-                        {(jobDetails?.benefits || []).map((benefit, index) => (
+                        {toArray(jobDetails?.benefits).map((benefit, index) => (
                           <li key={index} className="flex items-center space-x-2">
                             <CheckCircle className="h-4 w-4 text-green-600" />
                             <span className="text-sm">{benefit}</span>
@@ -202,7 +263,7 @@ export default function JobDetails() {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
-                      {(jobDetails?.responsibilities || []).map((responsibility, index) => (
+                      {toArray(jobDetails?.key_responsibilities || jobDetails?.responsibilities).map((responsibility, index) => (
                         <li key={index} className="flex items-start space-x-2">
                           <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
                           <span className="text-sm">{responsibility}</span>
@@ -220,7 +281,7 @@ export default function JobDetails() {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
-                      {(jobDetails?.requirements || []).map((requirement, index) => (
+                      {toArray(jobDetails?.requirements).map((requirement, index) => (
                         <li key={index} className="flex items-start space-x-2">
                           <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                           <span className="text-sm">{requirement}</span>
@@ -238,7 +299,7 @@ export default function JobDetails() {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
-                      {(jobDetails?.eligibility || []).map((criteria, index) => (
+                      {toArray(jobDetails?.eligibility || jobDetails?.allowed_branches).map((criteria, index) => (
                         <li key={index} className="flex items-start space-x-2">
                           <BookOpen className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                           <span className="text-sm">{criteria}</span>

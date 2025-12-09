@@ -1,9 +1,50 @@
 // src/controllers/jobController.js
 const db = require("../config/db");
 const cloudinary = require("../config/cloudinary");
-const knex = require("../config/db");
 
 // ---------- Helpers ----------
+const normalizeListText = (value) => {
+  if (value == null) return null;
+  if (Array.isArray(value)) return value.filter(Boolean).join(", ");
+  return String(value);
+};
+
+const toNumberOrNull = (val) => {
+  const n = Number(val);
+  return Number.isNaN(n) ? null : n;
+};
+
+const buildJobPayload = (body, companyId, alumniId) => ({
+  ...(companyId && { company_id: companyId }),
+  ...(alumniId && { alumni_id: alumniId }),
+
+  job_title: body.job_title,
+  job_description: body.job_description,
+  job_type: body.job_type || null,
+  location: body.location || null,
+  salary_range: body.salary_range || null,
+  experience_required: body.experience_required || null,
+  skills_required: body.skills_required || null,
+  stipend: body.stipend || null,
+  application_deadline: body.application_deadline || null,
+
+  max_applicants_allowed:
+    body.max_applicants_allowed && Number(body.max_applicants_allowed) > 0
+      ? Number(body.max_applicants_allowed)
+      : 50,
+
+  allowed_branches: normalizeListText(body.allowed_branches),
+  nice_to_have_skills: normalizeListText(body.nice_to_have_skills),
+  work_mode: body.work_mode || null,
+  number_of_openings: toNumberOrNull(body.number_of_openings),
+  custom_questions: normalizeListText(body.custom_questions),
+  nda_required: body.nda_required === true || body.nda_required === "true",
+  ctc_type: body.ctc_type || null,
+  min_ctc: toNumberOrNull(body.min_ctc),
+  max_ctc: toNumberOrNull(body.max_ctc),
+  key_responsibilities: normalizeListText(body.key_responsibilities),
+  requirements: normalizeListText(body.requirements),
+});
 
 // upload a buffer (from multer.memoryStorage) to Cloudinary
 const uploadBufferToCloudinary = (buffer, folder) => {
@@ -65,20 +106,9 @@ exports.postJob = async (req, res) => {
       });
     }
 
-    const {
-      job_title,
-      job_description,
-      job_type,
-      location,
-      salary_range,
-      experience_required,
-      skills_required,
-      stipend,
-      application_deadline,
-      max_applicants_allowed,
-    } = req.body;
+    const payload = buildJobPayload(req.body, company.id, alumniProfile.id);
 
-    if (!job_title || !job_description) {
+    if (!payload.job_title || !payload.job_description) {
       return res
         .status(400)
         .json({ error: "job_title and job_description are required." });
@@ -87,21 +117,7 @@ exports.postJob = async (req, res) => {
     const [job] = await db("jobs")
       .insert(
         {
-          company_id: company.id,
-          alumni_id: alumniProfile.id,
-          job_title,
-          job_description,
-          job_type: job_type || null,
-          location: location || null,
-          salary_range: salary_range || null,
-          experience_required: experience_required || null,
-          skills_required: skills_required || null,
-          stipend: stipend || null,
-          application_deadline: application_deadline || null,
-          max_applicants_allowed:
-            max_applicants_allowed && Number(max_applicants_allowed) > 0
-              ? Number(max_applicants_allowed)
-              : 50,
+          ...payload,
           status: "active",
         },
         "*"
@@ -132,9 +148,15 @@ exports.getMyJobs = async (req, res) => {
         .json({ error: "Alumni profile not found. Complete profile first." });
     }
 
-    const jobs = await db("jobs")
-      .where({ alumni_id: alumniProfile.id })
-      .orderBy("created_at", "desc");
+    // Join companies + count applications (for ActivePostings UI)
+    const jobs = await db("jobs as j")
+      .leftJoin("companies as c", "j.company_id", "c.id")
+      .leftJoin("job_applications as ja", "j.id", "ja.job_id")
+      .where("j.alumni_id", alumniProfile.id)
+      .groupBy("j.id", "c.name")
+      .orderBy("j.created_at", "desc")
+      .select("j.*", "c.name as company_name")
+      .count({ applicant_count: "ja.id" });
 
     return res.json({ jobs });
   } catch (err) {
@@ -191,7 +213,23 @@ exports.updateJob = async (req, res) => {
     delete updateData.company_id;
     delete updateData.alumni_id;
 
-    await db("jobs").where({ id }).update(updateData);
+    const normalizedUpdate = {
+      ...updateData,
+      allowed_branches: normalizeListText(updateData.allowed_branches),
+      nice_to_have_skills: normalizeListText(updateData.nice_to_have_skills),
+      work_mode: updateData.work_mode || null,
+      number_of_openings: toNumberOrNull(updateData.number_of_openings),
+      custom_questions: normalizeListText(updateData.custom_questions),
+      nda_required:
+        updateData.nda_required === true || updateData.nda_required === "true",
+      ctc_type: updateData.ctc_type || null,
+      min_ctc: toNumberOrNull(updateData.min_ctc),
+      max_ctc: toNumberOrNull(updateData.max_ctc),
+      key_responsibilities: normalizeListText(updateData.key_responsibilities),
+      requirements: normalizeListText(updateData.requirements),
+    };
+
+    await db("jobs").where({ id }).update(normalizedUpdate);
 
     const updated = await db("jobs").where({ id }).first();
     return res.json({ message: "Job updated successfully.", job: updated });
@@ -475,7 +513,18 @@ exports.getAllJobsStudent = async (req, res) => {
 exports.getJobByIdStudent = async (req, res) => {
   try {
     const { id } = req.params;
-    const job = await db("jobs").where({ id }).first();
+    const job = await db("jobs as j")
+      .leftJoin("companies as c", "j.company_id", "c.id")
+      .select(
+        "j.*",
+        "c.name as company_name",
+        "c.website as company_website",
+        "c.industry as company_industry",
+        "c.company_size",
+        "c.about as company_about"
+      )
+      .where("j.id", id)
+      .first();
 
     if (!job) {
       return res.status(404).json({ error: "Job not found." });
@@ -602,7 +651,6 @@ exports.applyJob = async (req, res) => {
     return res.status(500).json({ error: "Server error" });
   }
 };
-
 
 // 17. withdrawJobApplication
 exports.withdrawJobApplication = async (req, res) => {
