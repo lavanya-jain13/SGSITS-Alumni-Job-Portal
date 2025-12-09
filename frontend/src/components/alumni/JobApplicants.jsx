@@ -310,6 +310,8 @@ export function JobApplicants({
   detailsPath = "/alumni/applicant-details",
   heading = "Job Applicants",
   contextText,
+  loadJobs,
+  loadApplicants,
 } = {}) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -357,23 +359,38 @@ export function JobApplicants({
       statusColor: statusColor[row.application_status] || "bg-gray-100 text-gray-800",
     }));
 
+  const fetchJobs = loadJobs || (async () => {
+    const res = await apiClient.getMyJobs();
+    return res?.jobs || [];
+  });
+
+  const fetchApplicants = loadApplicants || (async (jobId) => {
+    const res = await apiClient.getJobApplicants(jobId);
+    return res?.applicants || [];
+  });
+
+  const jobIdFromQuery = searchParams.get("jobId");
+
+  const normalizeJobs = (list = []) =>
+    (Array.isArray(list) ? list : list?.jobs || []).map((job) => ({
+      ...job,
+      id: job.id || job.job_id || job.jobId,
+      job_title: job.job_title || job.title || "Untitled role",
+    }));
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       setError("");
       try {
-        const jobsRes = await apiClient.getMyJobs();
-        const jobList = jobsRes?.jobs || [];
+        const jobList = normalizeJobs(await fetchJobs());
         setJobs(jobList);
-        const initialJobId =
-          searchParams.get("jobId") ||
-          jobList.find((j) => j.id)?.id ||
-          null;
+        const initialJobId = jobIdFromQuery || jobList[0]?.id || null;
         setSelectedJobId(initialJobId);
 
         if (initialJobId) {
-          const appsRes = await apiClient.getJobApplicants(initialJobId);
-          setApplicants(normalizeApplicants(appsRes?.applicants));
+          const apps = await fetchApplicants(initialJobId);
+          setApplicants(normalizeApplicants(apps));
         } else {
           setApplicants([]);
         }
@@ -385,16 +402,16 @@ export function JobApplicants({
     };
 
     load();
-  }, [searchParams]);
+  }, [jobIdFromQuery]);
 
   useEffect(() => {
-    const fetchApplicants = async () => {
+    const fetchApplicantsForJob = async () => {
       if (!selectedJobId) return;
       setLoading(true);
       setError("");
       try {
-        const appsRes = await apiClient.getJobApplicants(selectedJobId);
-        setApplicants(normalizeApplicants(appsRes?.applicants));
+        const apps = await fetchApplicants(selectedJobId);
+        setApplicants(normalizeApplicants(apps));
       } catch (err) {
         setError(err?.message || "Failed to load applications");
       } finally {
@@ -403,7 +420,7 @@ export function JobApplicants({
     };
 
     if (selectedJobId) {
-      fetchApplicants();
+      fetchApplicantsForJob();
     }
   }, [selectedJobId]);
 
