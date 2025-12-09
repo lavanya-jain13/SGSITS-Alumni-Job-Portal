@@ -72,7 +72,6 @@ const putProfileSchema = {
 router.get(
   "/profile",
   authenticate,
-
   isStudent,
   getMyProfile
 );

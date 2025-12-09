@@ -200,8 +200,16 @@ const getMyCompanies = async (req, res) => {
           "website",
           "about",
           "document_url",
+          // legacy columns
+          "linkedin_url",
+          "twitter_url",
+          "office_locations",
+          "company_culture",
           "status",
-          "created_at"
+          "created_at",
+          db.raw("NULL as linkedin"),
+          db.raw("NULL as twitter"),
+          db.raw("NULL as office_location")
         )
         .orderBy("created_at", "desc");
     }
@@ -268,7 +276,14 @@ const getCompanyById = async (req, res) => {
           "about",
           "document_url",
           "status",
-          "created_at"
+          "created_at",
+          "linkedin_url",
+          "twitter_url",
+          "office_locations",
+          db.raw("NULL as linkedin"),
+          db.raw("NULL as twitter"),
+          db.raw("NULL as office_location"),
+          db.raw("NULL as company_culture")
         )
         .first();
     }
@@ -320,10 +335,33 @@ const updateCompany = async (req, res) => {
       about,
       document_url,
       office_location,
+      office_locations,
       company_culture,
       linkedin,
+      linkedin_url,
       twitter,
+      twitter_url,
     } = req.body || {};
+
+    const resolvedLinkedin =
+      typeof linkedin !== "undefined"
+        ? linkedin
+        : typeof linkedin_url !== "undefined"
+        ? linkedin_url
+        : company.linkedin || company.linkedin_url || company.document_url;
+
+    const resolvedTwitter =
+      typeof twitter !== "undefined"
+        ? twitter
+        : typeof twitter_url !== "undefined"
+        ? twitter_url
+        : company.twitter || company.twitter_url;
+
+    const resolvedOfficeLocation = Array.isArray(office_locations)
+      ? office_locations.filter(Boolean).join(" | ")
+      : typeof office_location === "undefined"
+      ? company.office_location
+      : office_location;
 
     const fullUpdate = {
       name: name ?? company.name,
@@ -332,16 +370,13 @@ const updateCompany = async (req, res) => {
       website: website ?? company.website,
       about: about ?? company.about,
       document_url: document_url ?? company.document_url,
-      office_location:
-        typeof office_location === "undefined"
-          ? company.office_location
-          : office_location,
+      office_location: resolvedOfficeLocation,
       company_culture:
         typeof company_culture === "undefined"
           ? company.company_culture
           : company_culture,
-      linkedin: typeof linkedin === "undefined" ? company.linkedin : linkedin,
-      twitter: typeof twitter === "undefined" ? company.twitter : twitter,
+      linkedin: resolvedLinkedin,
+      twitter: resolvedTwitter,
     };
 
     const basicUpdate = {
@@ -351,6 +386,13 @@ const updateCompany = async (req, res) => {
       website: website ?? company.website,
       about: about ?? company.about,
       document_url: document_url ?? company.document_url,
+      office_location: resolvedOfficeLocation,
+      company_culture:
+        typeof company_culture === "undefined"
+          ? company.company_culture
+          : company_culture,
+      linkedin: resolvedLinkedin,
+      twitter: resolvedTwitter,
     };
 
     try {
@@ -394,7 +436,14 @@ const updateCompany = async (req, res) => {
           "about",
           "document_url",
           "status",
-          "created_at"
+          "created_at",
+          "linkedin_url",
+          "twitter_url",
+          "office_locations",
+          db.raw("NULL as linkedin"),
+          db.raw("NULL as twitter"),
+          db.raw("NULL as office_location"),
+          db.raw("NULL as company_culture")
         )
         .first();
     }
