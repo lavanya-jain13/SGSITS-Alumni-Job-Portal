@@ -30,7 +30,7 @@ exports.up = function (knex) {
         table.string("branch", 100).notNullable();
         table.integer("grad_year").notNullable();
 
-        // NEW FIELDS
+        // EXISTING FIELDS
         table.string("phone_number", 20);
         table.date("dob");
         table.string("current_year", 50); // 1st year, 2nd year...
@@ -41,6 +41,17 @@ exports.up = function (knex) {
 
         // skills as array of text (Postgres)
         table.specificType("skills", "text[]");
+
+        // NEWLY ADDED FIELDS
+        table.text("address");
+        table.text("desired_roles");
+        table.text("preferred_locations");
+        table.string("work_mode", 50);
+
+        table.boolean("consent_data_sharing").defaultTo(false);
+        table.boolean("consent_marketing").defaultTo(false);
+        table.boolean("consent_profile_visibility").defaultTo(false);
+        table.boolean("consent_terms").defaultTo(false);
 
         table.text("resume_url");
         table.timestamp("created_at").defaultTo(knex.fn.now());
