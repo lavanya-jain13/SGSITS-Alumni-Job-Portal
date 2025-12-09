@@ -17,10 +17,10 @@ const resumeUpload = require("../middleware/resumeUpload");
 router.post("/post-job", authenticate, isAlumni, jobController.postJob);
 
 // 2. Get jobs posted by logged-in alumni
-router.get("/my-jobs", authenticate, isAlumni, jobController.getMyJobs);
+router.get("/my-jobs", authenticate, isAlumni, isAdmin, isStudent, jobController.getMyJobs);
 
 // 3. Get single job (only if posted by this alumni)
-router.get("/job/:id", authenticate, isAlumni, jobController.getJobById);
+router.get("/job/:id", authenticate, isAlumni, isAdmin, isStudent, jobController.getJobById);
 
 // 4. Update job (only owner alumni)
 router.put("/job/:id", authenticate, isAlumni, jobController.updateJob);

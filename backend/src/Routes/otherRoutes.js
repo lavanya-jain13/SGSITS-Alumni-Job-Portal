@@ -19,6 +19,7 @@ router.post(
   "/post-other",
   authenticate,
   isAlumni,
+  isAdmin,
   otherController.postOtherPost
 );
 
@@ -27,6 +28,7 @@ router.get(
   "/my-other-posts",
   authenticate,
   isAlumni,
+  isAdmin,
   otherController.getMyOtherPosts
 );
 
@@ -35,6 +37,7 @@ router.get(
   "/other/:id",
   authenticate,
   isAlumni,
+  isAdmin,
   otherController.getOtherPostById
 );
 
@@ -51,6 +54,7 @@ router.delete(
   "/other/:id",
   authenticate,
   isAlumni,
+  isAdmin,
   otherController.deleteOtherPost
 );
 

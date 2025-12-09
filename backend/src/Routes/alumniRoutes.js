@@ -12,10 +12,10 @@ const { authenticate, isAdmin, isAlumni } = require("../middleware/authMiddlewar
 
 const router = express.Router();
 
-router.post("/profile", authenticate, completeProfile);
+router.post("/profile", authenticate,isAlumni, completeProfile);
 router.post("/update-profile", authenticate, updateProfile);
 
-router.post("/add-company", authenticate, addCompany);
+router.post("/add-company", authenticate, isAlumni, addCompany);
 router.get("/companies", authenticate, isAlumni, getMyCompanies);
 router.get("/companies/:id", authenticate, isAlumni, getCompanyById);
 router.put("/companies/:id", authenticate, isAlumni, updateCompany);
