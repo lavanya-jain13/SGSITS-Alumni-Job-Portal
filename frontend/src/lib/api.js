@@ -150,4 +150,30 @@ export const apiClient = {
     apiFetch(`/job/job/${id}/repost`, {
       method: "POST",
     }),
+
+  // ---------- Admin ----------
+  adminStats: () => apiFetch("/admin/stats"),
+  adminUsers: () => apiFetch("/admin/users"),
+  adminPendingAlumni: () => apiFetch("/admin/alumni/pending"),
+  adminVerifyAlumni: (userId, status) =>
+    apiFetch(`/admin/alumni/verify/${userId}`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    }),
+  adminApproveCompany: (companyId) =>
+    apiFetch(`/admin/companies/${companyId}/approve`, { method: "PATCH" }),
+  adminRejectCompany: (companyId) =>
+    apiFetch(`/admin/companies/${companyId}/reject`, { method: "PATCH" }),
+  adminJobs: () => apiFetch("/admin/jobs"),
+  adminDeleteJob: (id) =>
+    apiFetch(`/admin/jobs/${id}`, { method: "DELETE" }),
+  adminPromoteUser: (userId) =>
+    apiFetch(`/admin/users/${userId}/promote`, { method: "PATCH" }),
+  adminDeleteUser: (userId) =>
+    apiFetch(`/admin/users/${userId}`, { method: "DELETE" }),
+  adminNotify: (message, targetRole) =>
+    apiFetch("/admin/notify", {
+      method: "POST",
+      body: JSON.stringify({ message, targetRole }),
+    }),
 };

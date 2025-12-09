@@ -135,6 +135,9 @@ export default function TaxonomiesManagement() {
   const [skills, setSkills] = useState(mockSkills);
   const [branches, setBranches] = useState(mockBranches);
   const [synonyms, setSynonyms] = useState(mockSynonyms);
+  const [editingSkill, setEditingSkill] = useState(null);
+  const [editingBranch, setEditingBranch] = useState(null);
+  const [editingSynonym, setEditingSynonym] = useState(null);
 
   const filteredSkills = skills.filter(skill =>
     skill.name.toLowerCase().includes(skillSearchTerm.toLowerCase()) ||
@@ -233,33 +236,66 @@ export default function TaxonomiesManagement() {
                   {filteredSkills.map((skill) => (
                     <TableRow key={skill.id} className="hover:bg-muted/50">
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="font-semibold text-foreground">{skill.name}</div>
-                          {skill.trending && (
-                            <Badge variant="secondary" className="bg-success text-success-foreground text-xs">
-                              Trending
-                            </Badge>
-                          )}
-                        </div>
+                        {editingSkill?.id === skill.id ? (
+                          <Input
+                            value={editingSkill.name}
+                            onChange={(e) =>
+                              setEditingSkill((prev) => ({ ...prev, name: e.target.value }))
+                            }
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="font-semibold text-foreground">{skill.name}</div>
+                            {skill.trending && (
+                              <Badge variant="secondary" className="bg-success text-success-foreground text-xs">
+                                Trending
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-sm">
-                          {skill.category}
-                        </Badge>
+                        {editingSkill?.id === skill.id ? (
+                          <Input
+                            value={editingSkill.category}
+                            onChange={(e) =>
+                              setEditingSkill((prev) => ({ ...prev, category: e.target.value }))
+                            }
+                          />
+                        ) : (
+                          <Badge variant="outline" className="text-sm">
+                            {skill.category}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {skill.synonyms.slice(0, 3).map((synonym, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-xs">
-                              {synonym}
-                            </Badge>
-                          ))}
-                          {skill.synonyms.length > 3 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{skill.synonyms.length - 3} more
-                            </Badge>
-                          )}
-                        </div>
+                        {editingSkill?.id === skill.id ? (
+                          <Input
+                            value={editingSkill.synonyms.join(", ")}
+                            onChange={(e) =>
+                              setEditingSkill((prev) => ({
+                                ...prev,
+                                synonyms: e.target.value
+                                  .split(",")
+                                  .map((s) => s.trim())
+                                  .filter(Boolean),
+                              }))
+                            }
+                          />
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {skill.synonyms.slice(0, 3).map((synonym, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {synonym}
+                              </Badge>
+                            ))}
+                            {skill.synonyms.length > 3 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{skill.synonyms.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1 text-sm">
@@ -269,13 +305,43 @@ export default function TaxonomiesManagement() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline">
-                            <Edit className="h-3 w-3 mr-1" />
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="outline" className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground">
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                          {editingSkill?.id === skill.id ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => {
+                                  setSkills((prev) =>
+                                    prev.map((s) => (s.id === skill.id ? editingSkill : s))
+                                  );
+                                  setEditingSkill(null);
+                                }}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingSkill(null)}
+                              >
+                                Cancel
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingSkill(skill)}
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                Edit
+                              </Button>
+                              <Button size="sm" variant="outline" className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground">
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -324,32 +390,127 @@ export default function TaxonomiesManagement() {
                   {filteredBranches.map((branch) => (
                     <TableRow key={branch.id} className="hover:bg-muted/50">
                       <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-semibold text-foreground">{branch.name}</div>
-                          <div className="text-sm text-muted-foreground">Code: {branch.code}</div>
-                        </div>
+                        {editingBranch?.id === branch.id ? (
+                          <div className="space-y-2">
+                            <Input
+                              value={editingBranch.name}
+                              onChange={(e) =>
+                                setEditingBranch((prev) => ({ ...prev, name: e.target.value }))
+                              }
+                            />
+                            <Input
+                              value={editingBranch.code}
+                              onChange={(e) =>
+                                setEditingBranch((prev) => ({ ...prev, code: e.target.value }))
+                              }
+                              placeholder="Code"
+                            />
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <div className="font-semibold text-foreground">{branch.name}</div>
+                            <div className="text-sm text-muted-foreground">Code: {branch.code}</div>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{branch.department}</Badge>
+                        {editingBranch?.id === branch.id ? (
+                          <Input
+                            value={editingBranch.department}
+                            onChange={(e) =>
+                              setEditingBranch((prev) => ({
+                                ...prev,
+                                department: e.target.value,
+                              }))
+                            }
+                          />
+                        ) : (
+                          <Badge variant="outline">{branch.department}</Badge>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <div className="font-semibold">{branch.studentCount.toLocaleString()}</div>
+                        {editingBranch?.id === branch.id ? (
+                          <Input
+                            type="number"
+                            value={editingBranch.studentCount}
+                            onChange={(e) =>
+                              setEditingBranch((prev) => ({
+                                ...prev,
+                                studentCount: Number(e.target.value) || 0,
+                              }))
+                            }
+                          />
+                        ) : (
+                          <div className="font-semibold">{branch.studentCount.toLocaleString()}</div>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <div className="font-semibold">{branch.alumniCount.toLocaleString()}</div>
+                        {editingBranch?.id === branch.id ? (
+                          <Input
+                            type="number"
+                            value={editingBranch.alumniCount}
+                            onChange={(e) =>
+                              setEditingBranch((prev) => ({
+                                ...prev,
+                                alumniCount: Number(e.target.value) || 0,
+                              }))
+                            }
+                          />
+                        ) : (
+                          <div className="font-semibold">{branch.alumniCount.toLocaleString()}</div>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <div className="font-semibold text-primary">{branch.activeJobs}</div>
+                        {editingBranch?.id === branch.id ? (
+                          <Input
+                            type="number"
+                            value={editingBranch.activeJobs}
+                            onChange={(e) =>
+                              setEditingBranch((prev) => ({
+                                ...prev,
+                                activeJobs: Number(e.target.value) || 0,
+                              }))
+                            }
+                          />
+                        ) : (
+                          <div className="font-semibold text-primary">{branch.activeJobs}</div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline">
-                            <Edit className="h-3 w-3 mr-1" />
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="outline" className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground">
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                          {editingBranch?.id === branch.id ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => {
+                                  setBranches((prev) =>
+                                    prev.map((b) => (b.id === branch.id ? editingBranch : b))
+                                  );
+                                  setEditingBranch(null);
+                                }}
+                              >
+                                Save
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => setEditingBranch(null)}>
+                                Cancel
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingBranch(branch)}
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                Edit
+                              </Button>
+                              <Button size="sm" variant="outline" className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground">
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -386,26 +547,89 @@ export default function TaxonomiesManagement() {
                   {synonyms.map((mapping) => (
                     <TableRow key={mapping.id} className="hover:bg-muted/50">
                       <TableCell>
-                        <div className="font-semibold text-foreground">{mapping.primarySkill}</div>
+                        {editingSynonym?.id === mapping.id ? (
+                          <Input
+                            value={editingSynonym.primarySkill}
+                            onChange={(e) =>
+                              setEditingSynonym((prev) => ({
+                                ...prev,
+                                primarySkill: e.target.value,
+                              }))
+                            }
+                          />
+                        ) : (
+                          <div className="font-semibold text-foreground">{mapping.primarySkill}</div>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{mapping.synonym}</Badge>
+                        {editingSynonym?.id === mapping.id ? (
+                          <Input
+                            value={editingSynonym.synonym}
+                            onChange={(e) =>
+                              setEditingSynonym((prev) => ({
+                                ...prev,
+                                synonym: e.target.value,
+                              }))
+                            }
+                          />
+                        ) : (
+                          <Badge variant="secondary">{mapping.synonym}</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingSynonym?.id === mapping.id ? (
+                          <Input
+                            type="number"
+                            value={editingSynonym.frequency}
+                            onChange={(e) =>
+                              setEditingSynonym((prev) => ({
+                                ...prev,
+                                frequency: Number(e.target.value) || 0,
+                              }))
+                            }
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="font-semibold">{mapping.frequency}</div>
+                            <div className="text-xs text-muted-foreground">occurrences</div>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <div className="font-semibold">{mapping.frequency}</div>
-                          <div className="text-xs text-muted-foreground">occurrences</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline">
-                            <Edit className="h-3 w-3 mr-1" />
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="outline" className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground">
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                          {editingSynonym?.id === mapping.id ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => {
+                                  setSynonyms((prev) =>
+                                    prev.map((s) => (s.id === mapping.id ? editingSynonym : s))
+                                  );
+                                  setEditingSynonym(null);
+                                }}
+                              >
+                                Save
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => setEditingSynonym(null)}>
+                                Cancel
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingSynonym(mapping)}
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                Edit
+                              </Button>
+                              <Button size="sm" variant="outline" className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground">
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
