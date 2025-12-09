@@ -1,72 +1,73 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { 
-  Search, 
-  MapPin, 
-  Calendar, 
-  DollarSign, 
-  Users,
-  RefreshCw
-} from "lucide-react";
+import { Search, MapPin, DollarSign, Users, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-// Mock data for expired postings
-const mockExpiredPostings = [
-  {
-    id: 1,
-    title: "Senior Full Stack Developer",
-    company: "TechCorp Solutions",
-    location: "San Francisco, CA",
-    type: "Full-time",
-    salary: "$120k - $160k",
-    applicants: 45,
-    postedDate: "2024-10-15",
-    expiryDate: "2024-11-15",
-  },
-  {
-    id: 2,
-    title: "Product Manager",
-    company: "InnovateLabs",
-    location: "Remote",
-    type: "Full-time",
-    salary: "$100k - $140k",
-    applicants: 32,
-    postedDate: "2024-09-20",
-    expiryDate: "2024-10-20",
-  },
-  {
-    id: 3,
-    title: "UX Designer",
-    company: "DesignHub Inc",
-    location: "New York, NY",
-    type: "Contract",
-    salary: "$80k - $100k",
-    applicants: 28,
-    postedDate: "2024-09-10",
-    expiryDate: "2024-10-10",
-  },
-];
+import { apiClient } from "@/lib/api";
 
 export function ExpiredPostings() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [postings, setPostings] = useState(mockExpiredPostings);
+  const [postings, setPostings] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [repostingId, setRepostingId] = useState(null);
+
+  useEffect(() => {
+    const fetchExpired = async () => {
+      setLoading(true);
+      try {
+        const data = await apiClient.getMyJobs();
+        const normalized =
+          data?.jobs
+            ?.filter((job) => job.status && job.status !== "active")
+            .map((job) => ({
+              id: job.id,
+              title: job.job_title,
+              company: job.company_name || "My Company",
+              location: job.location || "—",
+              type: job.job_type || "Job",
+              salary: job.salary_range || job.stipend || "—",
+              applicants: job.applicant_count || 0,
+              status: job.status,
+            })) || [];
+        setPostings(normalized);
+      } catch (error) {
+        toast({
+          title: "Failed to load expired postings",
+          description: error?.message || "Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchExpired();
+  }, [toast]);
 
   const filteredPostings = postings.filter(posting =>
     posting.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     posting.company.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleRepost = (postingId) => {
-    toast({
-      title: "Posting Reposted",
-      description: "The job posting has been reposted successfully.",
-    });
+  const handleRepost = async (postingId) => {
+    setRepostingId(postingId);
+    try {
+      await apiClient.repostJob(postingId);
+      setPostings((prev) => prev.filter((p) => p.id !== postingId));
+      toast({ title: "Posting republished", description: "Status set to active." });
+    } catch (error) {
+      toast({
+        title: "Failed to repost",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRepostingId(null);
+    }
   };
 
   return (
@@ -94,7 +95,11 @@ export function ExpiredPostings() {
 
       {/* Postings List */}
       <div className="space-y-4">
-        {filteredPostings.length > 0 ? (
+        {loading ? (
+          <Card className="p-12 text-center">
+            <p className="text-muted-foreground">Loading expired postings...</p>
+          </Card>
+        ) : filteredPostings.length > 0 ? (
           filteredPostings.map((posting) => (
             <Card key={posting.id} className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -132,20 +137,21 @@ export function ExpiredPostings() {
 
                   <div className="flex flex-wrap gap-2">
                     <Badge variant="outline">{posting.type}</Badge>
-                    <Badge variant="destructive">Expired on {posting.expiryDate}</Badge>
+                    <Badge variant="destructive">{posting.status || "Expired"}</Badge>
                   </div>
                 </div>
 
                 <div>
                   <Button
-                    onClick={(e) => {
+                    disabled={repostingId === posting.id}
+                    onClick={async (e) => {
                       e.stopPropagation();
-                      handleRepost(posting.id);
+                      await handleRepost(posting.id);
                     }}
                     className="w-full sm:w-auto"
                   >
                     <RefreshCw className="h-4 w-4 mr-2" />
-                    Repost
+                    {repostingId === posting.id ? "Reposting..." : "Repost"}
                   </Button>
                 </div>
               </div>

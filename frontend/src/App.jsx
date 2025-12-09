@@ -13,11 +13,11 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import CompaniesManagement from "./pages/admin/CompaniesManagement";
 import PostingsManagement from "./pages/admin/PostingsManagement";
-import ApplicationsManagement from "./pages/admin/ApplicationsManagement";
+//import ApplicationsManagement from "./pages/admin/ApplicationsManagement";
 import TaxonomiesManagement from "./pages/admin/TaxonomiesManagement";
-import Analytics from "./pages/admin/Analytics";
+//import Analytics from "./pages/admin/Analytics";
 import AuditLogs from "./pages/admin/AuditLogs";
-import Settings from "./pages/admin/Settings";
+//import Settings from "./pages/admin/Settings";
 
 /* ------------------ Student / Public module imports ------------------ */
 import Index from "./pages/Index";
@@ -43,6 +43,7 @@ import { ApplicantDetails } from "./components/alumni/ApplicantDetails";
 import { ExpiredPostings } from "./components/alumni/ExpiredPostings";
 import { CompaniesList } from "./components/alumni/CompaniesList";
 import { ProfileView } from "./components/alumni/ProfileView";
+import ApplicationsOverview from "./pages/admin/ApplicationsOverview";
 
 /* ------------------ Shared ------------------ */
 import NotFound from "./pages/NotFound";
@@ -90,10 +91,8 @@ export default function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="companies" element={<CompaniesManagement />} />
               <Route path="postings" element={<PostingsManagement />} />
-              <Route path="applications" element={<ApplicationsManagement />} />
+              <Route path="applications" element={<ApplicationsOverview />} />
               <Route path="taxonomies" element={<TaxonomiesManagement />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="analytics" element={<Analytics />} />
               <Route path="audit-logs" element={<AuditLogs />} />
             </Route>
 

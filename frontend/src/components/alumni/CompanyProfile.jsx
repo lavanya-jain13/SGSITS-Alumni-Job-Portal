@@ -143,6 +143,18 @@ export function CompanyProfile() {
               </CardContent>
             </Card>
 
+            {/* Company Culture */}
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle>Company Culture</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed">
+                  {company.company_culture || "No culture description added yet."}
+                </p>
+              </CardContent>
+            </Card>
+
             {/* Office Locations */}
             <Card className="shadow-sm">
               <CardHeader>
@@ -150,10 +162,15 @@ export function CompanyProfile() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex items-center text-muted-foreground">
-                    <MapPin className="h-4 w-4 mr-2 text-primary" />
-                    {company.location || "Not specified"}
-                  </div>
+                  {(company.office_locations && company.office_locations.length > 0
+                    ? company.office_locations
+                    : [company.location || "Not specified"]
+                  ).map((loc, idx) => (
+                    <div key={idx} className="flex items-center text-muted-foreground">
+                      <MapPin className="h-4 w-4 mr-2 text-primary" />
+                      {loc || "Not specified"}
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -184,17 +201,35 @@ export function CompanyProfile() {
                 <CardTitle>Connect With Us</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button variant="outline" size="sm" className="w-full justify-start" disabled={!company.document_url}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  disabled={!company.linkedin_url}
+                  onClick={() => company.linkedin_url && window.open(company.linkedin_url, "_blank")}
+                >
                   <Linkedin className="h-4 w-4 mr-2 text-blue-600" />
                   LinkedIn
                   <ExternalLink className="h-3 w-3 ml-auto" />
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start" disabled>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  disabled={!company.twitter_url}
+                  onClick={() => company.twitter_url && window.open(company.twitter_url, "_blank")}
+                >
                   <Twitter className="h-4 w-4 mr-2 text-blue-400" />
                   Twitter/X
                   <ExternalLink className="h-3 w-3 ml-auto" />
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start" disabled={!company.website}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  disabled={!company.website}
+                  onClick={() => company.website && window.open(company.website, "_blank")}
+                >
                   <Globe className="h-4 w-4 mr-2" />
                   Company Website
                   <ExternalLink className="h-3 w-3 ml-auto" />

@@ -91,37 +91,46 @@ exports.up = function (knex) {
         table.string("name", 255).notNullable();
         table.integer("grad_year");
         table.string("current_title", 255);
+        table.string("status", 20).defaultTo("pending");
         table.timestamp("created_at").defaultTo(knex.fn.now());
       })
 
       // ---------------- COMPANIES ----------------
-      .createTable("companies", (table) => {
-        table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+      // ---------------- COMPANIES ----------------
+.createTable("companies", (table) => {
+  table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
 
-        table
-          .uuid("alumni_id")
-          .notNullable()
-          .references("id")
-          .inTable("alumni_profiles")
-          .onDelete("CASCADE");
+  table
+    .uuid("alumni_id")
+    .notNullable()
+    .references("id")
+    .inTable("alumni_profiles")
+    .onDelete("CASCADE");
 
-        table
-          .uuid("user_id")
-          .notNullable()
-          .references("id")
-          .inTable("users")
-          .onDelete("CASCADE");
+  table
+    .uuid("user_id")
+    .notNullable()
+    .references("id")
+    .inTable("users")
+    .onDelete("CASCADE");
 
-        table.string("name", 140);
-        table.text("website");
-        table.string("industry", 100);
-        table.string("company_size", 50);
-        table.text("about");
-        table.text("document_url");
-        table.string("status", 20);
+  table.string("name", 140);
+  table.text("website");
+  table.string("industry", 100);
+  table.string("company_size", 50);
+  table.text("about");
+  table.text("document_url");
+  table.string("status", 20);
 
-        table.timestamp("created_at").defaultTo(knex.fn.now());
-      })
+  // 🔹 NEW FIELDS
+  table.text("company_culture");          // describe work culture, values, etc.
+  table.string("office_location", 255);   // main office location
+  table.string("twitter", 255);           // twitter/X handle or URL
+  table.string("linkedin", 255);          // LinkedIn page URL
+
+  table.timestamp("created_at").defaultTo(knex.fn.now());
+})
+
 
       // ---------------- JOB POSTS ----------------
       .createTable("jobs", (table) => {
@@ -366,7 +375,7 @@ exports.down = function (knex) {
     .dropTableIfExists("companies")
     .dropTableIfExists("notifications")
     .dropTableIfExists("password_reset_tokens")
-    .dropTableIfExists("student_experience")   // 🔹 drop child before parent
+    .dropTableIfExists("student_experience") // 🔹 drop child before parent
     .dropTableIfExists("alumni_profiles")
     .dropTableIfExists("student_profiles")
     .dropTableIfExists("otp_verifications")

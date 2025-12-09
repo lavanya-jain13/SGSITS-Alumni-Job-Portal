@@ -49,6 +49,8 @@ export function EditCompanyProfile() {
 
   // Calculate progress based on completed fields
   const calculateProgress = () => {
+    const toText = (val) =>
+      val === undefined || val === null ? "" : String(val);
     const weights = {
       basics: 25,
       locations: 20,
@@ -59,8 +61,16 @@ export function EditCompanyProfile() {
     let totalProgress = 0;
 
     // Company Basics (25%)
-    const basicsFields = [formData.companyName, formData.websiteUrl, formData.industry, formData.companySize, formData.foundedYear];
-    const completedBasics = basicsFields.filter(field => field.trim() !== "").length;
+    const basicsFields = [
+      formData.companyName,
+      formData.websiteUrl,
+      formData.industry,
+      formData.companySize,
+      formData.foundedYear,
+    ];
+    const completedBasics = basicsFields.filter(
+      (field) => toText(field).trim() !== ""
+    ).length;
     totalProgress += (completedBasics / basicsFields.length) * weights.basics;
 
     // Locations (20%)
@@ -69,12 +79,22 @@ export function EditCompanyProfile() {
 
     // About & Culture (30%)
     const aboutFields = [formData.aboutCompany, formData.companyCulture];
-    const completedAbout = aboutFields.filter(field => field.trim() !== "").length;
+    const completedAbout = aboutFields.filter(
+      (field) => toText(field).trim() !== ""
+    ).length;
     totalProgress += (completedAbout / aboutFields.length) * weights.aboutCulture;
 
     // Social Links & Contact (15%)
-    const socialFields = [formData.linkedinUrl, formData.twitterUrl, formData.contactPersonName, formData.contactEmail, formData.contactPhone];
-    const completedSocial = socialFields.filter(field => field.trim() !== "").length;
+    const socialFields = [
+      formData.linkedinUrl,
+      formData.twitterUrl,
+      formData.contactPersonName,
+      formData.contactEmail,
+      formData.contactPhone,
+    ];
+    const completedSocial = socialFields.filter(
+      (field) => toText(field).trim() !== ""
+    ).length;
     totalProgress += (completedSocial / socialFields.length) * weights.socialContact;
 
     // Logo Upload (10%)
@@ -133,9 +153,25 @@ export function EditCompanyProfile() {
             websiteUrl: c.website || "",
             industry: c.industry || "",
             companySize: c.company_size || "",
+            foundedYear: c.founded_year || "",
             aboutCompany: c.about || "",
-            linkedinUrl: c.document_url || "",
+            companyCulture: c.company_culture || "",
+            linkedinUrl: c.linkedin_url || c.document_url || "",
+            twitterUrl: c.twitter_url || "",
           }));
+          if (Array.isArray(c.office_locations) && c.office_locations.length > 0) {
+            setLocations(
+              c.office_locations.map((loc, idx) => {
+                const parts = (loc || "").split(",").map((p) => p.trim());
+                return {
+                  id: String(idx),
+                  city: parts[0] || "",
+                  state: parts[1] || "",
+                  country: parts[2] || "",
+                };
+              })
+            );
+          }
         }
       } catch (error) {
         toast({
@@ -157,7 +193,15 @@ export function EditCompanyProfile() {
         industry: formData.industry,
         company_size: formData.companySize,
         about: formData.aboutCompany || formData.companyCulture,
-        document_url: formData.linkedinUrl,
+        company_culture: formData.companyCulture,
+        linkedin_url: formData.linkedinUrl,
+        twitter_url: formData.twitterUrl,
+        founded_year: formData.foundedYear || null,
+        office_locations: locations
+          .filter((loc) => loc.city || loc.state || loc.country)
+          .map((loc) =>
+            [loc.city, loc.state, loc.country].filter(Boolean).join(", ")
+          ),
       });
       toast({ title: "Company updated" });
       navigate(`/alumni/company-profile?id=${companyId}`);

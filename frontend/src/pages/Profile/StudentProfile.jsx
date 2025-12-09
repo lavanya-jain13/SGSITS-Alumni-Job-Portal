@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import ProfileCompletionMeter from "@/components/profile/ProfileCompletionMeter";
 import ProfileEditor from "@/components/profile/ProfileEditor";
+import { calculateProfileCompletion } from "@/lib/profileProgress";
 import { getToken, setToken } from "@/lib/api";
 import {
   User,
@@ -296,6 +297,8 @@ const StudentProfile = () => {
     (total, section) => total + (section.completed ? section.weight : 0),
     0
   );
+  const { sections: profileSections, completionPercentage } =
+    calculateProfileCompletion(profileData);
 
   const branches = [
     "Computer Science Engineering",

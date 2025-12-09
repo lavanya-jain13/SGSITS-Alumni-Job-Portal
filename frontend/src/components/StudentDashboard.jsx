@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Header from "./Header";
 import JobCard from "./JobCard";
 import ApplicationHistory from "./ApplicationHistory";
-import SettingsProfile from "./SettingsProfile";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { calculateProfileCompletion } from "@/lib/profileProgress";
 
 const recommendedJobs = [
   { id: "1", title: "Junior Frontend Developer", company: "InnovaTech - New York, NY", location: "New York, NY", type: "Full-time" },
@@ -20,18 +20,61 @@ export default function StudentDashboard() {
 
   // ✅ Profile data state
   const [profileData, setProfileData] = useState({
-    resumeUploaded: true,
-    experiences: ["Frontend Developer"],
+    name: "",
+    student_id: "",
+    branch: "",
+    grad_year: "",
+    resumeUploaded: false,
+    experiences: [],
     skills: [],
     summary: "",
+    desiredRoles: [],
   });
 
-  // Progress calculation
-  const progress =
-    (profileData.resumeUploaded ? 25 : 0) +
-    (profileData.experiences.length > 0 ? 25 : 0) +
-    (profileData.skills.length >= 3 ? 25 : 0) +
-    (profileData.summary ? 25 : 0);
+  useEffect(() => {
+    const loadExtras = () => {
+      try {
+        const raw = localStorage.getItem("student_profile_extras");
+        return raw ? JSON.parse(raw) : {};
+      } catch {
+        return {};
+      }
+    };
+
+    const loadProfile = async () => {
+      try {
+        const { apiFetch } = await import("@/lib/api");
+        const res = await apiFetch("/student/profile");
+        const profile = res?.profile || {};
+        const extras = loadExtras();
+
+        setProfileData((prev) => ({
+          ...prev,
+          name: profile.name || "",
+          student_id: profile.student_id || "",
+          branch: profile.branch || "",
+          grad_year: profile.grad_year || "",
+          skills: profile.skills
+            ? profile.skills
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+                .map((name) => ({ name }))
+            : [],
+          experiences: profile.experiences || [],
+          resumeUploaded: !!profile.resume_url,
+          desiredRoles: extras.desiredRoles || [],
+        }));
+      } catch (err) {
+        console.error("Failed to load profile for dashboard", err);
+        // Stay on dashboard even if unauthenticated or fetch fails
+      }
+    };
+
+    loadProfile();
+  }, [navigate]);
+
+  const { completionPercentage } = calculateProfileCompletion(profileData);
 
   return (
     <div className="min-h-screen bg-background">
@@ -43,7 +86,10 @@ export default function StudentDashboard() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Your Profile Progress</h2>
             {/* ✅ Fixed navigation path */}
-            <Button onClick={() => navigate("/student/profile")} className="bg-blue-500">
+            <Button
+              onClick={() => navigate("/student/profile")}
+              className="bg-[#023859] hover:bg-[#023859]/90"
+            >
               Complete Profile
             </Button>
           </div>
@@ -54,13 +100,13 @@ export default function StudentDashboard() {
 
           {/* Progress Bar */}
           <div className="flex items-center mb-4">
-            <span className="text-2xl font-bold text-blue-600 mr-4">
-              {progress}%
+            <span className="text-2xl font-bold text-[#023859] mr-4">
+              {completionPercentage}%
             </span>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
-                className="bg-blue-500 h-2 rounded-full"
-                style={{ width: `${progress}%` }}
+                className="h-2 rounded-full bg-[#023859]"
+                style={{ width: `${completionPercentage}%` }}
               />
             </div>
           </div>
@@ -133,9 +179,6 @@ export default function StudentDashboard() {
 
         {/* Application History */}
         <ApplicationHistory />
-
-        {/* Settings & Profile */}
-        <SettingsProfile />
       </main>
     </div>
   );

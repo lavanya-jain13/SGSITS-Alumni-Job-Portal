@@ -16,6 +16,9 @@ const completeProfile = async (req, res) => {
       company_size,
       about,
       linkedin,
+      twitter,
+      office_location,
+      company_culture,
       currentTitle,
       gradYear,
     } = req.body;
@@ -34,7 +37,11 @@ const completeProfile = async (req, res) => {
       industry: industry,
       company_size: company_size,
       about: about,
-      document_url: linkedin,
+      linkedin: linkedin || null,
+      twitter: twitter || null,
+      office_location: office_location || null,
+      company_culture: company_culture || null,
+      document_url: linkedin, // legacy field kept for backwards compatibility
       created_at: trx.fn.now(),
     });
 
@@ -95,6 +102,9 @@ const addCompany = async (req, res) => {
       company_size,
       about,
       linkedin,
+      twitter,
+      office_location,
+      company_culture,
       status,
     } = req.body || {};
 
@@ -110,7 +120,11 @@ const addCompany = async (req, res) => {
       industry: industry || null,
       company_size: company_size || null,
       about: about || null,
-      document_url: linkedin || null,
+      linkedin: linkedin || null,
+      twitter: twitter || null,
+      office_location: office_location || null,
+      company_culture: company_culture || null,
+      document_url: linkedin || null, // legacy
       status: status || "pending",
       created_at: db.fn.now(),
     };
@@ -127,6 +141,10 @@ const addCompany = async (req, res) => {
         "company_size",
         "about",
         "document_url",
+        "linkedin",
+        "twitter",
+        "office_location",
+        "company_culture",
         "status",
         "created_at",
       ]);
@@ -149,21 +167,58 @@ const getMyCompanies = async (req, res) => {
       return res.status(403).json({ error: "Only alumni can view companies." });
     }
 
-    const companies = await db("companies")
-      .where({ user_id: userId })
-      .select(
-        "id",
-        "name",
-        "industry",
-        "company_size",
-        "website",
-        "about",
-        "status",
-        "created_at"
-      )
-      .orderBy("created_at", "desc");
+    let companies;
+    try {
+      companies = await db("companies")
+        .where({ user_id: userId })
+        .select(
+          "id",
+          "name",
+          "industry",
+          "company_size",
+          "website",
+          "about",
+          "document_url",
+          "linkedin",
+          "twitter",
+          "office_location",
+          "company_culture",
+          "status",
+          "created_at"
+        )
+        .orderBy("created_at", "desc");
+    } catch (err) {
+      // Fallback for databases where new columns are not migrated yet
+      console.error("Get My Companies column mismatch, falling back:", err.message);
+      companies = await db("companies")
+        .where({ user_id: userId })
+        .select(
+          "id",
+          "name",
+          "industry",
+          "company_size",
+          "website",
+          "about",
+          "document_url",
+          "status",
+          "created_at"
+        )
+        .orderBy("created_at", "desc");
+    }
 
-    return res.json({ companies });
+    const normalized = companies.map((c) => ({
+      ...c,
+      office_locations: Array.isArray(c.office_locations)
+        ? c.office_locations
+        : c.office_location
+        ? [c.office_location]
+        : [],
+      company_culture: c.company_culture || null,
+      linkedin_url: c.linkedin_url || c.linkedin || c.document_url || null,
+      twitter_url: c.twitter_url || c.twitter || null,
+    }));
+
+    return res.json({ companies: normalized });
   } catch (error) {
     console.error("Get My Companies Error:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -180,26 +235,62 @@ const getCompanyById = async (req, res) => {
       return res.status(403).json({ error: "Only alumni can view companies." });
     }
 
-    const company = await db("companies")
-      .where({ id, user_id: userId })
-      .select(
-        "id",
-        "name",
-        "industry",
-        "company_size",
-        "website",
-        "about",
-        "document_url",
-        "status",
-        "created_at"
-      )
-      .first();
+    let company;
+    try {
+      company = await db("companies")
+        .where({ id, user_id: userId })
+        .select(
+          "id",
+          "name",
+          "industry",
+          "company_size",
+          "website",
+          "about",
+          "document_url",
+          "linkedin",
+          "twitter",
+          "office_location",
+          "company_culture",
+          "status",
+          "created_at"
+        )
+        .first();
+    } catch (err) {
+      console.error("Get Company column mismatch, falling back:", err.message);
+      company = await db("companies")
+        .where({ id, user_id: userId })
+        .select(
+          "id",
+          "name",
+          "industry",
+          "company_size",
+          "website",
+          "about",
+          "document_url",
+          "status",
+          "created_at"
+        )
+        .first();
+    }
 
     if (!company) {
       return res.status(404).json({ error: "Company not found" });
     }
 
-    return res.json({ company });
+    const normalized = {
+      ...company,
+      office_locations: Array.isArray(company.office_locations)
+        ? company.office_locations
+        : company.office_location
+        ? [company.office_location]
+        : [],
+      company_culture: company.company_culture || null,
+      linkedin_url:
+        company.linkedin_url || company.linkedin || company.document_url || null,
+      twitter_url: company.twitter_url || company.twitter || null,
+    };
+
+    return res.json({ company: normalized });
   } catch (error) {
     console.error("Get Company Error:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -221,35 +312,112 @@ const updateCompany = async (req, res) => {
       return res.status(404).json({ error: "Company not found" });
     }
 
-    const { name, industry, company_size, website, about, document_url } = req.body || {};
+    const {
+      name,
+      industry,
+      company_size,
+      website,
+      about,
+      document_url,
+      office_location,
+      company_culture,
+      linkedin,
+      twitter,
+    } = req.body || {};
 
-    await db("companies")
-      .where({ id })
-      .update({
-        name: name ?? company.name,
-        industry: industry ?? company.industry,
-        company_size: company_size ?? company.company_size,
-        website: website ?? company.website,
-        about: about ?? company.about,
-        document_url: document_url ?? company.document_url,
-      });
+    const fullUpdate = {
+      name: name ?? company.name,
+      industry: industry ?? company.industry,
+      company_size: company_size ?? company.company_size,
+      website: website ?? company.website,
+      about: about ?? company.about,
+      document_url: document_url ?? company.document_url,
+      office_location:
+        typeof office_location === "undefined"
+          ? company.office_location
+          : office_location,
+      company_culture:
+        typeof company_culture === "undefined"
+          ? company.company_culture
+          : company_culture,
+      linkedin: typeof linkedin === "undefined" ? company.linkedin : linkedin,
+      twitter: typeof twitter === "undefined" ? company.twitter : twitter,
+    };
 
-    const updated = await db("companies")
-      .where({ id })
-      .select(
-        "id",
-        "name",
-        "industry",
-        "company_size",
-        "website",
-        "about",
-        "document_url",
-        "status",
-        "created_at"
-      )
-      .first();
+    const basicUpdate = {
+      name: name ?? company.name,
+      industry: industry ?? company.industry,
+      company_size: company_size ?? company.company_size,
+      website: website ?? company.website,
+      about: about ?? company.about,
+      document_url: document_url ?? company.document_url,
+    };
 
-    return res.json({ message: "Company updated successfully", company: updated });
+    try {
+      await db("companies").where({ id }).update(fullUpdate);
+    } catch (err) {
+      // Fallback if new columns are missing in the database
+      console.error("Full update failed, falling back to basic update:", err.message);
+      await db("companies").where({ id }).update(basicUpdate);
+    }
+
+    let updated;
+    try {
+      updated = await db("companies")
+        .where({ id })
+        .select(
+          "id",
+          "name",
+          "industry",
+          "company_size",
+          "website",
+          "about",
+          "document_url",
+          "linkedin",
+          "twitter",
+          "office_location",
+          "company_culture",
+          "status",
+          "created_at"
+        )
+        .first();
+    } catch (err) {
+      console.error("Select updated company fallback:", err.message);
+      updated = await db("companies")
+        .where({ id })
+        .select(
+          "id",
+          "name",
+          "industry",
+          "company_size",
+          "website",
+          "about",
+          "document_url",
+          "status",
+          "created_at"
+        )
+        .first();
+    }
+
+    const normalized = updated
+      ? {
+          ...updated,
+          office_locations: Array.isArray(updated.office_locations)
+            ? updated.office_locations
+            : updated.office_location
+            ? [updated.office_location]
+            : [],
+          company_culture: updated.company_culture || null,
+          linkedin_url:
+            updated.linkedin_url || updated.linkedin || updated.document_url || null,
+          twitter_url: updated.twitter_url || updated.twitter || null,
+        }
+      : updated;
+
+    return res.json({
+      message: "Company updated successfully",
+      company: normalized,
+    });
   } catch (error) {
     console.error("Update Company Error:", error);
     return res.status(500).json({ error: error.message || "Internal server error" });
