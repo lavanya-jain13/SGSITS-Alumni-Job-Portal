@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { ArrowLeft, ChevronDown, ChevronUp, Plus, Trash2, Upload } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { ArrowLeft, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,30 +9,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { apiClient } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 export function EditCompanyProfile() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const companyId = searchParams.get("id");
   
   // Form state
   const [formData, setFormData] = useState({
-    companyName: "TechCorp Inc.",
-    websiteUrl: "https://techcorp.com",
-    industry: "Information Technology",
-    companySize: "201-500 employees",
-    foundedYear: "2010",
-    aboutCompany: "TechCorp Inc. is a leading technology solutions provider specializing in enterprise software development and digital transformation services.",
-    companyCulture: "We foster innovation, collaboration, and continuous learning in a diverse and inclusive environment.",
-    linkedinUrl: "https://linkedin.com/company/techcorp",
-    twitterUrl: "https://twitter.com/techcorp",
-    contactPersonName: "John Smith",
-    contactEmail: "hr@techcorp.com",
-    contactPhone: "+91 22 1234 5678",
-    hasLogo: true
+    companyName: "",
+    websiteUrl: "",
+    industry: "",
+    companySize: "",
+    foundedYear: "",
+    aboutCompany: "",
+    companyCulture: "",
+    linkedinUrl: "",
+    twitterUrl: "",
+    contactPersonName: "",
+    contactEmail: "",
+    contactPhone: "",
+    hasLogo: false
   });
 
   const [locations, setLocations] = useState([
-    { id: "1", city: "Mumbai", state: "Maharashtra", country: "India" },
-    { id: "2", city: "Bangalore", state: "Karnataka", country: "India" }
+    { id: "1", city: "", state: "", country: "" },
   ]);
 
   // Section collapse states
@@ -40,25 +44,33 @@ export function EditCompanyProfile() {
     basics: true,
     locations: false,
     aboutCulture: false,
-    socialContact: false,
-    logoUpload: false
+    socialContact: false
   });
 
   // Calculate progress based on completed fields
   const calculateProgress = () => {
+    const toText = (val) =>
+      val === undefined || val === null ? "" : String(val);
     const weights = {
       basics: 25,
       locations: 20,
-      aboutCulture: 30,
-      socialContact: 15,
-      logoUpload: 10
+      aboutCulture: 35,
+      socialContact: 20
     };
 
     let totalProgress = 0;
 
     // Company Basics (25%)
-    const basicsFields = [formData.companyName, formData.websiteUrl, formData.industry, formData.companySize, formData.foundedYear];
-    const completedBasics = basicsFields.filter(field => field.trim() !== "").length;
+    const basicsFields = [
+      formData.companyName,
+      formData.websiteUrl,
+      formData.industry,
+      formData.companySize,
+      formData.foundedYear,
+    ];
+    const completedBasics = basicsFields.filter(
+      (field) => toText(field).trim() !== ""
+    ).length;
     totalProgress += (completedBasics / basicsFields.length) * weights.basics;
 
     // Locations (20%)
@@ -67,17 +79,25 @@ export function EditCompanyProfile() {
 
     // About & Culture (30%)
     const aboutFields = [formData.aboutCompany, formData.companyCulture];
-    const completedAbout = aboutFields.filter(field => field.trim() !== "").length;
+    const completedAbout = aboutFields.filter(
+      (field) => toText(field).trim() !== ""
+    ).length;
     totalProgress += (completedAbout / aboutFields.length) * weights.aboutCulture;
 
     // Social Links & Contact (15%)
-    const socialFields = [formData.linkedinUrl, formData.twitterUrl, formData.contactPersonName, formData.contactEmail, formData.contactPhone];
-    const completedSocial = socialFields.filter(field => field.trim() !== "").length;
+    const socialFields = [
+      formData.linkedinUrl,
+      formData.twitterUrl,
+      formData.contactPersonName,
+      formData.contactEmail,
+      formData.contactPhone,
+    ];
+    const completedSocial = socialFields.filter(
+      (field) => toText(field).trim() !== ""
+    ).length;
     totalProgress += (completedSocial / socialFields.length) * weights.socialContact;
 
     // Logo Upload (10%)
-    totalProgress += formData.hasLogo ? weights.logoUpload : 0;
-
     return Math.round(totalProgress);
   };
 
@@ -112,10 +132,86 @@ export function EditCompanyProfile() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = () => {
-    // Here you would save the data to your backend
-    console.log("Saving company profile:", { formData, locations });
-    navigate("/alumni/company-profile");
+  useEffect(() => {
+    const loadCompany = async () => {
+      if (!companyId) {
+        toast({
+          title: "No company selected",
+          description: "Return to My Companies and pick a company.",
+          variant: "destructive",
+        });
+        navigate("/alumni/companies", { replace: true });
+        return;
+      }
+      try {
+        const data = await apiClient.getCompanyById(companyId);
+        const c = data?.company;
+        if (c) {
+          setFormData((prev) => ({
+            ...prev,
+            companyName: c.name || "",
+            websiteUrl: c.website || "",
+            industry: c.industry || "",
+            companySize: c.company_size || "",
+            foundedYear: c.founded_year || "",
+            aboutCompany: c.about || "",
+            companyCulture: c.company_culture || "",
+            linkedinUrl: c.linkedin_url || c.document_url || "",
+            twitterUrl: c.twitter_url || "",
+          }));
+          if (Array.isArray(c.office_locations) && c.office_locations.length > 0) {
+            setLocations(
+              c.office_locations.map((loc, idx) => {
+                const parts = (loc || "").split(",").map((p) => p.trim());
+                return {
+                  id: String(idx),
+                  city: parts[0] || "",
+                  state: parts[1] || "",
+                  country: parts[2] || "",
+                };
+              })
+            );
+          }
+        }
+      } catch (error) {
+        toast({
+          title: "Failed to load company",
+          description: error?.message || "Please try again.",
+          variant: "destructive",
+        });
+        navigate("/alumni/companies", { replace: true });
+      }
+    };
+    loadCompany();
+  }, [companyId, navigate, toast]);
+
+  const handleSave = async () => {
+    try {
+      await apiClient.updateCompany(companyId, {
+        name: formData.companyName,
+        website: formData.websiteUrl,
+        industry: formData.industry,
+        company_size: formData.companySize,
+        about: formData.aboutCompany || formData.companyCulture,
+        company_culture: formData.companyCulture,
+        linkedin_url: formData.linkedinUrl,
+        twitter_url: formData.twitterUrl,
+        founded_year: formData.foundedYear || null,
+        office_locations: locations
+          .filter((loc) => loc.city || loc.state || loc.country)
+          .map((loc) =>
+            [loc.city, loc.state, loc.country].filter(Boolean).join(", ")
+          ),
+      });
+      toast({ title: "Company updated" });
+      navigate(`/alumni/company-profile?id=${companyId}`);
+    } catch (error) {
+      toast({
+        title: "Failed to update company",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const progress = calculateProgress();
@@ -129,14 +225,14 @@ export function EditCompanyProfile() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate("/alumni/company-profile")}
+              onClick={() => navigate(`/alumni/company-profile?id=${companyId || ""}`)}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-2xl font-semibold">Edit Company Profile</h1>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => navigate("/alumni/company-profile")}>
+            <Button variant="outline" onClick={() => navigate(`/alumni/company-profile?id=${companyId || ""}`)}>
               Cancel
             </Button>
             <Button onClick={handleSave}>
@@ -395,44 +491,6 @@ export function EditCompanyProfile() {
                     onChange={(e) => handleInputChange('contactPhone', e.target.value)}
                     className="max-w-xs"
                   />
-                </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Collapsible>
-        </Card>
-
-        {/* Logo Upload */}
-        <Card>
-          <Collapsible open={sectionStates.logoUpload} onOpenChange={() => toggleSection('logoUpload')}>
-            <CollapsibleTrigger className="w-full">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">Logo Upload (10%)</h3>
-                  {sectionStates.logoUpload ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                </div>
-              </CardContent>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="px-6 pb-6 space-y-4">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-20 h-20 bg-muted rounded-lg flex items-center justify-center">
-                      {formData.hasLogo ? (
-                        <span className="text-sm text-muted-foreground">Logo</span>
-                      ) : (
-                        <Upload className="h-8 w-8 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">
-                        {formData.hasLogo ? "Current logo uploaded" : "No logo uploaded"}
-                      </p>
-                      <Button variant="outline" size="sm">
-                        <Upload className="h-4 w-4 mr-2" />
-                        {formData.hasLogo ? "Change Logo" : "Upload Logo"}
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               </CardContent>
             </CollapsibleContent>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,119 +12,129 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Star, Flag, Merge, Edit, Building2, Users, Briefcase } from "lucide-react";
+import { Search, Star, Building2, Users, Briefcase } from "lucide-react";
 import { StatCard } from "@/components/admin/StatCard";
-
-const mockCompanies = [
-  {
-    id: "1",
-    name: "TechCorp Solutions",
-    industry: "Software Development",
-    status: "Approved",
-    employees: "100-500",
-    location: "Indore, MP",
-    activeJobs: 5,
-    totalHires: 23,
-    registeredAt: "2024-08-15",
-    website: "https://techcorp.com"
-  },
-  {
-    id: "2",
-    name: "InnovateLabs",
-    industry: "AI/ML",
-    status: "Pending",
-    employees: "50-100",
-    location: "Bangalore, KA",
-    activeJobs: 0,
-    totalHires: 0,
-    registeredAt: "2024-09-10",
-    website: "https://innovatelabs.io"
-  },
-  {
-    id: "3",
-    name: "DataDriven Analytics",
-    industry: "Data Science",
-    status: "Featured",
-    employees: "200-1000",
-    location: "Pune, MH",
-    activeJobs: 8,
-    totalHires: 45,
-    registeredAt: "2024-07-20",
-    website: "https://datadriven.com"
-  },
-  {
-    id: "4",
-    name: "SuspiciousTech Inc",
-    industry: "Unknown",
-    status: "Flagged",
-    employees: "1-10",
-    location: "Unknown",
-    activeJobs: 2,
-    totalHires: 1,
-    registeredAt: "2024-09-15"
-  },
-  {
-    id: "5",
-    name: "Microsoft India",
-    industry: "Technology",
-    status: "Approved",
-    employees: "10000+",
-    location: "Hyderabad, TS",
-    activeJobs: 12,
-    totalHires: 78,
-    registeredAt: "2024-06-01",
-    website: "https://microsoft.com/en-in"
-  }
-];
+import { apiClient } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CompaniesManagement() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [companies, setCompanies] = useState(mockCompanies);
+  const [companies, setCompanies] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const filteredCompanies = companies.filter(company => {
-    const matchesSearch = company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         company.industry.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         company.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || company.status.toLowerCase() === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const loadCompanies = async () => {
+    setLoading(true);
+    try {
+      const [pendingRes, usersRes, statsRes] = await Promise.all([
+        apiClient.adminPendingAlumni(),
+        apiClient.adminUsers(),
+        apiClient.adminStats(),
+      ]);
+
+      const pendingCompanies =
+        (pendingRes || []).map((p) => ({
+          id: p.company_id,
+          name: p.company_name || p.name,
+          status: p.company_status || "pending",
+          registeredAt: p.created_at,
+          email: p.email,
+        })) || [];
+
+      const alumniCompanies =
+        (usersRes?.alumni || [])
+          .filter((a) => a.company_id)
+          .map((a) => ({
+            id: a.company_id,
+            name: a.company_name,
+            status: a.company_status || a.status || "pending",
+            registeredAt: a.created_at,
+            email: a.email,
+          })) || [];
+
+      // merge by id to avoid duplicates
+      const merged = {};
+      [...pendingCompanies, ...alumniCompanies].forEach((c) => {
+        if (!c.id) return;
+        merged[c.id] = { ...(merged[c.id] || {}), ...c };
+      });
+
+      setCompanies(Object.values(merged));
+      setStats(statsRes || {});
+    } catch (err) {
+      toast({
+        title: "Failed to load companies",
+        description: err.message || "Unable to fetch company data.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCompanies();
+  }, []);
+
+  const filteredCompanies = useMemo(() => {
+    return companies.filter((company) => {
+      const status = (company.status || "pending").toLowerCase();
+      const matchesSearch =
+        company.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        company.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "all" || status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [companies, searchTerm, statusFilter]);
 
   const getStatusVariant = (status) => {
     switch (status) {
-      case "Approved": return "default";
-      case "Featured": return "default";
-      case "Pending": return "secondary";
-      case "Flagged": return "destructive";
+      case "approved": return "default";
+      case "featured": return "default";
+      case "pending": return "secondary";
+      case "rejected": return "destructive";
+      case "flagged": return "destructive";
       default: return "secondary";
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Approved": return "bg-success text-success-foreground";
-      case "Featured": return "bg-primary text-primary-foreground";
-      case "Pending": return "bg-warning text-warning-foreground";
-      case "Flagged": return "bg-destructive text-destructive-foreground";
+      case "approved": return "bg-success text-success-foreground";
+      case "featured": return "bg-primary text-primary-foreground";
+      case "pending": return "bg-warning text-warning-foreground";
+      case "rejected": return "bg-destructive text-destructive-foreground";
+      case "flagged": return "bg-destructive text-destructive-foreground";
       default: return "bg-muted text-muted-foreground";
     }
   };
 
-  const handleCompanyAction = (companyId, action) => {
-    setCompanies(prevCompanies =>
-      prevCompanies.map(company =>
-        company.id === companyId
-          ? {
-              ...company,
-              status: action === "approve" ? "Approved" : 
-                     action === "flag" ? "Flagged" : 
-                     action === "feature" ? "Featured" :
-                     "Approved"
-            }
-          : company
-      )
-    );
+  const handleCompanyAction = async (companyId, action) => {
+    if (!companyId) return;
+    try {
+      if (action === "approve") {
+        await apiClient.adminApproveCompany(companyId);
+      } else {
+        await apiClient.adminRejectCompany(companyId);
+      }
+      toast({
+        title: `Company ${action === "approve" ? "approved" : "rejected"}`,
+      });
+      await loadCompanies();
+    } catch (err) {
+      toast({
+        title: "Action failed",
+        description: err.message || "Could not update company",
+        variant: "destructive",
+      });
+    }
   };
+
+  const totalCompanies = stats?.approvedCompanies ?? 0;
+  const pendingCompanies = stats?.pendingCompanies ?? 0;
+  const totalJobs = stats?.totalJobs ?? 0;
 
   return (
     <div className="space-y-8 p-8">
@@ -137,28 +147,28 @@ export default function CompaniesManagement() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           title="Total Companies"
-          value="92"
+          value={totalCompanies + pendingCompanies}
           icon={Building2}
           variant="default"
         />
         <StatCard
           title="Pending Approval"
-          value="15"
+          value={pendingCompanies}
           icon={Users}
           variant="warning"
         />
         <StatCard
           title="Featured Partners"
-          value="8"
+          value={Math.max(totalCompanies - pendingCompanies, 0)}
           icon={Star}
           variant="success"
         />
         <StatCard
           title="Active Job Postings"
-          value="27"
+          value={totalJobs}
           icon={Briefcase}
           variant="default"
         />
@@ -218,84 +228,57 @@ export default function CompaniesManagement() {
                   <TableCell>
                     <div className="space-y-1">
                       <div className="font-semibold text-foreground">{company.name}</div>
-                      <div className="text-sm text-muted-foreground">{company.location}</div>
-                      {company.website && (
-                        <div className="text-xs text-primary">{company.website}</div>
+                      {company.email && (
+                        <div className="text-sm text-muted-foreground">{company.email}</div>
                       )}
-                      <div className="text-xs text-muted-foreground">Registered: {company.registeredAt}</div>
+                      {company.registeredAt && (
+                        <div className="text-xs text-muted-foreground">Registered: {company.registeredAt}</div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
-                      <div className="text-sm font-medium">{company.industry}</div>
-                      <div className="text-xs text-muted-foreground">{company.employees} employees</div>
+                      <div className="text-sm font-medium">{company.industry || "—"}</div>
+                      <div className="text-xs text-muted-foreground">{company.employees || "Size N/A"}</div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
-                      <div className="text-sm">Active Jobs: <span className="font-semibold">{company.activeJobs}</span></div>
-                      <div className="text-sm">Total Hires: <span className="font-semibold">{company.totalHires}</span></div>
+                      <div className="text-sm">
+                        Active Jobs: <span className="font-semibold">{company.activeJobs ?? 0}</span>
+                      </div>
+                      <div className="text-sm">
+                        Total Hires: <span className="font-semibold">{company.totalHires ?? 0}</span>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <Badge 
-                      variant={getStatusVariant(company.status)}
-                      className={`${getStatusColor(company.status)} font-medium`}
+                      variant={getStatusVariant((company.status || "pending").toLowerCase())}
+                      className={`${getStatusColor((company.status || "pending").toLowerCase())} font-medium`}
                     >
-                      {company.status}
+                      {company.status || "pending"}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      {company.status === "Pending" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleCompanyAction(company.id, "approve")}
-                          className="text-success border-success hover:bg-success hover:text-success-foreground"
-                        >
-                          Approve
-                        </Button>
-                      )}
-                      {company.status !== "Featured" && company.status !== "Flagged" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleCompanyAction(company.id, "feature")}
-                          className="text-primary border-primary hover:bg-primary hover:text-primary-foreground"
-                        >
-                          <Star className="h-3 w-3 mr-1" />
-                          Feature
-                        </Button>
-                      )}
-                      {company.status === "Featured" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleCompanyAction(company.id, "unfeature")}
-                          className="text-muted-foreground"
-                        >
-                          Unfeature
-                        </Button>
-                      )}
-                      {company.status !== "Flagged" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleCompanyAction(company.id, "flag")}
-                          className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                        >
-                          <Flag className="h-3 w-3 mr-1" />
-                          Flag
-                        </Button>
-                      )}
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-foreground"
+                        disabled={loading}
+                        onClick={() => handleCompanyAction(company.id, "approve")}
+                        className="text-success border-success hover:bg-success hover:text-success-foreground"
                       >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={loading}
+                        onClick={() => handleCompanyAction(company.id, "reject")}
+                        className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      >
+                        Reject
                       </Button>
                     </div>
                   </TableCell>

@@ -8,6 +8,7 @@ const authorizeRole = require('../middleware/roleMiddleware');
 // Student withdraw their job application
 router.delete('/jobs/apply/:applicationId',
   authenticate,
+  authenticate.isStudent,
   authorizeRole(['student']),
   applicationController.withdrawApplication
 );
@@ -15,6 +16,7 @@ router.delete('/jobs/apply/:applicationId',
 // Alumni view applicants of their job
 router.get('/jobs/:jobId/applicants',
   authenticate,
+  authenticate.isAlumni,
   authorizeRole(['alumni', 'admin']),
   applicationController.viewApplicants
 );

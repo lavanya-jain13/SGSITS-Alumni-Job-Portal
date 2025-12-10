@@ -1,8 +1,7 @@
-# Welcome to your Lovable project
+# Welcome to your Internship project
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/dc5589d4-880f-4ce9-a982-45d8cc895804
 
 ## How can I edit this code?
 
@@ -10,7 +9,6 @@ There are several ways of editing your application.
 
 **Use Lovable**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/dc5589d4-880f-4ce9-a982-45d8cc895804) and start prompting.
 
 Changes made via Lovable will be committed automatically to this repo.
 

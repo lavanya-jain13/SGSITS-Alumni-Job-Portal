@@ -2,6 +2,10 @@
 backend/.env
 frontend/.env
 
+#other ignores
+CLAUDE.md
+deploy.py
+
 # Node
 node_modules
 

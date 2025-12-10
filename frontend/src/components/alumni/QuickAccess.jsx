@@ -2,9 +2,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Users, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 
 export function QuickAccess() {
   const navigate = useNavigate();
+
   return (
     <Card className="gradient-card shadow-glow">
       <CardHeader>
@@ -19,6 +21,7 @@ export function QuickAccess() {
           <Plus className="h-4 w-4 mr-2" />
           Post New Job
         </Button>
+
         
         <Button 
           variant="outline" 
@@ -28,6 +31,16 @@ export function QuickAccess() {
         >
           <Users className="h-4 w-4 mr-2" />
           View All Postings
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full"
+          onClick={() => navigate("/alumni/applications")}
+        >
+          <Users className="h-4 w-4 mr-2" />
+          Applications Overview
         </Button>
         
         <Button 

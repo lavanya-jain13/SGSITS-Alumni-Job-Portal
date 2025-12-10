@@ -4,7 +4,6 @@ import {
   FileText, 
   ClipboardList, 
   Tags, 
-  Settings, 
   BarChart3, 
   Shield 
 } from "lucide-react";
@@ -26,8 +25,6 @@ const navigationItems = [
   { title: "Postings", url: "/admin/postings", icon: FileText },
   { title: "Applications", url: "/admin/applications", icon: ClipboardList },
   { title: "Taxonomies", url: "/admin/taxonomies", icon: Tags },
-  { title: "Settings", url: "/admin/settings", icon: Settings },
-  { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
   { title: "Audit Logs", url: "/admin/audit-logs", icon: Shield },
 ];
 

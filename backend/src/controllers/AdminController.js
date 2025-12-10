@@ -23,6 +23,7 @@ exports.getPendingAlumni = async (req, res) => {
   try {
     const rows = await db("users as u")
       .leftJoin("alumni_profiles as ap", "ap.user_id", "u.id")
+      .leftJoin("companies as c", "c.alumni_id", "ap.id")
       .select(
         "u.id as user_id",
         "u.email",
@@ -31,9 +32,15 @@ exports.getPendingAlumni = async (req, res) => {
         "ap.id as alumni_profile_id",
         "ap.name",
         "ap.grad_year",
-        "ap.created_at"
+        "ap.created_at",
+        "c.id as company_id",
+        "c.name as company_name",
+        "c.status as company_status"
       )
-      .where({ "u.role": "alumni", "u.status": "pending" })
+      .where({ "u.role": "alumni" })
+      .andWhere((qb) => {
+        qb.where({ "u.status": "pending" }).orWhereNull("u.status");
+      })
       .orderBy("ap.created_at", "desc");
 
     res.json(rows);
@@ -64,10 +71,10 @@ exports.verifyAlumni = async (req, res) => {
     await notifyUser(
       user.email,
       "Alumni Registration Status",
-      " Your alumni registration has been ${status}."
+      `Your alumni registration has been ${status}.`
     );
 
-    res.json({ message: "Alumni ${status}" });
+    res.json({ message: `Alumni ${status}` });
   } catch (error) {
     console.error("verifyAlumni error:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -81,16 +88,17 @@ exports.approveAlumni = async (req, res) => {
   try {
     const { companyId } = req.params;
 
-    const updated = await db("companies")
-      .where({ alumni_id: companyId })
-      .update({ status: "approved" });
-
-    if (!updated)
+    const company = await db("companies").where({ id: companyId }).first();
+    if (!company)
       return res
         .status(404)
         .json({ error: "Company not found for this alumni" });
 
-    const alumni = await db("alumni_profiles").where({ id: companyId }).first();
+    await db("companies").where({ id: companyId }).update({ status: "approved" });
+
+    const alumni = await db("alumni_profiles")
+      .where({ id: company.alumni_id })
+      .first();
     if (!alumni) return res.status(404).json({ error: "Alumni not found" });
 
     await db("users")
@@ -115,16 +123,17 @@ exports.rejectAlumni = async (req, res) => {
   try {
     const { companyId } = req.params;
 
-    const updated = await db("companies")
-      .where({ alumni_id: companyId })
-      .update({ status: "rejected" });
-
-    if (!updated)
+    const company = await db("companies").where({ id: companyId }).first();
+    if (!company)
       return res
         .status(404)
         .json({ error: "Company not found for this alumni" });
 
-    const alumni = await db("alumni_profiles").where({ id: companyId }).first();
+    await db("companies").where({ id: companyId }).update({ status: "rejected" });
+
+    const alumni = await db("alumni_profiles")
+      .where({ id: company.alumni_id })
+      .first();
     if (!alumni) return res.status(404).json({ error: "Alumni not found" });
 
     await db("users")
@@ -144,14 +153,15 @@ exports.rejectAlumni = async (req, res) => {
 exports.getAllJobsAdmin = async (req, res) => {
   try {
     const rows = await db("jobs as j")
-      .leftJoin("companies as c", "c.alumni_id", "j.company_id")
-      .leftJoin("alumni_profiles as ap", "ap.id", "j.posted_by_alumni_id")
+      .leftJoin("companies as c", "c.id", "j.company_id")
+      .leftJoin("alumni_profiles as ap", "ap.id", "j.alumni_id")
       .leftJoin("users as u", "u.id", "ap.user_id")
       .select(
         "j.id as job_id",
         "j.job_title",
         "j.job_description",
         "j.created_at as job_created_at",
+        "j.status as job_status",
         "c.name as company_name",
         "c.website",
         "ap.name as alumni_name",
@@ -208,6 +218,7 @@ exports.getAllUsers = async (req, res) => {
         "u.status",
         "ap.name",
         "ap.grad_year",
+        "c.id as company_id",
         "c.name as company_name",
         "c.status as company_status"
       )
@@ -231,6 +242,24 @@ exports.deleteUser = async (req, res) => {
   } catch (error) {
     console.error("deleteUser error:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Promote a user to admin; only existing admins can call this
+exports.promoteUserToAdmin = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await db("users").where({ id }).first();
+    if (!user) return res.status(404).json({ error: "User not found" });
+    if (user.role === "admin") {
+      return res.status(400).json({ error: "User is already an admin" });
+    }
+
+    await db("users").where({ id }).update({ role: "admin" });
+    return res.json({ message: "User promoted to admin successfully" });
+  } catch (error) {
+    console.error("promoteUserToAdmin error:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -259,6 +288,52 @@ exports.sendNotification = async (req, res) => {
     });
   } catch (error) {
     console.error("sendNotification error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/* -------------------------------------------
+   6. ADMIN STATS (dashboard cards)
+-------------------------------------------- */
+exports.getAdminStats = async (_req, res) => {
+  try {
+    const [{ count: totalUsers }] = await db("users").count("* as count");
+    const [{ count: studentsCount }] = await db("users")
+      .where({ role: "student" })
+      .count("* as count");
+    const [{ count: alumniCount }] = await db("users")
+      .where({ role: "alumni" })
+      .count("* as count");
+    const [{ count: pendingAlumni }] = await db("users")
+      .where({ role: "alumni" })
+      .andWhere((qb) => qb.where({ status: "pending" }).orWhereNull("status"))
+      .count("* as count");
+
+    const [{ count: approvedCompanies }] = await db("companies")
+      .where({ status: "approved" })
+      .count("* as count");
+    const [{ count: pendingCompanies }] = await db("companies")
+      .where({ status: "pending" })
+      .orWhereNull("status")
+      .count("* as count");
+
+    const [{ count: totalJobs }] = await db("jobs").count("* as count");
+    const [{ count: activeJobs }] = await db("jobs")
+      .where({ status: "active" })
+      .count("* as count");
+
+    res.json({
+      totalUsers: Number(totalUsers || 0),
+      studentsCount: Number(studentsCount || 0),
+      alumniCount: Number(alumniCount || 0),
+      pendingAlumni: Number(pendingAlumni || 0),
+      approvedCompanies: Number(approvedCompanies || 0),
+      pendingCompanies: Number(pendingCompanies || 0),
+      totalJobs: Number(totalJobs || 0),
+      activeJobs: Number(activeJobs || 0),
+    });
+  } catch (error) {
+    console.error("getAdminStats error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

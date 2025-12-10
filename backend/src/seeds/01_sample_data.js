@@ -97,19 +97,19 @@ exports.seed = async function (knex) {
   await knex("jobs").insert([
     {
       company_id: companies[0].id,
-      posted_by_alumni_id: alumniProfiles[0].id,
+      alumni_id: alumniProfiles[0].id,
       job_title: "Frontend Developer",
       job_description: "Develop user interfaces using React and TypeScript",
     },
     {
       company_id: companies[0].id,
-      posted_by_alumni_id: alumniProfiles[0].id,
+      alumni_id: alumniProfiles[0].id,
       job_title: "Backend Developer",
       job_description: "Build scalable backend services with Node.js",
     },
     {
       company_id: companies[1].id,
-      posted_by_alumni_id: alumniProfiles[1].id,
+      alumni_id: alumniProfiles[1].id,
       job_title: "Data Scientist",
       job_description: "Analyze data and build ML models",
     },

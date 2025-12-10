@@ -4,13 +4,16 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 
-const SECRET_KEY = "your_jwt_secret";
+// Use the same JWT secret as authMiddleware
+const SECRET_KEY = process.env.JWT_SECRET || "your_jwt_secret";
 
 // ==================== REGISTER STUDENT ====================
 const registerStudent = async (req, res) => {
   try {
     const { name, role, email, password_hash, branch, gradYear, student_id } =
       req.body;
+
+      console.log(req.body);
 
     if (
       !name ||
@@ -22,7 +25,6 @@ const registerStudent = async (req, res) => {
     ) {
       return res.status(400).json({ error: "All fields are required" });
     }
-
     if (email.split("@")[1] !== "sgsits.ac.in") {
       return res.status(400).json({ error: "Email is not authorised" });
     }
@@ -86,16 +88,15 @@ const registerStudent = async (req, res) => {
 
 // // ==================== LOGIN ====================
 const login = async (req, res) => {
-  const { email, password_hash } = req.body;
+  const { email, password } = req.body;
 
   const user = await db("users").where({ email }).first();
   if (!user) return res.status(400).json({ message: "User not found" });
 
-  const valid = await bcrypt.compare(password_hash, user.password_hash);
+  const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) return res.status(401).json({ message: "Invalid password" });
 
   const roleToAssign = user.role.toLowerCase();
-
   const token = jwt.sign(
     { id: user.id, email: user.email, role: roleToAssign },
     SECRET_KEY,
@@ -104,28 +105,28 @@ const login = async (req, res) => {
     }
   );
 
-  res.json({ token });
+  res.json({
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      role: roleToAssign
+    }
+  });
 };
 
 // ==================== REGISTER ALUMNI ====================
 const registerAlumni = async (req, res) => {
-  const { name, role, grad_year, email, password_hash, current_title } =
-    req.body;
+  const { name, grad_year, email, password_hash, current_title } = req.body;
 
-  if (
-    !name ||
-    !role ||
-    !email ||
-    !password_hash ||
-    !current_title ||
-    !grad_year
-  ) {
+  if (!name || !email || !password_hash || !current_title || !grad_year) {
     return res.status(400).json({ error: "All fields are required" });
   }
+  
 
   // ✅ Enforce business/company email
   const corporateDomains = [
-    // "gmail.com",
+    "gmail.com",
     "yahoo.com",
     "outlook.com",
     "hotmail.com",
@@ -139,11 +140,14 @@ const registerAlumni = async (req, res) => {
     const domain = email.split("@")[1].toLowerCase();
     return !corporateDomains.includes(domain);
   }
-
+  
   if (!isBusinessEmail(email)) {
+    console.log("Corporate email detected:", email);
     return res
       .status(400)
       .json({ error: "Please use a valid business/company email ID" });
+  }else{
+    console.log("Business email verified");
   }
 
   try {
@@ -154,20 +158,21 @@ const registerAlumni = async (req, res) => {
           "An account with this email already exists or is pending verification.",
       });
     }
-    if (email= process.env.ADMIN_EMAIL){
-      role="admin"
-    }
-    
-    const hashedPassword = await bcrypt.hash(password_hash, 10);
-    await db.transaction(async (trx) => {
-      const [newUser] = await trx("users").insert(
-        {
-          email,
-          password_hash: hashedPassword,
-          role,
-        },
-        ["id"] // important: this returns the id (Postgres syntax)
-      );
+
+    const role = "alumni";
+  
+  const hashedPassword = await bcrypt.hash(password_hash, 10);
+  await db.transaction(async (trx) => {
+    const [newUser] = await trx("users").insert(
+      {
+        email,
+        password_hash: hashedPassword,
+        role,
+        status: "pending",
+        is_verified: false,
+      },
+      ["id"] // important: this returns the id (Postgres syntax)
+    );
 
       const [newAlumni] = await trx("alumni_profiles").insert(
         {
@@ -175,7 +180,7 @@ const registerAlumni = async (req, res) => {
           user_id: newUser.id,
           grad_year,
           current_title,
-          // status: "pending", // will update after admin approval
+          status: "pending", // will update after admin approval
         },
         ["id"]
       );
@@ -183,6 +188,7 @@ const registerAlumni = async (req, res) => {
       await trx("companies").insert({
         alumni_id: newAlumni.id,
         user_id: newUser.id,
+        status: "pending",
       });
     });
 

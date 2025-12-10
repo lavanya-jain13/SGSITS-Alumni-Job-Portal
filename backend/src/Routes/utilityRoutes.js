@@ -1,9 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const utilityController = require("../controllers/UtilityController");
-const { authenticate } = require("../middleware/authMiddleware");
+const {
+  authenticate,
+  isAdmin,
+  isAlumni,
+  isStudent,
+} = require("../middleware/authMiddleware");
 const authorizeRoles = require("../middleware/roleMiddleware");
-
 
 // Allow both students and alumni (and admin) to search
 router.get(

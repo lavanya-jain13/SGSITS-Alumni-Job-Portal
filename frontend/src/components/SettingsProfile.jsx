@@ -1,13 +1,6 @@
-import { Settings } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function SettingsProfile() {
-  const handleGoToSettings = () => {
-    // Navigate to settings page or show settings modal
-    alert("Redirecting to Settings...");
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -17,10 +10,9 @@ export default function SettingsProfile() {
         </p>
       </CardHeader>
       <CardContent>
-        <Button onClick={handleGoToSettings} className="w-full">
-          <Settings className="h-4 w-4 mr-2" />
-          Go to Settings
-        </Button>
+        <p className="text-sm text-muted-foreground">
+          Settings navigation will appear here.
+        </p>
       </CardContent>
     </Card>
   );

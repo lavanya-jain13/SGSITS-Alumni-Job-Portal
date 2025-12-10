@@ -1,50 +1,81 @@
-import { Building2, Users, Briefcase, TrendingUp } from "lucide-react";
+import { Building2, Users, Briefcase, Eye } from "lucide-react";
 import { MetricCard } from "./MetricCard";
-import { ApplicationChart } from "./ApplicationChart";
 import { TopApplicants } from "./TopApplicants";
 import { QuickAccess } from "./QuickAccess";
 import "../../alumni.css"; // Keep if you have other alumni-specific styles
+import { useSelector } from "react-redux";
+import { selectAuth } from "@/store/authSlice";
+import { useEffect, useState } from "react";
+import { apiClient } from "@/lib/api";
 
 const AlumniDashboard = () => {
+  const { user } = useSelector(selectAuth);
+  const displayName =
+    user?.name ||
+    (user?.email ? user.email.split("@")[0] : "Alumni");
+  const [metrics, setMetrics] = useState({
+    jobsPosted: 0,
+    applications: 0,
+    companyViews: 0,
+    loading: true,
+  });
+
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const data = await apiClient.getMyJobs();
+        const jobs = data?.jobs || [];
+        const jobsPosted = jobs.length;
+        const applications = jobs.reduce(
+          (acc, job) => acc + (Number(job.applicant_count) || 0),
+          0
+        );
+        // Company views not available in backend; leave as 0 for now.
+        setMetrics({
+          jobsPosted,
+          applications,
+          companyViews: 0,
+          loading: false,
+        });
+      } catch (_err) {
+        setMetrics((prev) => ({ ...prev, loading: false }));
+      }
+    };
+    fetchMetrics();
+  }, []);
+
   return (
     <div className="alumni-theme space-y-6 animate-fade-in">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Welcome, (Alumni Name)</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Welcome, {displayName}</h1>
         <p className="text-muted-foreground">
           Manage your job postings and connect with talented SGSITS students.
         </p>
       </div>
 
       {/* Metrics */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
         <MetricCard
           title="Jobs Posted"
-          value="50"
-          change={{ value: 12, type: "increase" }}
+          value={metrics.loading ? "…" : metrics.jobsPosted}
+          change={null}
           icon={Briefcase}
-          description="Active postings"
+          description="Active + closed"
         />
         <MetricCard
           title="Applications Received"
-          value="60"
-          change={{ value: 8, type: "increase" }}
+          value={metrics.loading ? "…" : metrics.applications}
+          change={null}
           icon={Users}
           description="This month"
         />
         <MetricCard
           title="Company Views"
-          value="1,240"
-          change={{ value: 15, type: "increase" }}
-          icon={Building2}
+          value={metrics.loading ? "…" : metrics.companyViews}
+          change={null}
+          icon={Eye}
           description="Profile visits"
-        />
-        <MetricCard
-          title="Response Rate"
-          value="85%"
-          change={{ value: 5, type: "increase" }}
-          icon={TrendingUp}
-          description="Avg response time"
         />
       </div>
 
@@ -52,7 +83,6 @@ const AlumniDashboard = () => {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Chart and Applicants */}
         <div className="space-y-6 lg:col-span-2">
-          <ApplicationChart />
           <TopApplicants />
         </div>
 
