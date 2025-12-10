@@ -1,11 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  GraduationCap,
-  ArrowRight,
-  Menu,
-  X,
-} from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import logo from "@/assets/logo.png";
 
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -27,7 +23,11 @@ const Index = () => {
             {/* Logo */}
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <GraduationCap className="w-5 h-5 text-primary-foreground" />
+                <img
+                  src={logo}
+                  alt="SGSITS Alumni Portal"
+                  className="w-full h-full object-contain rounded-lg"
+                />
               </div>
               <span className="text-lg sm:text-xl font-bold">
                 SGSITS Alumni Portal
@@ -154,7 +154,11 @@ const Index = () => {
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center gap-3 mb-4 md:mb-0">
               <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <GraduationCap className="w-5 h-5 text-primary-foreground" />
+                <img
+                  src={logo}
+                  alt="SGSITS Alumni Portal"
+                  className="w-full h-full object-contain rounded-lg"
+                />
               </div>
               <span className="text-lg font-semibold">
                 SGSITS Alumni Portal
