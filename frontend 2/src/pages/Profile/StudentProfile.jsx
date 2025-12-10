@@ -271,8 +271,7 @@ const StudentProfile = () => {
       id: "experience",
       title: "Experience",
       description: "Add your work experience or projects",
-      completed:
-        profileData.experiences && profileData.experiences.length >= 1,
+      completed: profileData.experiences && profileData.experiences.length >= 1,
       weight: 20,
     },
     {
@@ -547,11 +546,17 @@ const StudentProfile = () => {
           <div className="lg:col-span-3">
             <Tabs defaultValue="personal" className="space-y-6">
               <TabsList className="grid w-full grid-cols-6">
-                <TabsTrigger value="personal" className="flex items-center gap-1">
+                <TabsTrigger
+                  value="personal"
+                  className="flex items-center gap-1"
+                >
                   <User className="w-4 h-4" />
                   <span className="hidden sm:inline">Personal</span>
                 </TabsTrigger>
-                <TabsTrigger value="academic" className="flex items-center gap-1">
+                <TabsTrigger
+                  value="academic"
+                  className="flex items-center gap-1"
+                >
                   <GraduationCap className="w-4 h-4" />
                   <span className="hidden sm:inline">Academic</span>
                 </TabsTrigger>
@@ -559,7 +564,10 @@ const StudentProfile = () => {
                   <Code className="w-4 h-4" />
                   <span className="hidden sm:inline">Skills</span>
                 </TabsTrigger>
-                <TabsTrigger value="experience" className="flex items-center gap-1">
+                <TabsTrigger
+                  value="experience"
+                  className="flex items-center gap-1"
+                >
                   <Briefcase className="w-4 h-4" />
                   <span className="hidden sm:inline">Experience</span>
                 </TabsTrigger>
@@ -567,7 +575,10 @@ const StudentProfile = () => {
                   <FileText className="w-4 h-4" />
                   <span className="hidden sm:inline">Resume</span>
                 </TabsTrigger>
-                <TabsTrigger value="preferences" className="flex items-center gap-1">
+                <TabsTrigger
+                  value="preferences"
+                  className="flex items-center gap-1"
+                >
                   <Settings className="w-4 h-4" />
                   <span className="hidden sm:inline">Preferences</span>
                 </TabsTrigger>
@@ -707,10 +718,18 @@ const StudentProfile = () => {
                             <SelectValue placeholder="Select year" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="First Year">First Year</SelectItem>
-                            <SelectItem value="Second Year">Second Year</SelectItem>
-                            <SelectItem value="Third Year">Third Year</SelectItem>
-                            <SelectItem value="Final Year">Final Year</SelectItem>
+                            <SelectItem value="First Year">
+                              First Year
+                            </SelectItem>
+                            <SelectItem value="Second Year">
+                              Second Year
+                            </SelectItem>
+                            <SelectItem value="Third Year">
+                              Third Year
+                            </SelectItem>
+                            <SelectItem value="Final Year">
+                              Final Year
+                            </SelectItem>
                             <SelectItem value="Recent Graduate">
                               Recent Graduate
                             </SelectItem>
@@ -1004,9 +1023,7 @@ const StudentProfile = () => {
                     <div className="space-y-4">
                       <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
                         <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="font-medium mb-2">
-                          Upload your resume
-                        </h3>
+                        <h3 className="font-medium mb-2">Upload your resume</h3>
                         <p className="text-sm text-muted-foreground mb-4">
                           PDF, DOC, DOCX up to 5MB
                         </p>
