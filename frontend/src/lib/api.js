@@ -100,6 +100,19 @@ export const apiClient = {
       body: JSON.stringify(body),
     }),
 
+  // Forgot/Reset Password
+  forgotPassword: (email) =>
+    apiFetch("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (email, otp, newPassword) =>
+    apiFetch("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ email, otp, newPassword }),
+    }),
+
   // Alumni profile/company
   completeAlumniProfile: (body) =>
     apiFetch("/alumni/profile", {
