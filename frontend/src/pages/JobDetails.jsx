@@ -436,7 +436,17 @@
 
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Clock, Calendar, Building, Users, BookOpen, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  MapPin,
+  Clock,
+  Calendar,
+  Building,
+  Users,
+  BookOpen,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -444,6 +454,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ApplicationModal from "@/components/ApplicationModals";
+import { useToast } from "@/hooks/use-toast";
+import { getToken } from "@/lib/api";
 
 export default function JobDetails() {
   const { id } = useParams();
@@ -454,6 +466,19 @@ export default function JobDetails() {
   const [applicantCount, setApplicantCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
+  const { toast } = useToast();
+
+  const toArray = (val) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === "string")
+      return val
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    return [];
+  };
 
   React.useEffect(() => {
     let mounted = true;
@@ -464,12 +489,9 @@ export default function JobDetails() {
         const res = await apiFetch(`/job/get-job-by-id-student/${id}`);
         if (mounted) {
           setJobDetails(res?.job || null);
-        }
-        try {
-          const applicants = await apiFetch(`/job/view-applicants/${id}`);
-          if (mounted) setApplicantCount(applicants?.count || applicants?.applicants?.length || 0);
-        } catch (err) {
-          // ignore applicant load failures for now
+          setApplicantCount(
+            res?.job?.applicants_count || res?.job?.applications_count || 0
+          );
         }
       } catch (err) {
         console.error("Failed to load job details", err);
@@ -478,16 +500,66 @@ export default function JobDetails() {
       }
     }
     if (id) load();
-    return () => { mounted = false };
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (!profileComplete) {
       alert("Redirecting to complete your profile...");
       navigate("/?complete-profile=true");
       return;
     }
-    setIsApplicationModalOpen(true);
+
+    const token = getToken();
+    if (!token) {
+      toast({
+        title: "Please log in",
+        description: "You need to sign in as a student to apply.",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
+    setIsApplying(true);
+    try {
+      const { apiFetch } = await import("@/lib/api");
+      // fetch student profile to get resume_url
+      const profileRes = await apiFetch("/student/profile");
+      const resumeUrl = profileRes?.profile?.resume_url;
+      if (!resumeUrl) {
+        toast({
+          title: "Upload resume first",
+          description:
+            "Please upload your resume in your profile before applying.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await apiFetch("/job/apply-job", {
+        method: "POST",
+        body: JSON.stringify({
+          job_id: id,
+          resume_url: resumeUrl,
+        }),
+      });
+
+      toast({
+        title: "Application submitted",
+        description: "Your job application was submitted successfully.",
+      });
+    } catch (err) {
+      toast({
+        title: "Could not apply",
+        description: err?.message || "Failed to submit application.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsApplying(false);
+    }
   };
 
   const displayJob = {
@@ -495,18 +567,24 @@ export default function JobDetails() {
     company: jobDetails?.company_name || jobDetails?.company || "Company",
     type: jobDetails?.job_type || jobDetails?.type || "Job",
     location: jobDetails?.location || "Location not specified",
-    experience: jobDetails?.experience || jobDetails?.experience_level || "Not specified",
-    applyBy: jobDetails?.application_deadline ? new Date(jobDetails.application_deadline).toDateString() : "Not specified",
-    posted: jobDetails?.created_at ? new Date(jobDetails.created_at).toDateString() : "Not specified",
-    stipend: jobDetails?.stipend || "Not specified"
+    experience:
+      jobDetails?.experience || jobDetails?.experience_level || "Not specified",
+    applyBy: jobDetails?.application_deadline
+      ? new Date(jobDetails.application_deadline).toDateString()
+      : "Not specified",
+    posted: jobDetails?.created_at
+      ? new Date(jobDetails.created_at).toDateString()
+      : "Not specified",
+    stipend: jobDetails?.stipend || "Not specified",
   };
 
   const companyInfo = {
     name: jobDetails?.company_name || "Company",
     founded: jobDetails?.company_founded || "Not provided",
     size: jobDetails?.company_size || "Not provided",
-    industry: jobDetails?.company_industry || jobDetails?.industry || "Not provided",
-    website: jobDetails?.company_website || jobDetails?.website || "Not provided"
+    industry:
+      jobDetails?.company_industry || jobDetails?.industry || "Not provided",
+    website: jobDetails?.company_website || jobDetails?.website || "Not provided",
   };
 
   if (!loading && !jobDetails) {
@@ -514,7 +592,9 @@ export default function JobDetails() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-2">
           <p className="text-lg font-semibold">Job not found</p>
-          <Button variant="outline" onClick={() => navigate("/jobs")}>Back to Jobs</Button>
+          <Button variant="outline" onClick={() => navigate("/jobs")}>
+            Back to Jobs
+          </Button>
         </div>
       </div>
     );
@@ -547,15 +627,19 @@ export default function JobDetails() {
                     </div>
                     <div>
                       <h1 className="text-2xl font-bold">{displayJob.title}</h1>
-                      <p className="text-lg text-muted-foreground">{displayJob.company}</p>
+                      <p className="text-lg text-muted-foreground">
+                        {displayJob.company}
+                      </p>
                     </div>
                   </div>
-                  <Badge 
+                  <Badge
                     variant="secondary"
                     className={
-                      displayJob.type === "Full-time" ? "bg-orange-100 text-orange-800 border-orange-200" :
-                      displayJob.type === "Internship" ? "bg-blue-100 text-blue-800 border-blue-200" :
-                      "bg-green-100 text-green-800 border-green-200"
+                      displayJob.type === "Full-time"
+                        ? "bg-orange-100 text-orange-800 border-orange-200"
+                        : displayJob.type === "Internship"
+                        ? "bg-blue-100 text-blue-800 border-blue-200"
+                        : "bg-green-100 text-green-800 border-green-200"
                     }
                   >
                     {displayJob.type}
@@ -582,7 +666,7 @@ export default function JobDetails() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-6">
-                  {(jobDetails?.skills || []).map((skill, i) => (
+                  {toArray(jobDetails?.skills).map((skill, i) => (
                     <Badge key={`${skill}-${i}`} variant="outline">
                       {skill}
                     </Badge>
@@ -590,7 +674,7 @@ export default function JobDetails() {
                 </div>
 
                 <div className="text-lg font-semibold text-primary">
-                    {displayJob.stipend}
+                  {displayJob.stipend}
                 </div>
               </CardContent>
             </Card>
@@ -598,7 +682,9 @@ export default function JobDetails() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="description">Description</TabsTrigger>
-                <TabsTrigger value="responsibilities">Responsibilities</TabsTrigger>
+                <TabsTrigger value="responsibilities">
+                  Responsibilities
+                </TabsTrigger>
                 <TabsTrigger value="requirements">Requirements</TabsTrigger>
                 <TabsTrigger value="eligibility">Eligibility</TabsTrigger>
                 <TabsTrigger value="company">Company</TabsTrigger>
@@ -611,16 +697,22 @@ export default function JobDetails() {
                   </CardHeader>
                   <CardContent>
                     <div className="prose prose-sm max-w-none">
-                      <p className="whitespace-pre-line">{jobDetails?.job_description || "No description provided."}</p>
+                      <p className="whitespace-pre-line">
+                        {jobDetails?.job_description ||
+                          "No description provided."}
+                      </p>
                     </div>
-                    
+
                     <Separator className="my-6" />
-                    
+
                     <div>
                       <h3 className="font-semibold mb-3">Benefits</h3>
                       <ul className="space-y-2">
-                        {(jobDetails?.benefits || []).map((benefit, index) => (
-                          <li key={index} className="flex items-center space-x-2">
+                        {toArray(jobDetails?.benefits).map((benefit, index) => (
+                          <li
+                            key={index}
+                            className="flex items-center space-x-2"
+                          >
                             <CheckCircle className="h-4 w-4 text-green-600" />
                             <span className="text-sm">{benefit}</span>
                           </li>
@@ -638,8 +730,14 @@ export default function JobDetails() {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
-                      {(jobDetails?.responsibilities || []).map((responsibility, index) => (
-                        <li key={index} className="flex items-start space-x-2">
+                      {toArray(
+                        jobDetails?.key_responsibilities ||
+                          jobDetails?.responsibilities
+                      ).map((responsibility, index) => (
+                        <li
+                          key={index}
+                          className="flex items-start space-x-2"
+                        >
                           <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
                           <span className="text-sm">{responsibility}</span>
                         </li>
@@ -656,12 +754,17 @@ export default function JobDetails() {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
-                      {(jobDetails?.requirements || []).map((requirement, index) => (
-                        <li key={index} className="flex items-start space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm">{requirement}</span>
-                        </li>
-                      ))}
+                      {toArray(jobDetails?.requirements).map(
+                        (requirement, index) => (
+                          <li
+                            key={index}
+                            className="flex items-start space-x-2"
+                          >
+                            <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                            <span className="text-sm">{requirement}</span>
+                          </li>
+                        )
+                      )}
                     </ul>
                   </CardContent>
                 </Card>
@@ -674,8 +777,13 @@ export default function JobDetails() {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
-                      {(jobDetails?.eligibility || []).map((criteria, index) => (
-                        <li key={index} className="flex items-start space-x-2">
+                      {toArray(
+                        jobDetails?.eligibility || jobDetails?.allowed_branches
+                      ).map((criteria, index) => (
+                        <li
+                          key={index}
+                          className="flex items-start space-x-2"
+                        >
                           <BookOpen className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                           <span className="text-sm">{criteria}</span>
                         </li>
@@ -693,23 +801,35 @@ export default function JobDetails() {
                   <CardContent>
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div>
-                        <span className="text-sm text-muted-foreground">Founded</span>
+                        <span className="text-sm text-muted-foreground">
+                          Founded
+                        </span>
                         <p className="font-medium">{companyInfo.founded}</p>
                       </div>
                       <div>
-                        <span className="text-sm text-muted-foreground">Company Size</span>
+                        <span className="text-sm text-muted-foreground">
+                          Company Size
+                        </span>
                         <p className="font-medium">{companyInfo.size}</p>
                       </div>
                       <div>
-                        <span className="text-sm text-muted-foreground">Industry</span>
+                        <span className="text-sm text-muted-foreground">
+                          Industry
+                        </span>
                         <p className="font-medium">{companyInfo.industry}</p>
                       </div>
                       <div>
-                        <span className="text-sm text-muted-foreground">Website</span>
-                        <p className="font-medium text-primary">{companyInfo.website}</p>
+                        <span className="text-sm text-muted-foreground">
+                          Website
+                        </span>
+                        <p className="font-medium text-primary">
+                          {companyInfo.website}
+                        </p>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">{jobDetails?.company_about || "No company details"}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {jobDetails?.company_about || "No company details"}
+                    </p>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -727,15 +847,19 @@ export default function JobDetails() {
                     </AlertDescription>
                   </Alert>
                 )}
-                
-                <Button 
+
+                <Button
                   onClick={handleApply}
                   className="w-full mb-4"
-                  disabled={!profileComplete || loading}
+                  disabled={!profileComplete || loading || isApplying}
                 >
-                  {profileComplete ? "Apply Now" : "Complete Profile to Apply"}
+                  {isApplying
+                    ? "Submitting..."
+                    : profileComplete
+                    ? "Apply Now"
+                    : "Complete Profile to Apply"}
                 </Button>
-                
+
                 <div className="text-center text-sm text-muted-foreground">
                   Posted {displayJob.posted}
                 </div>
@@ -749,19 +873,27 @@ export default function JobDetails() {
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <span className="text-sm text-muted-foreground">Job Type</span>
+                    <span className="text-sm text-muted-foreground">
+                      Job Type
+                    </span>
                     <p className="font-medium">{displayJob.type}</p>
                   </div>
                   <div>
-                    <span className="text-sm text-muted-foreground">Experience Level</span>
+                    <span className="text-sm text-muted-foreground">
+                      Experience Level
+                    </span>
                     <p className="font-medium">{displayJob.experience}</p>
                   </div>
                   <div>
-                    <span className="text-sm text-muted-foreground">Location</span>
+                    <span className="text-sm text-muted-foreground">
+                      Location
+                    </span>
                     <p className="font-medium">{displayJob.location}</p>
                   </div>
                   <div>
-                    <span className="text-sm text-muted-foreground">Application Deadline</span>
+                    <span className="text-sm text-muted-foreground">
+                      Application Deadline
+                    </span>
                     <p className="font-medium">{displayJob.applyBy}</p>
                   </div>
                 </div>
@@ -775,13 +907,30 @@ export default function JobDetails() {
               <CardContent>
                 <div className="space-y-4">
                   {[
-                    { title: "React Developer", company: "StartupHub", type: "Internship" },
-                    { title: "Full Stack Developer", company: "WebCorp", type: "Full-time" },
-                    { title: "UI Developer", company: "DesignTech", type: "Contract" }
+                    {
+                      title: "React Developer",
+                      company: "StartupHub",
+                      type: "Internship",
+                    },
+                    {
+                      title: "Full Stack Developer",
+                      company: "WebCorp",
+                      type: "Full-time",
+                    },
+                    {
+                      title: "UI Developer",
+                      company: "DesignTech",
+                      type: "Contract",
+                    },
                   ].map((job, index) => (
-                    <div key={index} className="border rounded-lg p-3 hover:bg-accent cursor-pointer transition-colors">
+                    <div
+                      key={index}
+                      className="border rounded-lg p-3 hover:bg-accent cursor-pointer transition-colors"
+                    >
                       <h4 className="font-medium text-sm">{job.title}</h4>
-                      <p className="text-xs text-muted-foreground">{job.company}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {job.company}
+                      </p>
                       <Badge variant="outline" className="text-xs mt-1">
                         {job.type}
                       </Badge>
@@ -801,7 +950,7 @@ export default function JobDetails() {
           title: displayJob.title,
           company: displayJob.company,
           location: displayJob.location,
-          type: displayJob.type
+          type: displayJob.type,
         }}
       />
     </div>

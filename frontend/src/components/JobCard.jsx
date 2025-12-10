@@ -81,17 +81,21 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import ApplicationModal from "@/components/ApplicationModals";
+
 const typeColors = {
   "Full-time": "bg-orange-100 text-orange-800 border-orange-200",
-  "Internship": "bg-blue-100 text-blue-800 border-blue-200", 
+  "Internship": "bg-blue-100 text-blue-800 border-blue-200",
   "Contract": "bg-green-100 text-green-800 border-green-200"
 };
 
 export default function JobCard({ id = "1", title, company, location, type }) {
   const navigate = useNavigate();
-  const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
 
   const handleViewDetails = () => {
+    if (!id) {
+      navigate("/jobs");
+      return;
+    }
     navigate(`/jobs/${id}`);
   };
 
@@ -120,28 +124,33 @@ export default function JobCard({ id = "1", title, company, location, type }) {
               {type}
             </Badge>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={(e) => {
-                e.stopPropagation();
-                handleViewDetails();
-              }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewDetails();
+                }}
+              >
                 View Details
               </Button>
-              <Button size="sm" onClick={(e) => {
-                e.stopPropagation();
-                setIsApplicationModalOpen(true);
-              }}>
+
+              <Button
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewDetails();
+                }}
+              >
                 Apply Now
               </Button>
             </div>
           </div>
         </div>
       </CardContent>
-      
-      <ApplicationModal
-        isOpen={isApplicationModalOpen}
-        onClose={() => setIsApplicationModalOpen(false)}
-        jobDetails={jobDetails}
-      />
+
+      {/* ApplicationModal left here for future apply flow */}
+      <ApplicationModal isOpen={false} onClose={() => {}} jobDetails={jobDetails} />
     </Card>
   );
 }
