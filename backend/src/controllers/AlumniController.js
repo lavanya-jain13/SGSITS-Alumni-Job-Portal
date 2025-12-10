@@ -3,6 +3,44 @@ const knex = require("../config/db");
 const db = require("../config/db");
 const { sendEmail } = require("../services/emailService");
 
+// Get alumni profile with status
+const getMyProfile = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthenticated" });
+    }
+
+    const user = await db("users")
+      .where({ id: userId })
+      .select("id", "email", "role", "status", "is_verified")
+      .first();
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const alumniProfile = await db("alumni_profiles")
+      .where({ user_id: userId })
+      .select("id", "name", "grad_year", "current_title", "status")
+      .first();
+
+    // Status priority: users.status (set by admin approval)
+    const alumniStatus = user.status || "pending";
+
+    return res.json({
+      user: {
+        ...user,
+        alumniStatus,
+      },
+      profile: alumniProfile || null,
+    });
+  } catch (error) {
+    console.error("Get Alumni Profile Error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 // Alumni completes profile + company info
 const completeProfile = async (req, res) => {
   let trx;
@@ -474,6 +512,7 @@ const updateCompany = async (req, res) => {
 };
 
 module.exports = {
+  getMyProfile,
   completeProfile,
   updateProfile,
   addCompany,

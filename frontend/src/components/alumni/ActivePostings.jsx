@@ -383,6 +383,7 @@ export function ActivePostings() {
   const [selectedStatuses, setSelectedStatuses] = useState([]);
   const [showFilters, setShowFilters] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
+  const [alumniStatus, setAlumniStatus] = useState(null);
 
   const companies = useMemo(
     () => Array.from(new Set(jobs.map((job) => job.company).filter(Boolean))),
@@ -405,10 +406,14 @@ export function ActivePostings() {
     const fetchJobs = async () => {
       setLoading(true);
       try {
-        const [companiesRes, jobsRes] = await Promise.all([
+        const [companiesRes, jobsRes, profileRes] = await Promise.all([
           apiClient.getMyCompanies(),
           apiClient.getMyJobs(),
+          apiClient.getAlumniProfile(),
         ]);
+
+        // Set alumni status
+        setAlumniStatus(profileRes?.user?.alumniStatus);
 
         const map = {};
         (companiesRes?.companies || []).forEach((c) => {
@@ -577,14 +582,27 @@ export function ActivePostings() {
             Showing {filteredJobs.length} of {jobs.length} job postings
           </p>
         </div>
-        <Button 
-          className="bg-primary hover:bg-primary/90"
-          onClick={() => navigate("/alumni/post-job")}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Post New Job
-        </Button>
+{alumniStatus === "approved" && (
+          <Button
+            className="bg-primary hover:bg-primary/90"
+            onClick={() => navigate("/alumni/post-job")}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Post New Job
+          </Button>
+        )}
       </div>
+
+      {/* Pending Approval Notice */}
+      {alumniStatus && alumniStatus !== "approved" && (
+        <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20">
+          <CardContent className="py-4">
+            <p className="text-sm text-yellow-800 dark:text-yellow-200">
+              Your account is pending approval. You will be able to post jobs once an admin approves your profile.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card>

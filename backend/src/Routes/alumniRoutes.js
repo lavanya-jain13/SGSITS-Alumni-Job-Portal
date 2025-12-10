@@ -1,6 +1,7 @@
 // src/routes/alumniRoutes.js
 const express = require("express");
 const {
+  getMyProfile,
   completeProfile,
   updateProfile,
   addCompany,
@@ -12,6 +13,7 @@ const { authenticate, isAdmin, isAlumni } = require("../middleware/authMiddlewar
 
 const router = express.Router();
 
+router.get("/me", authenticate, isAlumni, getMyProfile);
 router.post("/profile", authenticate,isAlumni, completeProfile);
 router.post("/update-profile", authenticate, updateProfile);
 

@@ -6,6 +6,8 @@ const {
   verifyAlumni,
   getAllJobsAdmin,
   deleteJobAdmin,
+  getAllApplicationsAdmin,
+  getJobApplicationsAdmin,
   getAllUsers,
   deleteUser,
   sendNotification,
@@ -40,6 +42,10 @@ router.patch(
 // Job Oversight
 router.get("/jobs", authenticate, isAdmin, getAllJobsAdmin);
 router.delete("/jobs/:id", authenticate, isAdmin, deleteJobAdmin);
+
+// Applications Oversight
+router.get("/applications", authenticate, isAdmin, getAllApplicationsAdmin);
+router.get("/jobs/:jobId/applications", authenticate, isAdmin, getJobApplicationsAdmin);
 
 // User Management
 router.get("/users", authenticate, isAdmin, getAllUsers);

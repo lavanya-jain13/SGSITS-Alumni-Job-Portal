@@ -150,6 +150,79 @@ exports.rejectAlumni = async (req, res) => {
 /* -------------------------------------------
    3️⃣ JOB OVERSIGHT
 -------------------------------------------- */
+
+// Get all job applications (admin view)
+exports.getAllApplicationsAdmin = async (req, res) => {
+  try {
+    const applications = await db("job_applications as ja")
+      .join("jobs as j", "ja.job_id", "j.id")
+      .join("users as u", "ja.user_id", "u.id")
+      .leftJoin("student_profiles as sp", "sp.user_id", "u.id")
+      .leftJoin("companies as c", "j.company_id", "c.id")
+      .leftJoin("alumni_profiles as ap", "j.alumni_id", "ap.id")
+      .select(
+        "ja.id as application_id",
+        "ja.status as application_status",
+        "ja.is_read",
+        "ja.resume_url",
+        "ja.applied_at",
+        "j.id as job_id",
+        "j.job_title",
+        "j.job_type",
+        "j.location as job_location",
+        "j.status as job_status",
+        "u.id as user_id",
+        "u.email as applicant_email",
+        "sp.name as applicant_name",
+        "sp.branch as applicant_branch",
+        "sp.grad_year as applicant_grad_year",
+        "c.name as company_name",
+        "ap.name as alumni_name"
+      )
+      .orderBy("ja.applied_at", "desc");
+
+    res.json({ applications });
+  } catch (error) {
+    console.error("getAllApplicationsAdmin error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Get applications for a specific job (admin view)
+exports.getJobApplicationsAdmin = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+
+    const job = await db("jobs").where({ id: jobId }).first();
+    if (!job) {
+      return res.status(404).json({ error: "Job not found" });
+    }
+
+    const applicants = await db("job_applications as ja")
+      .join("users as u", "ja.user_id", "u.id")
+      .leftJoin("student_profiles as sp", "sp.user_id", "u.id")
+      .where("ja.job_id", jobId)
+      .select(
+        "ja.id as application_id",
+        "ja.status as application_status",
+        "ja.is_read",
+        "ja.resume_url",
+        "ja.applied_at",
+        "u.id as user_id",
+        "u.email as user_email",
+        "sp.name as student_name",
+        "sp.branch as student_branch",
+        "sp.grad_year as student_grad_year"
+      )
+      .orderBy("ja.applied_at", "desc");
+
+    res.json({ job, applicants });
+  } catch (error) {
+    console.error("getJobApplicationsAdmin error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 exports.getAllJobsAdmin = async (req, res) => {
   try {
     const rows = await db("jobs as j")

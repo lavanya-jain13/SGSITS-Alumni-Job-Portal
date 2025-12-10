@@ -114,6 +114,8 @@ export const apiClient = {
     }),
 
   // Alumni profile/company
+  getAlumniProfile: () => apiFetch("/alumni/me"),
+
   completeAlumniProfile: (body) =>
     apiFetch("/alumni/profile", {
       method: "POST",
@@ -174,6 +176,8 @@ export const apiClient = {
   // ---------- Admin ----------
   adminStats: () => apiFetch("/admin/stats"),
   adminUsers: () => apiFetch("/admin/users"),
+  adminApplications: () => apiFetch("/admin/applications"),
+  adminJobApplications: (jobId) => apiFetch(`/admin/jobs/${jobId}/applications`),
   adminPendingAlumni: () => apiFetch("/admin/alumni/pending"),
   adminVerifyAlumni: (userId, status) =>
     apiFetch(`/admin/alumni/verify/${userId}`, {
@@ -185,7 +189,7 @@ export const apiClient = {
   adminRejectCompany: (companyId) =>
     apiFetch(`/admin/companies/${companyId}/reject`, { method: "PATCH" }),
   adminJobs: () => apiFetch("/admin/jobs"),
-  adminJobApplicants: (jobId) => apiFetch(`/admin/jobs/${jobId}/applicants`),
+  adminJobApplicants: (jobId) => apiFetch(`/admin/jobs/${jobId}/applications`),
   adminDeleteJob: (id) => apiFetch(`/admin/jobs/${id}`, { method: "DELETE" }),
   adminPromoteUser: (userId) =>
     apiFetch(`/admin/users/${userId}/promote`, { method: "PATCH" }),
