@@ -48,6 +48,11 @@ export default function PostingsManagement() {
           : [];
 
         const status = (job.job_status || job.status || "").toLowerCase();
+        const location =
+          job.job_location ||
+          job.location ||
+          job.company_location ||
+          "Not specified";
 
         return {
           id: job.job_id || job.id,
@@ -57,7 +62,7 @@ export default function PostingsManagement() {
           status: job.job_status || job.status || "pending",
           applications: Number(job.applications_count ?? 0),
           salary: job.salary_range || "Not provided",
-          location: job.location || "Not specified",
+          location,
           postedDate: job.job_created_at
             ? job.job_created_at.split("T")[0]
             : "N/A",

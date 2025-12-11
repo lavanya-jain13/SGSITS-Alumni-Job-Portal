@@ -7,6 +7,23 @@ import { Progress } from "@/components/ui/progress";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
+const splitSkills = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean).map((s) => String(s).trim());
+  return String(value)
+    .split(/[,|]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+};
+
+const computeMatch = (studentSkills = [], requiredSkills = []) => {
+  if (!requiredSkills.length) return null;
+  const studentSet = new Set(studentSkills.map((s) => s.toLowerCase()));
+  const required = requiredSkills.map((s) => s.toLowerCase());
+  const hits = required.filter((s) => studentSet.has(s)).length;
+  return Math.round((hits / required.length) * 100);
+};
+
 export function ApplicantDetails() {
   const navigate = useNavigate();
   const { state } = useLocation();
@@ -31,11 +48,23 @@ export function ApplicantDetails() {
     );
   }
 
-  const skillMatch = applicant.skillMatch ?? 0;
-  const appliedDate = applicant.applied_at || applicant.appliedDate;
-  const skills = applicant.skills || [];
+  const studentSkills = splitSkills(applicant.skills || applicant.student_skills);
+  const jobSkills = splitSkills(applicant.job_skills);
+  const computedMatch = computeMatch(studentSkills, jobSkills);
+  const skillMatch =
+    applicant.match ??
+    applicant.skillMatch ??
+    (computedMatch === null ? 0 : computedMatch);
+  const appliedDate =
+    applicant.applied_at || applicant.appliedDate || applicant.applicationTime || null;
+  const skills = studentSkills;
   const status = applicant.status || applicant.application_status || "pending";
-  const resumeUrl = applicant.resume_url;
+  const resumeUrl =
+    applicant.resume_url || applicant.profile_resume_url || applicant.resume || applicant.resumeUrl || "";
+  const branch = applicant.student_branch || applicant.branch || "Branch not provided";
+  const gradYear = applicant.student_grad_year || applicant.grad_year || applicant.class || "Year N/A";
+  const phone = applicant.student_phone || applicant.phone || "Not provided";
+  const email = applicant.user_email || applicant.email || "Not provided";
 
   const handleDownloadResume = () => {
     if (!resumeUrl) {
@@ -53,11 +82,7 @@ export function ApplicantDetails() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          onClick={() => navigate(-1)}
-          className="gap-2"
-        >
+        <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
           <ArrowLeft className="h-4 w-4" />
           Back
         </Button>
@@ -73,27 +98,29 @@ export function ApplicantDetails() {
           <div className="flex flex-col md:flex-row gap-6">
             <Avatar className="h-24 w-24">
               <AvatarFallback className="bg-primary/10 text-primary text-2xl font-semibold">
-                {(applicant.name || "?").split(" ").map(n => n[0]).join("")}
+                {(applicant.name || "?")
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")}
               </AvatarFallback>
             </Avatar>
-            
+
             <div className="flex-1 space-y-4">
               <div>
                 <h1 className="text-2xl font-bold">{applicant.name}</h1>
                 <p className="text-muted-foreground">
-                  {applicant.branch || applicant.degree || "Branch not provided"} •{" "}
-                  {applicant.class || "Year N/A"}
+                  {branch} • {gradYear}
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center gap-2 text-sm">
                   <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span>{applicant.email || applicant.user_email || "Not provided"}</span>
+                  <span>{email}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{applicant.phone || "Not provided"}</span>
+                  <span>{phone}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -102,8 +129,7 @@ export function ApplicantDetails() {
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span>
-                    Applied on{" "}
-                    {appliedDate ? new Date(appliedDate).toLocaleDateString() : "N/A"}
+                    Applied on {appliedDate ? new Date(appliedDate).toLocaleDateString() : "N/A"}
                   </span>
                 </div>
               </div>
@@ -113,7 +139,7 @@ export function ApplicantDetails() {
                 {applicant.experience && (
                   <Badge variant="secondary">{applicant.experience} Experience</Badge>
                 )}
-                <Badge 
+                <Badge
                   variant={
                     status === "accepted"
                       ? "default"
@@ -140,107 +166,65 @@ export function ApplicantDetails() {
             Skills Match
           </CardTitle>
         </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Match Percentage</span>
-                <span className="font-semibold">{skillMatch}%</span>
-              </div>
-              <Progress value={skillMatch} />
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Match Percentage</span>
+              <span className="font-semibold">
+                {computedMatch === null ? "N/A" : `${skillMatch}%`}
+              </span>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <Progress value={computedMatch === null ? 0 : skillMatch} />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {jobSkills.length > 0 && (
+              <>
+                <Badge variant="outline" className="text-xs">
+                  Required:
+                </Badge>
+                {jobSkills.map((skill) => (
+                  <Badge key={`req-${skill}`} variant="secondary">
+                    {skill}
+                  </Badge>
+                ))}
+              </>
+            )}
             {skills.length ? (
               skills.map((skill) => (
-                <Badge key={skill} variant="secondary">
+                <Badge key={`stud-${skill}`} variant="secondary">
                   {skill}
                 </Badge>
               ))
             ) : (
               <span className="text-sm text-muted-foreground">No skills provided.</span>
             )}
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Projects */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5" />
-              Projects
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {applicant.projects && applicant.projects.length ? (
-              applicant.projects.map((project, index) => (
-                <div key={index} className="space-y-2 pb-4 border-b last:border-b-0 last:pb-0">
-                  <h3 className="font-semibold">{project.title}</h3>
-                  <p className="text-sm text-muted-foreground">{project.description}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {(project.technologies || []).map((tech) => (
-                      <Badge key={tech} variant="outline" className="text-xs">
-                        {tech}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">No projects provided.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Certifications & Achievements */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Award className="h-5 w-5" />
-                Certifications
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {applicant.certifications && applicant.certifications.length ? (
-                <ul className="space-y-2">
-                  {applicant.certifications.map((cert, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2" />
-                      <span className="text-sm">{cert}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-muted-foreground">No certifications provided.</p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Award className="h-5 w-5" />
-                Achievements
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {applicant.achievements && applicant.achievements.length ? (
-                <ul className="space-y-2">
-                  {applicant.achievements.map((achievement, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2" />
-                      <span className="text-sm">{achievement}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-muted-foreground">No achievements provided.</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      {/* Achievements only (projects/certifications removed as requested) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Award className="h-5 w-5" />
+            Achievements
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {applicant.achievements && applicant.achievements.length ? (
+            <ul className="space-y-2">
+              {applicant.achievements.map((achievement, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2" />
+                  <span className="text-sm">{achievement}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">No achievements provided.</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

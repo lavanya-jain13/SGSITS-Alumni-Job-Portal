@@ -201,6 +201,7 @@ exports.getJobApplicationsAdmin = async (req, res) => {
     const applicants = await db("job_applications as ja")
       .join("users as u", "ja.user_id", "u.id")
       .leftJoin("student_profiles as sp", "sp.user_id", "u.id")
+      .leftJoin("jobs as j", "ja.job_id", "j.id")
       .where("ja.job_id", jobId)
       .select(
         "ja.id as application_id",
@@ -212,7 +213,12 @@ exports.getJobApplicationsAdmin = async (req, res) => {
         "u.email as user_email",
         "sp.name as student_name",
         "sp.branch as student_branch",
-        "sp.grad_year as student_grad_year"
+        "sp.grad_year as student_grad_year",
+        "sp.skills as student_skills",
+        "sp.phone_number as student_phone",
+        "sp.resume_url as profile_resume_url",
+        "j.id as job_id",
+        "j.skills_required as job_skills"
       )
       .orderBy("ja.applied_at", "desc");
 
@@ -229,16 +235,34 @@ exports.getAllJobsAdmin = async (req, res) => {
       .leftJoin("companies as c", "c.id", "j.company_id")
       .leftJoin("alumni_profiles as ap", "ap.id", "j.alumni_id")
       .leftJoin("users as u", "u.id", "ap.user_id")
+      .leftJoin("job_applications as ja", "ja.job_id", "j.id")
       .select(
         "j.id as job_id",
+        "j.company_id",
         "j.job_title",
         "j.job_description",
+        "j.job_type",
+        "j.location as job_location",
+        "j.application_deadline",
+        "j.allowed_branches",
+        "j.salary_range",
         "j.created_at as job_created_at",
         "j.status as job_status",
         "c.name as company_name",
+        "c.office_location as company_location",
+        "c.industry as company_industry",
+        "c.company_size",
+        "c.status as company_status",
         "c.website",
         "ap.name as alumni_name",
         "u.email as alumni_email"
+      )
+      .countDistinct("ja.id as applications_count")
+      .groupBy(
+        "j.id",
+        "c.id",
+        "ap.id",
+        "u.id"
       )
       .orderBy("j.created_at", "desc");
 
@@ -382,12 +406,12 @@ exports.getAdminStats = async (_req, res) => {
       .andWhere((qb) => qb.where({ status: "pending" }).orWhereNull("status"))
       .count("* as count");
 
+    // count companies in a case-insensitive way so "Approved"/"approved" both count
     const [{ count: approvedCompanies }] = await db("companies")
-      .where({ status: "approved" })
+      .whereRaw("LOWER(status) = 'approved'")
       .count("* as count");
     const [{ count: pendingCompanies }] = await db("companies")
-      .where({ status: "pending" })
-      .orWhereNull("status")
+      .whereRaw("status IS NULL OR LOWER(status) = 'pending'")
       .count("* as count");
 
     const [{ count: totalJobs }] = await db("jobs").count("* as count");

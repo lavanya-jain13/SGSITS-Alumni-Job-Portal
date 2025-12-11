@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Phone, MapPin, Building2, Calendar, Edit } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,12 +7,51 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useSelector } from "react-redux";
 import { selectAuth } from "@/store/authSlice";
+import { apiClient } from "@/lib/api";
 
 export function ProfileView() {
   const navigate = useNavigate();
   const { user } = useSelector(selectAuth);
+  const [profileData, setProfileData] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        // Fetch latest alumni profile + company from backend so we don't rely on stale Redux state
+        const [profileRes, companiesRes] = await Promise.all([
+          apiClient.getAlumniProfile(),
+          apiClient.getMyCompanies().catch(() => ({ companies: [] })),
+        ]);
+
+        if (!mounted) return;
+        const company = companiesRes?.companies?.[0];
+
+        setProfileData({
+          name:
+            profileRes?.profile?.name ||
+            profileRes?.user?.email?.split("@")[0] ||
+            "",
+          email: profileRes?.user?.email || "",
+          phone: profileRes?.profile?.phone || "",
+          location: company?.office_location || "",
+          company: company?.name || "",
+          position: profileRes?.profile?.current_title || "",
+          graduationYear: profileRes?.profile?.grad_year || "",
+          bio: profileRes?.profile?.about || "",
+          avatar: "",
+        });
+      } catch (_err) {
+        setProfileData(null); // fall back to auth state on error
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const profile = useMemo(() => {
+    const live = profileData || {};
     const name = user?.name || user?.email?.split("@")[0] || "Alumni";
     const initials = name
       .split(" ")
@@ -21,18 +60,18 @@ export function ProfileView() {
       .toUpperCase();
 
     return {
-      name,
-      email: user?.email || "—",
-      phone: user?.phone || "—",
-      location: user?.location || "—",
-      company: user?.company || "—",
-      position: user?.position || "—",
-      graduationYear: user?.grad_year || "—",
-      bio: user?.bio || "Add a short bio in your profile.",
-      avatar: user?.avatar || "",
+      name: live.name || name,
+      email: live.email || user?.email || "",
+      phone: live.phone || user?.phone || "",
+      location: live.location || user?.location || "",
+      company: live.company || user?.company || "",
+      position: live.position || user?.position || "",
+      graduationYear: live.graduationYear || user?.grad_year || "",
+      bio: live.bio || user?.bio || "Add a short bio in your profile.",
+      avatar: live.avatar || user?.avatar || "",
       initials,
     };
-  }, [user]);
+  }, [user, profileData]);
 
   return (
     <div className="space-y-6">
@@ -80,22 +119,6 @@ export function ProfileView() {
                   <div>
                     <p className="text-sm text-muted-foreground">Email</p>
                     <p className="text-foreground">{profile.email}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                  <Phone className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Phone</p>
-                    <p className="text-foreground">{profile.phone}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                  <MapPin className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Location</p>
-                    <p className="text-foreground">{profile.location}</p>
                   </div>
                 </div>
               </div>
