@@ -140,11 +140,14 @@ const registerAlumni = async (req, res) => {
     const domain = email.split("@")[1].toLowerCase();
     return !corporateDomains.includes(domain);
   }
-
+  
   if (!isBusinessEmail(email)) {
+    console.log("Corporate email detected:", email);
     return res
       .status(400)
       .json({ error: "Please use a valid business/company email ID" });
+  }else{
+    console.log("Business email verified");
   }
 
   try {
@@ -228,7 +231,6 @@ const sendEmail = async (to, subject, text) => {
 const forgotPasswordGenerateOtp = async (req, res) => {
   try {
     const { email } = req.body;
-
     if (!email) {
       return res.status(400).json({ error: "Email is required" });
     }
