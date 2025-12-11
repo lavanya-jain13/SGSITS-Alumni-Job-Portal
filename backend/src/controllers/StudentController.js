@@ -13,9 +13,7 @@ const normalizeSkills = (skills) => {
   try {
     const parsed = JSON.parse(skills);
     if (Array.isArray(parsed)) return parsed;
-  } catch (e) {
-    // ignore
-  }
+  } catch (e) {}
 
   // fallback: comma-separated string -> array of trimmed
   return String(skills)
@@ -67,7 +65,7 @@ const getMyProfile = async (req, res) => {
     if (profile) {
       const experiences = await db("student_experience")
         .where({ student_id: profile.id })
-        .select("id", "position", "company", "duration", "description")
+        .select("id", "position", "company", "duration", "description") // link removed
         .orderBy("created_at", "desc");
 
       profile.skills = parseSkills(profile.skills);
@@ -88,7 +86,6 @@ const getMyProfile = async (req, res) => {
 
 /**
  * PUT /student/profile
- * Create/update student profile + upload resume
  */
 const upsertProfile = async (req, res) => {
   try {
@@ -122,7 +119,6 @@ const upsertProfile = async (req, res) => {
       codeOfConduct,
     } = req.body || {};
 
-    // convert experiences string -> JSON if needed
     if (typeof experiences === "string") {
       try {
         experiences = JSON.parse(experiences);
@@ -131,14 +127,10 @@ const upsertProfile = async (req, res) => {
       }
     }
 
-    // ensure skills are normalized to array or null
     skills = normalizeSkills(skills);
 
     let finalResumeUrl = resumeUrl || null;
 
-    // =========================================================
-    //   RESUME UPLOAD (PDF / DOC / DOCX) VIA CLOUDINARY
-    // =========================================================
     if (req.file) {
       console.log("Uploading resume to Cloudinary...");
 
@@ -170,7 +162,6 @@ const upsertProfile = async (req, res) => {
       .where({ user_id: userId })
       .first();
 
-    // map camelCase -> snake_case
     const patch = {
       ...(name !== undefined && { name }),
       ...(studentId !== undefined && { student_id: studentId }),
@@ -211,7 +202,7 @@ const upsertProfile = async (req, res) => {
       }),
     };
 
-    // If profile EXISTS → update
+    // UPDATE FLOW
     if (existing) {
       if (Object.keys(patch).length === 0) {
         return res.status(400).json({ error: "No fields provided to update" });
@@ -219,9 +210,9 @@ const upsertProfile = async (req, res) => {
 
       await db("student_profiles").where({ user_id: userId }).update(patch);
 
-      // replace experiences if provided
       if (Array.isArray(experiences)) {
         await db("student_experience").where({ student_id: existing.id }).del();
+
         const rows = experiences
           .filter((exp) => exp && (exp.position || exp.title || exp.company))
           .map((exp) => ({
@@ -229,18 +220,19 @@ const upsertProfile = async (req, res) => {
             position: exp.position || exp.title || "",
             company: exp.company || "",
             duration: exp.duration || "",
-            description:
-              exp.description || (exp.link ? `Link: ${exp.link}` : "") || "",
-          }));
+            description: exp.description || "",
+          })); // link removed
+
         if (rows.length) await db("student_experience").insert(rows);
       }
 
       const updated = await db("student_profiles")
         .where({ user_id: userId })
         .first();
+
       const updatedExperiences = await db("student_experience")
         .where({ student_id: updated.id })
-        .select("id", "position", "company", "duration", "description")
+        .select("id", "position", "company", "duration", "description") // link removed
         .orderBy("created_at", "desc");
 
       return res.status(200).json({
@@ -255,7 +247,7 @@ const upsertProfile = async (req, res) => {
       });
     }
 
-    // If profile DOES NOT EXIST → CREATE new
+    // CREATE FLOW
     const missing = [];
     if (!name) missing.push("name");
     if (!studentId) missing.push("studentId");
@@ -308,7 +300,6 @@ const upsertProfile = async (req, res) => {
       .where({ user_id: userId })
       .first();
 
-    // insert experiences if provided
     if (Array.isArray(experiences)) {
       const rows = experiences
         .filter((exp) => exp && (exp.position || exp.title || exp.company))
@@ -317,9 +308,9 @@ const upsertProfile = async (req, res) => {
           position: exp.position || exp.title || "",
           company: exp.company || "",
           duration: exp.duration || "",
-          description:
-            exp.description || (exp.link ? `Link: ${exp.link}` : "") || "",
-        }));
+          description: exp.description || "",
+        })); // link removed
+
       if (rows.length) await db("student_experience").insert(rows);
     }
 

@@ -155,11 +155,18 @@ const StudentProfile = () => {
           name: profile.name || "",
           email: profile.email || "",
           phone: profile.phone_number || extras.phone || "",
-          dateOfBirth: profile.dob || extras.dateOfBirth || "",
+          // ensure date string fits <input type="date">
+          dateOfBirth: profile.dob
+            ? String(profile.dob).split("T")[0]
+            : extras.dateOfBirth || "",
           currentYear: profile.current_year || extras.currentYear || "",
           student_id: profile.student_id || "",
           branch: profile.branch || "",
-          grad_year: profile.grad_year || "",
+          // keep Select value as string
+          grad_year:
+            profile.grad_year !== undefined && profile.grad_year !== null
+              ? String(profile.grad_year)
+              : extras.grad_year || "",
           cgpa: profile.cgpa ?? extras.cgpa ?? "",
           achievements: profile.achievements ?? extras.achievements ?? "",
           // backend uses "proficiency" column for summary
@@ -341,12 +348,15 @@ const StudentProfile = () => {
     "GCP",
   ];
 
-  const handleSave = async () => {
+  const handleSave = async (updatedData = profileData) => {
     setIsLoading(true);
     try {
       const { apiFetch } = await import("@/lib/api");
 
-      const cleanedExperiences = (profileData.experiences || [])
+      // accept the latest edits from the modal instead of stale state
+      setProfileData(updatedData);
+
+      const cleanedExperiences = (updatedData.experiences || [])
         .map((exp) => ({
           position: exp.title || exp.position || "",
           company: exp.company || "",
@@ -364,32 +374,32 @@ const StudentProfile = () => {
         );
 
       const basePayload = {
-        name: profileData.name,
-        studentId: profileData.student_id,
-        branch: profileData.branch,
-        gradYear: parseInt(profileData.grad_year) || undefined,
-        phone: profileData.phone || "",
-        dateOfBirth: profileData.dateOfBirth || "",
-        currentYear: profileData.currentYear || "",
-        cgpa: profileData.cgpa || "",
-        achievements: profileData.achievements || "",
-        summary: profileData.summary || "",
+        name: updatedData.name,
+        studentId: updatedData.student_id,
+        branch: updatedData.branch,
+        gradYear: parseInt(updatedData.grad_year) || undefined,
+        phone: updatedData.phone || "",
+        dateOfBirth: updatedData.dateOfBirth || "",
+        currentYear: updatedData.currentYear || "",
+        cgpa: updatedData.cgpa || "",
+        achievements: updatedData.achievements || "",
+        summary: updatedData.summary || "",
         yearsOfExperience: cleanedExperiences.length || 0,
-        skills: profileData.skills
+        skills: updatedData.skills
           .map((s) => (typeof s === "string" ? s : s.name))
           .filter(Boolean),
-        resumeUrl: profileData.resumeUrl || "",
+        resumeUrl: updatedData.resumeUrl || "",
         experiences: cleanedExperiences,
 
         // extra fields → backend
-        address: profileData.address || "",
-        desiredRoles: profileData.desiredRoles || [],
-        preferredLocations: profileData.preferredLocations || [],
-        workMode: profileData.workMode || "",
-        dataConsent: profileData.dataConsent || false,
-        contactPermissions: profileData.contactPermissions || false,
-        profileVisibility: profileData.profileVisibility || false,
-        codeOfConduct: profileData.codeOfConduct || false,
+        address: updatedData.address || "",
+        desiredRoles: updatedData.desiredRoles || [],
+        preferredLocations: updatedData.preferredLocations || [],
+        workMode: updatedData.workMode || "",
+        dataConsent: updatedData.dataConsent || false,
+        contactPermissions: updatedData.contactPermissions || false,
+        profileVisibility: updatedData.profileVisibility || false,
+        codeOfConduct: updatedData.codeOfConduct || false,
       };
 
       // remove empty/undefined values so validation passes
@@ -406,7 +416,7 @@ const StudentProfile = () => {
       if (!basePayload.resumeUrl) delete basePayload.resumeUrl;
 
       let res;
-      if (profileData.resumeFile) {
+      if (updatedData.resumeFile) {
         const formData = new FormData();
         Object.entries(basePayload).forEach(([key, value]) => {
           if (Array.isArray(value)) {
@@ -415,7 +425,7 @@ const StudentProfile = () => {
             formData.append(key, value);
           }
         });
-        formData.append("resume", profileData.resumeFile);
+        formData.append("resume", updatedData.resumeFile);
 
         res = await fetch(`${API_BASE_URL}/student/profile`, {
           method: "PUT",
@@ -449,19 +459,19 @@ const StudentProfile = () => {
 
       // Persist extra client-only fields locally so they survive refresh
       const extras = {
-        desiredRoles: profileData.desiredRoles || [],
-        preferredLocations: profileData.preferredLocations || [],
-        workMode: profileData.workMode || "hybrid",
-        summary: profileData.summary || "",
-        achievements: profileData.achievements || "",
-        cgpa: profileData.cgpa || "",
-        phone: profileData.phone || "",
-        dateOfBirth: profileData.dateOfBirth || "",
-        dataConsent: profileData.dataConsent || false,
-        codeOfConduct: profileData.codeOfConduct || false,
-        contactPermissions: profileData.contactPermissions || false,
-        address: profileData.address || "",
-        profileVisibility: profileData.profileVisibility || false,
+        desiredRoles: updatedData.desiredRoles || [],
+        preferredLocations: updatedData.preferredLocations || [],
+        workMode: updatedData.workMode || "hybrid",
+        summary: updatedData.summary || "",
+        achievements: updatedData.achievements || "",
+        cgpa: updatedData.cgpa || "",
+        phone: updatedData.phone || "",
+        dateOfBirth: updatedData.dateOfBirth || "",
+        dataConsent: updatedData.dataConsent || false,
+        codeOfConduct: updatedData.codeOfConduct || false,
+        contactPermissions: updatedData.contactPermissions || false,
+        address: updatedData.address || "",
+        profileVisibility: updatedData.profileVisibility || false,
       };
       localStorage.setItem(extrasKey, JSON.stringify(extras));
 

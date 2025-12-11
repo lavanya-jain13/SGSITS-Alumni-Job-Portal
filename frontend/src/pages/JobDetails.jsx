@@ -466,6 +466,7 @@ export default function JobDetails() {
   const [loading, setLoading] = useState(true);
   const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  const [similarJobs, setSimilarJobs] = useState([]);
   const { toast } = useToast();
 
   const toArray = (val) => {
@@ -473,7 +474,7 @@ export default function JobDetails() {
     if (Array.isArray(val)) return val;
     if (typeof val === "string")
       return val
-        .split(",")
+        .split(/[\n,]+/)
         .map((s) => s.trim())
         .filter(Boolean);
     return [];
@@ -491,6 +492,20 @@ export default function JobDetails() {
           setApplicantCount(
             res?.job?.applicants_count || res?.job?.applications_count || 0
           );
+
+          // fetch a few similar jobs (simple: other active jobs excluding current)
+          const allJobsRes = await apiFetch("/job/get-all-jobs-student");
+          const list =
+            allJobsRes?.jobs
+              ?.filter((j) => String(j.id) !== String(id))
+              .slice(0, 3)
+              .map((j) => ({
+                id: j.id,
+                title: j.job_title || "Job",
+                company: j.company_name || "Company",
+                type: j.job_type || "Job",
+              })) || [];
+          setSimilarJobs(list);
         }
       } catch (err) {
         console.error("Failed to load job details", err);
@@ -566,8 +581,12 @@ export default function JobDetails() {
     company: jobDetails?.company_name || jobDetails?.company || "Company",
     type: jobDetails?.job_type || jobDetails?.type || "Job",
     location: jobDetails?.location || "Location not specified",
+    // backend column is experience_required; keep other fallbacks for safety
     experience:
-      jobDetails?.experience || jobDetails?.experience_level || "Not specified",
+      jobDetails?.experience_required ||
+      jobDetails?.experience_level ||
+      jobDetails?.experience ||
+      "Not specified",
     applyBy: jobDetails?.application_deadline
       ? new Date(jobDetails.application_deadline).toDateString()
       : "Not specified",
@@ -579,7 +598,6 @@ export default function JobDetails() {
 
   const companyInfo = {
     name: jobDetails?.company_name || "Company",
-    founded: jobDetails?.company_founded || "Not provided",
     size: jobDetails?.company_size || "Not provided",
     industry:
       jobDetails?.company_industry || jobDetails?.industry || "Not provided",
@@ -796,12 +814,6 @@ export default function JobDetails() {
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div>
                         <span className="text-sm text-muted-foreground">
-                          Founded
-                        </span>
-                        <p className="font-medium">{companyInfo.founded}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm text-muted-foreground">
                           Company Size
                         </span>
                         <p className="font-medium">{companyInfo.size}</p>
@@ -899,38 +911,29 @@ export default function JobDetails() {
                 <CardTitle className="text-lg">Similar Jobs</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {[
-                    {
-                      title: "React Developer",
-                      company: "StartupHub",
-                      type: "Internship",
-                    },
-                    {
-                      title: "Full Stack Developer",
-                      company: "WebCorp",
-                      type: "Full-time",
-                    },
-                    {
-                      title: "UI Developer",
-                      company: "DesignTech",
-                      type: "Contract",
-                    },
-                  ].map((job, index) => (
-                    <div
-                      key={index}
-                      className="border rounded-lg p-3 hover:bg-accent cursor-pointer transition-colors"
-                    >
-                      <h4 className="font-medium text-sm">{job.title}</h4>
-                      <p className="text-xs text-muted-foreground">
-                        {job.company}
-                      </p>
-                      <Badge variant="outline" className="text-xs mt-1">
-                        {job.type}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
+                {similarJobs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No similar jobs available right now.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {similarJobs.map((job) => (
+                      <div
+                        key={job.id}
+                        className="border rounded-lg p-3 hover:bg-accent cursor-pointer transition-colors"
+                        onClick={() => navigate(`/jobs/${job.id}`)}
+                      >
+                        <h4 className="font-medium text-sm">{job.title}</h4>
+                        <p className="text-xs text-muted-foreground">
+                          {job.company}
+                        </p>
+                        <Badge variant="outline" className="text-xs mt-1">
+                          {job.type}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

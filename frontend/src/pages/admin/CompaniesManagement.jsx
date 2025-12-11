@@ -28,11 +28,31 @@ export default function CompaniesManagement() {
   const loadCompanies = async () => {
     setLoading(true);
     try {
-      const [pendingRes, usersRes, statsRes] = await Promise.all([
+      const [pendingRes, usersRes, statsRes, jobsRes] = await Promise.all([
         apiClient.adminPendingAlumni(),
         apiClient.adminUsers(),
         apiClient.adminStats(),
+        apiClient.adminJobs(),
       ]);
+
+      // derive company meta from jobs (industry, size, active jobs)
+      const companyMeta = {};
+      (jobsRes || []).forEach((job) => {
+        const companyId = job.company_id;
+        if (!companyId) return;
+        const jobStatus = (job.job_status || job.status || "").toLowerCase();
+        if (!companyMeta[companyId]) {
+          companyMeta[companyId] = {
+            industry: job.company_industry || job.industry || null,
+            company_size: job.company_size || null,
+            activeJobs: 0,
+            totalHires: 0, // no hires data available
+          };
+        }
+        if (jobStatus === "active") {
+          companyMeta[companyId].activeJobs += 1;
+        }
+      });
 
       const pendingCompanies =
         (pendingRes || []).map((p) => ({
@@ -41,6 +61,10 @@ export default function CompaniesManagement() {
           status: p.company_status || "pending",
           registeredAt: p.created_at,
           email: p.email,
+          industry: companyMeta[p.company_id]?.industry || null,
+          company_size: companyMeta[p.company_id]?.company_size || null,
+          activeJobs: companyMeta[p.company_id]?.activeJobs || 0,
+          totalHires: companyMeta[p.company_id]?.totalHires || 0,
         })) || [];
 
       const alumniCompanies =
@@ -52,6 +76,10 @@ export default function CompaniesManagement() {
             status: a.company_status || a.status || "pending",
             registeredAt: a.created_at,
             email: a.email,
+            industry: companyMeta[a.company_id]?.industry || null,
+            company_size: companyMeta[a.company_id]?.company_size || null,
+            activeJobs: companyMeta[a.company_id]?.activeJobs || 0,
+            totalHires: companyMeta[a.company_id]?.totalHires || 0,
           })) || [];
 
       // merge by id to avoid duplicates
@@ -238,8 +266,10 @@ export default function CompaniesManagement() {
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
-                      <div className="text-sm font-medium">{company.industry || "—"}</div>
-                      <div className="text-xs text-muted-foreground">{company.employees || "Size N/A"}</div>
+                      <div className="text-sm font-medium">{company.industry || "N/A"}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {company.company_size || "Size N/A"}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>

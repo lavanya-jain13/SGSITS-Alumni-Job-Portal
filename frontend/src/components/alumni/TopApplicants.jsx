@@ -110,6 +110,15 @@ const splitSkills = (value) => {
     .filter(Boolean);
 };
 
+const splitAchievements = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean).map((s) => String(s).trim());
+  return String(value)
+    .split(/[,|]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+};
+
 const computeMatch = (studentSkills = [], requiredSkills = []) => {
   if (!requiredSkills.length) return 0;
   const studentSet = new Set(studentSkills.map((s) => s.toLowerCase()));
@@ -166,9 +175,19 @@ export function TopApplicants() {
             id: app.application_id,
             name: app.student_name || app.user_email || "Unknown",
             degree: app.student_branch || "N/A",
+            student_branch: app.student_branch || "",
+            student_grad_year: app.student_grad_year || "",
             skills,
+            job_skills: splitSkills(app.job_skills),
             match: computeMatch(skills, requiredSkills),
             applied_at: app.applied_at,
+            resume_url: app.resume_url || "",
+            email: app.user_email || "",
+            phone: app.student_phone || "",
+            location: app.location || app.student_location || "",
+            status: app.application_status || "pending",
+            statusColor: app.application_status || "pending",
+            achievements: splitAchievements(app.student_achievements),
           };
         });
         setApplicants(normalized);

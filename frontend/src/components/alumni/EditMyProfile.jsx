@@ -21,11 +21,11 @@ export function EditMyProfile() {
   const dispatch = useDispatch();
   const { user } = useSelector(selectAuth);
   const [saving, setSaving] = useState(false);
+   // Track whether we've pulled latest data from backend
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
-    phoneNumber: "",
-    dateOfBirth: "",
     graduationYear: "",
     currentJobTitle: "",
     companyName: "",
@@ -43,45 +43,87 @@ export function EditMyProfile() {
   });
 
   useEffect(() => {
-    if (user) {
-      setFormData((prev) => ({
-        ...prev,
-        email: user.email || "",
-        fullName: user.name || prev.fullName,
-        phoneNumber: user.phone || "",
-        graduationYear: user.grad_year || "",
-        currentJobTitle: user.position || "",
-        companyName: user.company || "",
-        companyWebsite: user.company_website || "",
-        companyIndustry: user.industry || "",
-        companySize: user.company_size || "",
-        companyAbout: user.company_about || "",
-      }));
-    }
+    let mounted = true;
+    (async () => {
+      try {
+        // Fetch latest profile + company so we don't clear existing data when saving
+        const [profileRes, companiesRes] = await Promise.all([
+          apiClient.getAlumniProfile(),
+          apiClient.getMyCompanies().catch(() => ({ companies: [] })),
+        ]);
+
+        if (!mounted) return;
+        const company = companiesRes?.companies?.[0];
+        setFormData((prev) => ({
+          ...prev,
+          email: profileRes?.user?.email || user?.email || "",
+          fullName: profileRes?.profile?.name || prev.fullName || "",
+          graduationYear:
+            profileRes?.profile?.grad_year || user?.grad_year || "",
+          currentJobTitle: profileRes?.profile?.current_title || user?.position || "",
+          companyName: company?.name || user?.company || "",
+          companyWebsite: company?.website || user?.company_website || "",
+          companyIndustry: company?.industry || user?.industry || "",
+          companySize: company?.company_size || user?.company_size || "",
+          companyAbout: company?.about || user?.company_about || "",
+        }));
+      } catch (_err) {
+        // fall back to existing user state if API fails
+        if (user) {
+          setFormData((prev) => ({
+            ...prev,
+            email: user.email || "",
+            fullName: user.name || prev.fullName,
+            graduationYear: user.grad_year || "",
+            currentJobTitle: user.position || "",
+            companyName: user.company || "",
+            companyWebsite: user.company_website || "",
+            companyIndustry: user.industry || "",
+            companySize: user.company_size || "",
+            companyAbout: user.company_about || "",
+          }));
+        }
+      } finally {
+        if (mounted) setLoadingProfile(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, [user]);
 
-  // Calculate profile completion percentage
+  // Calculate profile completion percentage (handles non-string fields safely)
   const calculateProgress = () => {
+    const isFilled = (field) =>
+      typeof field === "string" ? field.trim() !== "" : Boolean(field);
+
     let progress = 0;
-    
+
     // Personal Information (20%)
-    const personalFields = [formData.fullName, formData.email, formData.phoneNumber, formData.dateOfBirth, formData.graduationYear];
-    const personalCompleted = personalFields.filter(field => field.trim() !== '').length;
+    const personalFields = [formData.fullName, formData.email, formData.graduationYear];
+    const personalCompleted = personalFields.filter(isFilled).length;
     progress += (personalCompleted / personalFields.length) * 20;
-    
+
     // Company Details (25%)
-    const companyFields = [formData.currentJobTitle, formData.companyName, formData.companyWebsite, formData.companyIndustry, formData.companySize, formData.companyAbout];
-    const companyCompleted = companyFields.filter(field => field.trim() !== '').length;
+    const companyFields = [
+      formData.currentJobTitle,
+      formData.companyName,
+      formData.companyWebsite,
+      formData.companyIndustry,
+      formData.companySize,
+      formData.companyAbout,
+    ];
+    const companyCompleted = companyFields.filter(isFilled).length;
     progress += (companyCompleted / companyFields.length) * 25;
-    
+
     // Declaration & Consent (10%)
-    if (formData.dataConsent) {
+    if (isFilled(formData.dataConsent)) {
       progress += 10;
     }
-    
+
     // Remaining sections (45%) - placeholder for future sections
     progress += 45;
-    
+
     return Math.round(progress);
   };
 
@@ -104,16 +146,18 @@ export function EditMyProfile() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await apiClient.completeAlumniProfile({
-        name: formData.companyName || formData.fullName,
-        website: formData.companyWebsite,
-        industry: formData.companyIndustry,
-        company_size: formData.companySize,
-        about: formData.companyAbout,
-        linkedin: formData.companyWebsite,
-        currentTitle: formData.currentJobTitle,
-        gradYear: formData.graduationYear,
-      });
+      // Only send fields that have values to avoid overwriting DB columns with empty strings
+      const payload = {};
+      if (formData.companyName || formData.fullName) payload.name = formData.companyName || formData.fullName;
+      if (formData.companyWebsite) payload.website = formData.companyWebsite;
+      if (formData.companyIndustry) payload.industry = formData.companyIndustry;
+      if (formData.companySize) payload.company_size = formData.companySize;
+      if (formData.companyAbout) payload.about = formData.companyAbout;
+      if (formData.currentJobTitle) payload.currentTitle = formData.currentJobTitle;
+      if (formData.graduationYear) payload.gradYear = formData.graduationYear;
+      if (formData.companyWebsite) payload.linkedin = formData.companyWebsite;
+
+      await apiClient.completeAlumniProfile(payload);
       // Update local auth state so ProfileView reflects changes
       dispatch(
         updateUser({
@@ -173,16 +217,12 @@ export function EditMyProfile() {
 
       {/* Personal Information Section */}
       <Card>
-        <Collapsible open={openSections.personal} onOpenChange={() => toggleSection('personal')}>
+        <Collapsible open={openSections.personal} onOpenChange={() => toggleSection("personal")}>
           <CollapsibleTrigger asChild>
             <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Personal Information (20%)</CardTitle>
-                {openSections.personal ? (
-                  <ChevronUp className="h-5 w-5" />
-                ) : (
-                  <ChevronDown className="h-5 w-5" />
-                )}
+                {openSections.personal ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
               </div>
             </CardHeader>
           </CollapsibleTrigger>
@@ -194,41 +234,19 @@ export function EditMyProfile() {
                   <Input
                     id="fullName"
                     value={formData.fullName}
-                    onChange={(e) => updateFormData('fullName', e.target.value)}
+                    onChange={(e) => updateFormData("fullName", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email (Read-only)</Label>
-                  <Input
-                    id="email"
-                    value={formData.email}
-                    readOnly
-                    className="bg-muted"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
-                  <Input
-                    id="phoneNumber"
-                    value={formData.phoneNumber}
-                    onChange={(e) => updateFormData('phoneNumber', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                  <Input
-                    id="dateOfBirth"
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => updateFormData('dateOfBirth', e.target.value)}
-                  />
+                  <Input id="email" value={formData.email} readOnly className="bg-muted" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="graduationYear">Graduation Year</Label>
                   <Input
                     id="graduationYear"
                     value={formData.graduationYear}
-                    onChange={(e) => updateFormData('graduationYear', e.target.value)}
+                    onChange={(e) => updateFormData("graduationYear", e.target.value)}
                   />
                 </div>
               </div>

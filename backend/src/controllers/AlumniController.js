@@ -3,6 +3,15 @@ const knex = require("../config/db");
 const db = require("../config/db");
 const { sendEmail } = require("../services/emailService");
 
+const splitOfficeLocations = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return String(value)
+    .split("|")
+    .map((p) => p.trim())
+    .filter(Boolean);
+};
+
 // Get alumni profile with status
 const getMyProfile = async (req, res) => {
   try {
@@ -140,8 +149,11 @@ const addCompany = async (req, res) => {
       company_size,
       about,
       linkedin,
+      linkedin_url,
       twitter,
+      twitter_url,
       office_location,
+      office_locations,
       company_culture,
       status,
     } = req.body || {};
@@ -149,6 +161,13 @@ const addCompany = async (req, res) => {
     if (!name) {
       return res.status(400).json({ error: "Company name is required." });
     }
+
+    const resolvedOfficeLocation = Array.isArray(office_locations)
+      ? office_locations.filter(Boolean).join(" | ")
+      : office_location || null;
+
+    const resolvedLinkedin = linkedin || linkedin_url || null;
+    const resolvedTwitter = twitter || twitter_url || null;
 
     const insertData = {
       alumni_id: alumniProfile.id,
@@ -158,11 +177,11 @@ const addCompany = async (req, res) => {
       industry: industry || null,
       company_size: company_size || null,
       about: about || null,
-      linkedin: linkedin || null,
-      twitter: twitter || null,
-      office_location: office_location || null,
+      linkedin: resolvedLinkedin,
+      twitter: resolvedTwitter,
+      office_location: resolvedOfficeLocation,
       company_culture: company_culture || null,
-      document_url: linkedin || null, // legacy
+      document_url: resolvedLinkedin || null, // legacy
       status: status || "pending",
       created_at: db.fn.now(),
     };
@@ -254,11 +273,7 @@ const getMyCompanies = async (req, res) => {
 
     const normalized = companies.map((c) => ({
       ...c,
-      office_locations: Array.isArray(c.office_locations)
-        ? c.office_locations
-        : c.office_location
-        ? [c.office_location]
-        : [],
+      office_locations: splitOfficeLocations(c.office_locations || c.office_location),
       company_culture: c.company_culture || null,
       linkedin_url: c.linkedin_url || c.linkedin || c.document_url || null,
       twitter_url: c.twitter_url || c.twitter || null,
@@ -330,17 +345,27 @@ const getCompanyById = async (req, res) => {
       return res.status(404).json({ error: "Company not found" });
     }
 
+    // Quick stats: active jobs and accepted hires for this company
+    const [{ count: activeJobsRaw } = { count: 0 }] = await db("jobs")
+      .where({ company_id: id })
+      .andWhereRaw("LOWER(status) = 'active'")
+      .count("* as count");
+
+    const [{ count: alumniHiredRaw } = { count: 0 }] = await db("job_applications as ja")
+      .join("jobs as j", "ja.job_id", "j.id")
+      .where("j.company_id", id)
+      .andWhereRaw("LOWER(ja.status) = 'accepted'")
+      .count("* as count");
+
     const normalized = {
       ...company,
-      office_locations: Array.isArray(company.office_locations)
-        ? company.office_locations
-        : company.office_location
-        ? [company.office_location]
-        : [],
+      office_locations: splitOfficeLocations(company.office_locations || company.office_location),
       company_culture: company.company_culture || null,
       linkedin_url:
         company.linkedin_url || company.linkedin || company.document_url || null,
       twitter_url: company.twitter_url || company.twitter || null,
+      activeJobs: Number(activeJobsRaw || 0),
+      alumniHired: Number(alumniHiredRaw || 0),
     };
 
     return res.json({ company: normalized });
@@ -396,10 +421,10 @@ const updateCompany = async (req, res) => {
         : company.twitter || company.twitter_url;
 
     const resolvedOfficeLocation = Array.isArray(office_locations)
-      ? office_locations.filter(Boolean).join(" | ")
-      : typeof office_location === "undefined"
-      ? company.office_location
-      : office_location;
+        ? office_locations.filter(Boolean).join(" | ")
+        : typeof office_location === "undefined"
+        ? company.office_location
+        : office_location;
 
     const fullUpdate = {
       name: name ?? company.name,
@@ -489,11 +514,9 @@ const updateCompany = async (req, res) => {
     const normalized = updated
       ? {
           ...updated,
-          office_locations: Array.isArray(updated.office_locations)
-            ? updated.office_locations
-            : updated.office_location
-            ? [updated.office_location]
-            : [],
+          office_locations: splitOfficeLocations(
+            updated.office_locations || updated.office_location
+          ),
           company_culture: updated.company_culture || null,
           linkedin_url:
             updated.linkedin_url || updated.linkedin || updated.document_url || null,
