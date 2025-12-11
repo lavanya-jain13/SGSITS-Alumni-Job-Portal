@@ -6,10 +6,8 @@ const tabItems = [
   { label: "Companies", value: "companies", path: "/admin/companies" },
   { label: "Postings", value: "postings", path: "/admin/postings" },
   { label: "Applications", value: "applications", path: "/admin/applications" },
-  { label: "Taxonomies", value: "taxonomies", path: "/admin/taxonomies" },
   { label: "Settings", value: "settings", path: "/admin/settings" },
   { label: "Analytics", value: "analytics", path: "/admin/analytics" },
-  { label: "Audit Logs", value: "audit-logs", path: "/admin/audit-logs" },
 ];
 
 export function AdminTabs() {
@@ -35,7 +33,7 @@ export function AdminTabs() {
 
   return (
     <Tabs value={getCurrentTab()} onValueChange={handleTabChange} className="w-full">
-      <TabsList className="grid w-full grid-cols-8 bg-muted/50 p-1 h-auto">
+      <TabsList className="grid w-full grid-cols-6 bg-muted/50 p-1 h-auto">
         {tabItems.map((tab) => (
           <TabsTrigger
             key={tab.value}

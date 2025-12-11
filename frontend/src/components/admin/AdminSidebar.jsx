@@ -2,10 +2,7 @@ import {
   Users, 
   Building2, 
   FileText, 
-  ClipboardList, 
-  Tags, 
-  BarChart3, 
-  Shield 
+  ClipboardList 
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -24,8 +21,6 @@ const navigationItems = [
   { title: "Companies", url: "/admin/companies", icon: Building2 },
   { title: "Postings", url: "/admin/postings", icon: FileText },
   { title: "Applications", url: "/admin/applications", icon: ClipboardList },
-  { title: "Taxonomies", url: "/admin/taxonomies", icon: Tags },
-  { title: "Audit Logs", url: "/admin/audit-logs", icon: Shield },
 ];
 
 export function AdminSidebar() {
