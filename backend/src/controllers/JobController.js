@@ -541,7 +541,14 @@ exports.getJobByIdStudent = async (req, res) => {
       .leftJoin("companies as c", "j.company_id", "c.id")
       .leftJoin("job_applications as ja", "ja.job_id", "j.id")
       .where("j.id", id)
-      .groupBy("j.id", "c.name", "c.website", "c.industry", "c.company_size", "c.about")
+      .groupBy(
+        "j.id",
+        "c.name",
+        "c.website",
+        "c.industry",
+        "c.company_size",
+        "c.about"
+      )
       .select(
         "j.*",
         "c.name as company_name",
@@ -564,6 +571,7 @@ exports.getJobByIdStudent = async (req, res) => {
   }
 };
 
+// 16. applyJob (with Cloudinary resume upload)
 // 16. applyJob (with Cloudinary resume upload)
 exports.applyJob = async (req, res) => {
   const userId = req.user?.id;
@@ -591,7 +599,29 @@ exports.applyJob = async (req, res) => {
       });
     }
 
-    // 3) Current applications count
+    // 3) Check if student's branch is in allowed_branches
+    const studentProfile = await db("student_profiles")
+      .where({ user_id: userId })
+      .first();
+
+    if (!studentProfile) {
+      return res.status(400).json({ error: "Student profile not found." });
+    }
+
+    const studentBranch = studentProfile.branch;
+
+    // Normalize allowed_branches (convert to an array of strings)
+    const allowedBranches = job.allowed_branches
+      ? job.allowed_branches.split(",").map((branch) => branch.trim())
+      : [];
+
+    if (!allowedBranches.includes(studentBranch)) {
+      return res.status(400).json({
+        error: "Your branch is not allowed to apply for this job.",
+      });
+    }
+
+    // 4) Current applications count
     const countRow = await db("job_applications")
       .where({ job_id })
       .count("id as count")
@@ -604,7 +634,7 @@ exports.applyJob = async (req, res) => {
       });
     }
 
-    // 4) Check duplicate application
+    // 5) Check duplicate application
     const existing = await db("job_applications")
       .where({ job_id, user_id: userId })
       .first();
@@ -614,7 +644,7 @@ exports.applyJob = async (req, res) => {
         .json({ error: "You have already applied to this job." });
     }
 
-    // 5) Handle resume upload
+    // 6) Handle resume upload
     let resumeUrl = null;
     if (req.file && req.file.buffer) {
       const uploadResult = await uploadBufferToCloudinary(
@@ -630,7 +660,7 @@ exports.applyJob = async (req, res) => {
         .json({ error: "Resume file (resume) is required." });
     }
 
-    // 6) Do everything in a transaction
+    // 7) Do everything in a transaction
     const application = await db.transaction(async (trx) => {
       const [app] = await trx("job_applications")
         .insert(
