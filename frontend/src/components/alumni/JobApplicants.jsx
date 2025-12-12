@@ -558,8 +558,110 @@ export function JobApplicants({
     }
   };
 
-  const handleDownloadResume = (applicant) => {
-    const url = applicant.resume_url;
+  const filenameFromHeader = (headerVal = "") => {
+    const match = /filename\*?=["']?([^\"';]+)["']?/i.exec(headerVal);
+    if (match && match[1]) {
+      try {
+        return decodeURIComponent(match[1].replace(/UTF-8''/i, ""));
+      } catch {
+        return match[1];
+      }
+    }
+    return null;
+  };
+
+  const fetchAndDownload = async (url, baseName = "resume") => {
+    const clean = (val) => {
+      if (!val) return null;
+      const trimmed = String(val).split("/").pop().split("\\").pop().trim();
+      const safe = trimmed.replace(/[<>:"/\\|?*\u0000-\u001F]/g, "_");
+      return safe || null;
+    };
+
+    const queryName = (() => {
+      try {
+        const u = new URL(url);
+        const p = u.searchParams;
+        return (
+          p.get("filename") ||
+          p.get("file") ||
+          p.get("name") ||
+          p.get("original") ||
+          p.get("originalname")
+        );
+      } catch {
+        return null;
+      }
+    })();
+
+    const toPdfName = (val) => {
+      const cleaned = clean(val);
+      if (!cleaned) return "resume.pdf";
+      const base = cleaned.replace(/\.[^.]+$/, "") || "resume";
+      return `${base}.pdf`;
+    };
+
+    const pickFilename = ({ preferred, headerName, urlName, queryName: qName }) =>
+      toPdfName(preferred) ||
+      toPdfName(qName) ||
+      toPdfName(headerName) ||
+      toPdfName(urlName) ||
+      "resume.pdf";
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const headerName = filenameFromHeader(res.headers.get("content-disposition") || "");
+      const urlName = (() => {
+        try {
+          const path = new URL(url).pathname;
+          const last = path.split("/").filter(Boolean).pop();
+          return last && last.includes(".") ? last : null;
+        } catch {
+          return null;
+        }
+      })();
+      const filename = pickFilename({
+        preferred: baseName,
+        headerName,
+        urlName,
+        queryName,
+      });
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = filename;
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+    } catch (_err) {
+      const filename = pickFilename({
+        preferred: baseName,
+        headerName: null,
+        urlName: null,
+        queryName,
+      });
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const handleDownloadResume = async (applicant) => {
+    const url =
+      applicant.resume_url ||
+      applicant.profile_resume_url ||
+      applicant.resume ||
+      applicant.resumeUrl ||
+      "";
     if (!url) {
       toast({
         title: "Resume not available",
@@ -568,7 +670,15 @@ export function JobApplicants({
       });
       return;
     }
-    window.open(url, "_blank", "noopener,noreferrer");
+    const safeName =
+      applicant.resume_original_name ||
+      applicant.resume_name ||
+      applicant.resume_file_name ||
+      applicant.file_name ||
+      applicant.fileName ||
+      applicant.name?.replace(/[^a-z0-9]/gi, "_").toLowerCase() ||
+      "resume";
+    await fetchAndDownload(url, safeName);
   };
 
   const infoText =
