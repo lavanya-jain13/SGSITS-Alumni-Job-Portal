@@ -83,6 +83,47 @@ const StudentProfile = () => {
     address: "",
     profileVisibility: false,
   });
+  const [desiredRolesInput, setDesiredRolesInput] = useState("");
+  const [preferredLocationsInput, setPreferredLocationsInput] = useState("");
+
+  // Normalize skill strings coming from the backend or local state
+  const cleanSkillName = (skill) => {
+    if (!skill) return "";
+    const raw = String(skill).trim();
+    // Some payloads arrive double-quoted/escaped; try a safe JSON parse first
+    try {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed === "string") return parsed.trim();
+    } catch {
+      /* ignore parse errors and fallback */
+    }
+    // Fallback: strip outer braces/quotes/backslashes
+    return raw.replace(/^[\[\{\"]+|[\]\}\"]+$/g, "").replace(/\\/g, "").trim();
+  };
+
+  // Normalize comma/JSON strings into string arrays
+  const normalizeList = (value) => {
+    if (Array.isArray(value)) {
+      return value.map((item) => String(item).trim()).filter(Boolean);
+    }
+    if (typeof value === "string") {
+      const raw = value.trim();
+      if (!raw) return [];
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item) => String(item).trim()).filter(Boolean);
+        }
+      } catch {
+        /* ignore and fallback */
+      }
+      return raw
+        .split(",")
+        .map((item) => item.replace(/^[\[\{\"]+|[\]\}\"]+$/g, "").trim())
+        .filter(Boolean);
+    }
+    return [];
+  };
 
   useEffect(() => {
     const loadExtras = () => {
@@ -113,11 +154,13 @@ const StudentProfile = () => {
         const extras = loadExtras();
 
         if (!profile) {
-          // no profile yet → just use extras (if any)
+          // no profile yet ?+' just use extras (if any)
+          const desiredRolesArr = normalizeList(extras.desiredRoles);
+          const preferredLocationsArr = normalizeList(extras.preferredLocations);
           setProfileData((prev) => ({
             ...prev,
-            desiredRoles: extras.desiredRoles || [],
-            preferredLocations: extras.preferredLocations || [],
+            desiredRoles: desiredRolesArr,
+            preferredLocations: preferredLocationsArr,
             workMode: extras.workMode || "hybrid",
             summary: extras.summary || "",
             achievements: extras.achievements || "",
@@ -130,15 +173,29 @@ const StudentProfile = () => {
             address: extras.address || "",
             profileVisibility: extras.profileVisibility || false,
           }));
+          setDesiredRolesInput(desiredRolesArr.join(", "));
+          setPreferredLocationsInput(preferredLocationsArr.join(", "));
           return;
         }
-
-        const skillNames = Array.isArray(profile.skills)
-          ? profile.skills
-          : (profile.skills || "")
+        const rawSkills = profile.skills;
+        let skillNames = [];
+        if (Array.isArray(rawSkills)) {
+          skillNames = rawSkills;
+        } else if (typeof rawSkills === "string") {
+          try {
+            const parsed = JSON.parse(rawSkills);
+            if (Array.isArray(parsed)) {
+              skillNames = parsed;
+            } else {
+              throw new Error("not an array");
+            }
+          } catch {
+            skillNames = rawSkills
               .split(",")
               .map((s) => s.trim())
               .filter(Boolean);
+          }
+        }
 
         const experienceList = Array.isArray(profile.experiences)
           ? profile.experiences.map((exp) => ({
@@ -149,6 +206,22 @@ const StudentProfile = () => {
               link: exp.link || "",
             }))
           : [];
+
+        const normalizedDesiredRoles = (() => {
+          const fromProfile = normalizeList(profile.desired_roles);
+          if (fromProfile.length) return fromProfile;
+          const fromExtras = normalizeList(extras.desiredRoles);
+          if (fromExtras.length) return fromExtras;
+          return [];
+        })();
+
+        const normalizedPreferredLocations = (() => {
+          const fromProfile = normalizeList(profile.preferred_locations);
+          if (fromProfile.length) return fromProfile;
+          const fromExtras = normalizeList(extras.preferredLocations);
+          if (fromExtras.length) return fromExtras;
+          return [];
+        })();
 
         setProfileData((prev) => ({
           ...prev,
@@ -172,7 +245,7 @@ const StudentProfile = () => {
           // backend uses "proficiency" column for summary
           summary: profile.proficiency ?? extras.summary ?? "",
           skills: skillNames.map((name) => ({
-            name,
+            name: cleanSkillName(name),
             proficiency: 3,
             experience: 1,
           })),
@@ -182,9 +255,8 @@ const StudentProfile = () => {
           resumeFileName: profile.resume_url ? "Uploaded Resume" : "",
           resumeFile: null,
           // prefer DB values, fallback to extras
-          desiredRoles: profile.desired_roles || extras.desiredRoles || [],
-          preferredLocations:
-            profile.preferred_locations || extras.preferredLocations || [],
+          desiredRoles: normalizedDesiredRoles,
+          preferredLocations: normalizedPreferredLocations,
           workMode: profile.work_mode || extras.workMode || "hybrid",
           dataConsent:
             typeof profile.consent_data_sharing === "boolean"
@@ -204,6 +276,8 @@ const StudentProfile = () => {
               : extras.codeOfConduct || false,
           address: profile.address || extras.address || "",
         }));
+        setDesiredRolesInput(normalizedDesiredRoles.join(", "));
+        setPreferredLocationsInput(normalizedPreferredLocations.join(", "));
       } catch (err) {
         console.error("Failed to load profile", err);
         // If the token is invalid/expired, clear it and force re-login
@@ -358,16 +432,22 @@ const StudentProfile = () => {
         ...updatedData,
         skills: updatedData.skills ?? profileData.skills ?? [],
         experiences: updatedData.experiences ?? profileData.experiences ?? [],
-        desiredRoles:
-          updatedData.desiredRoles ?? profileData.desiredRoles ?? [],
-        preferredLocations:
-          updatedData.preferredLocations ??
-          profileData.preferredLocations ??
-          [],
+        desiredRoles: normalizeList(
+          updatedData.desiredRoles ?? profileData.desiredRoles
+        ),
+        preferredLocations: normalizeList(
+          updatedData.preferredLocations ?? profileData.preferredLocations
+        ),
       };
 
       // accept the latest edits from the modal instead of stale state
       setProfileData(mergedData);
+      setDesiredRolesInput(
+        normalizeList(mergedData.desiredRoles).join(", ")
+      );
+      setPreferredLocationsInput(
+        normalizeList(mergedData.preferredLocations).join(", ")
+      );
 
       const cleanedExperiences = (mergedData.experiences || [])
         .map((exp) => ({
@@ -399,15 +479,15 @@ const StudentProfile = () => {
         summary: mergedData.summary || "",
         yearsOfExperience: cleanedExperiences.length || 0,
         skills: (mergedData.skills || [])
-          .map((s) => (typeof s === "string" ? s : s.name))
+          .map((s) => cleanSkillName(typeof s === "string" ? s : s.name))
           .filter(Boolean),
         resumeUrl: mergedData.resumeUrl || "",
         experiences: cleanedExperiences,
 
         // extra fields → backend
         address: mergedData.address || "",
-        desiredRoles: mergedData.desiredRoles || [],
-        preferredLocations: mergedData.preferredLocations || [],
+        desiredRoles: normalizeList(mergedData.desiredRoles),
+        preferredLocations: normalizeList(mergedData.preferredLocations),
         workMode: mergedData.workMode || "",
         dataConsent: mergedData.dataConsent || false,
         contactPermissions: mergedData.contactPermissions || false,
@@ -472,8 +552,8 @@ const StudentProfile = () => {
 
       // Persist extra client-only fields locally so they survive refresh
       const extras = {
-        desiredRoles: mergedData.desiredRoles || [],
-        preferredLocations: mergedData.preferredLocations || [],
+        desiredRoles: normalizeList(mergedData.desiredRoles),
+        preferredLocations: normalizeList(mergedData.preferredLocations),
         workMode: mergedData.workMode || "hybrid",
         summary: mergedData.summary || "",
         achievements: mergedData.achievements || "",
@@ -505,30 +585,39 @@ const StudentProfile = () => {
   };
 
   const addSkill = (skillName) => {
-    if (!(profileData.skills || []).find((s) => s.name === skillName)) {
+    const cleaned = cleanSkillName(skillName);
+    if (!(profileData.skills || []).find((s) => s.name === cleaned)) {
       setProfileData((prev) => ({
         ...prev,
         skills: [
           ...(prev.skills || []),
-          { name: skillName, proficiency: 3, experience: 1 },
+          { name: cleaned, proficiency: 3, experience: 1 }, // No extra delimiters
         ],
       }));
     }
   };
 
   const removeSkill = (skillName) => {
+    const target = cleanSkillName(skillName);
     setProfileData((prev) => ({
       ...prev,
-      skills: (prev.skills || []).filter((s) => s.name !== skillName),
+      skills: (prev.skills || []).filter(
+        (s) => cleanSkillName(s.name) !== target
+      ),
     }));
   };
 
   const updateSkill = (skillName, field, value) => {
+    const target = cleanSkillName(skillName);
     setProfileData((prev) => ({
       ...prev,
-      skills: (prev.skills || []).map((s) =>
-        s.name === skillName ? { ...s, [field]: value } : s
-      ),
+      skills: (prev.skills || []).map((s) => {
+        const cleanedName = cleanSkillName(s.name);
+        if (cleanedName === target) {
+          return { ...s, name: cleanedName, [field]: value };
+        }
+        return { ...s, name: cleanedName };
+      }),
     }));
   };
 
@@ -837,7 +926,9 @@ const StudentProfile = () => {
                             .filter(
                               (skill) =>
                                 !(profileData.skills || []).find(
-                                  (s) => s.name === skill
+                                  (s) =>
+                                    cleanSkillName(s.name) ===
+                                    cleanSkillName(skill)
                                 )
                             )
                             .map((skill) => (
@@ -849,21 +940,23 @@ const StudentProfile = () => {
                       </Select>
                     </div>
                     <div className="space-y-4">
-                      {(profileData.skills || []).map((skill) => (
-                        <div
-                          key={skill.name}
-                          className="p-4 border rounded-lg space-y-3"
-                        >
-                          <div className="flex items-center justify-between">
-                            <Badge variant="outline">{skill.name}</Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeSkill(skill.name)}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
+                      {(profileData.skills || []).map((skill) => {
+                        const displayName = cleanSkillName(skill.name);
+                        return (
+                          <div
+                            key={displayName || skill.name}
+                            className="p-4 border rounded-lg space-y-3"
+                          >
+                            <div className="flex items-center justify-between">
+                              <Badge variant="outline">{displayName}</Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeSkill(displayName)}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label>Proficiency (1-5)</Label>
@@ -880,7 +973,7 @@ const StudentProfile = () => {
                                     className="w-8 h-8 p-0"
                                     onClick={() =>
                                       updateSkill(
-                                        skill.name,
+                                        displayName,
                                         "proficiency",
                                         level
                                       )
@@ -903,7 +996,7 @@ const StudentProfile = () => {
                                 value={skill.experience}
                                 onChange={(e) =>
                                   updateSkill(
-                                    skill.name,
+                                    displayName,
                                     "experience",
                                     parseFloat(e.target.value) || 0
                                   )
@@ -912,8 +1005,9 @@ const StudentProfile = () => {
                               />
                             </div>
                           </div>
-                        </div>
-                      ))}
+                          </div>
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
@@ -1161,14 +1255,13 @@ const StudentProfile = () => {
                       <Label>Desired Roles</Label>
                       <Input
                         placeholder="Enter roles separated by commas"
-                        value={(profileData.desiredRoles || []).join(", ")}
+                        value={desiredRolesInput}
                         onChange={(e) => {
+                          const raw = e.target.value;
+                          setDesiredRolesInput(raw);
                           setProfileData((prev) => ({
                             ...prev,
-                            desiredRoles: e.target.value
-                              .split(",")
-                              .map((r) => r.trim())
-                              .filter(Boolean),
+                            desiredRoles: normalizeList(raw),
                           }));
                         }}
                       />
@@ -1177,16 +1270,13 @@ const StudentProfile = () => {
                       <Label>Preferred Locations</Label>
                       <Input
                         placeholder="Enter locations separated by commas"
-                        value={(profileData.preferredLocations || []).join(
-                          ", "
-                        )}
+                        value={preferredLocationsInput}
                         onChange={(e) => {
+                          const raw = e.target.value;
+                          setPreferredLocationsInput(raw);
                           setProfileData((prev) => ({
                             ...prev,
-                            preferredLocations: e.target.value
-                              .split(",")
-                              .map((l) => l.trim())
-                              .filter(Boolean),
+                            preferredLocations: normalizeList(raw),
                           }));
                         }}
                       />
