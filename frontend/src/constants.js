@@ -5,7 +5,7 @@
 // ----------------------------
 
 // Local backend URL (your laptop)
-export const LOCAL_API_BASE_URL = "http://localhost:5004/api";
+export const LOCAL_API_BASE_URL = "http://18.217.68.204/api";
 
 // Production backend URL (AWS EC2)
 export const PROD_API_BASE_URL = "http://18.217.68.204/api";
@@ -13,13 +13,8 @@ export const PROD_API_BASE_URL = "http://18.217.68.204/api";
 // ----------------------------
 // 🔄 AUTO SWITCH (Env Override → Local ↔ Production)
 // ----------------------------
-// 1. If VITE_API_URL is set, use that
-// 2. Else, choose based on build mode
-export const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.MODE === "production"
-    ? PROD_API_BASE_URL
-    : LOCAL_API_BASE_URL);
+// Hardcoded to production API
+export const API_BASE_URL = "http://18.217.68.204/api";
 
 // ----------------------------
 // 📡 COMMON ENDPOINT GROUPS

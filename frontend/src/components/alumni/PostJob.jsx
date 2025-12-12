@@ -57,9 +57,13 @@ const jobTypes = ["Full-time", "Part-time", "Contract", "Internship"];
 const branches = [
   "Computer Science",
   "Information Technology",
-  "Electronics",
-  "Mechanical",
-  "Civil",
+  "Electronics and Telecommunication",
+  "Electronics and Instrumentation",
+  "Electrical Engineering",
+  "Mechanical Engineering",
+  "Civil Engineering",
+  "Industrial and Production",
+  "Biomedical Engineering",
 ];
 const skills = ["JavaScript", "React", "Node.js", "Python", "Java", "SQL", "AWS"];
 const ctcTypes = ["CTC", "Stipend"];

@@ -5,6 +5,7 @@ frontend/.env
 #other ignores
 CLAUDE.md
 deploy.py
+backup_with_env
 
 # Node
 node_modules

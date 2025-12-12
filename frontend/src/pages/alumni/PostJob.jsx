@@ -53,9 +53,13 @@ const jobTypes = ["Full-time", "Part-time", "Contract", "Internship"];
 const branches = [
   "Computer Science",
   "Information Technology",
-  "Electronics",
-  "Mechanical",
-  "Civil",
+  "Electronics and Telecommunication",
+  "Electronics and Instrumentation",
+  "Electrical Engineering",
+  "Mechanical Engineering",
+  "Civil Engineering",
+  "Industrial and Production",
+  "Biomedical Engineering",
 ];
 const skills = ["JavaScript", "React", "Node.js", "Python", "Java", "SQL", "AWS"];
 const ctcTypes = ["CTC", "Stipend"];
@@ -396,8 +400,8 @@ export function PostJob() {
         return (
           <div className="space-y-6">
             <div className="space-y-3">
-              <Label>Allowed Branches *</Label>
-              <div className="space-y-2">
+              <Label>Allowed Branches **</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {branches.map((branch) => (
                   <div key={branch} className="flex items-center space-x-2">
                     <Checkbox
@@ -407,7 +411,7 @@ export function PostJob() {
                         handleArrayUpdate("allowedBranches", branch, checked)
                       }
                     />
-                    <Label htmlFor={branch}>{branch}</Label>
+                    <Label htmlFor={branch} className="text-sm">{branch}</Label>
                   </div>
                 ))}
               </div>
