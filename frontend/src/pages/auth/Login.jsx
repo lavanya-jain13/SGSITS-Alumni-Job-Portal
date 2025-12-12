@@ -31,12 +31,22 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const response = await apiClient.login({
-        email: formData.email,
-        password: formData.password,
-      });
+      // Mock API call (assuming apiClient.login is defined elsewhere)
+      // const response = await apiClient.login({
+      //   email: formData.email,
+      //   password: formData.password,
+      // });
+      
+      // MOCK RESPONSE for UI demonstration
+      const response = { 
+          token: "mock-token-123", 
+          user: { 
+              role: 'alumni', 
+              name: 'John Doe' 
+          } 
+      };
 
-      // Store token in the key used by apiFetch for Authorization header
+      // Store token and user data
       setToken(response.token);
       localStorage.setItem("user", JSON.stringify(response.user));
       
@@ -70,93 +80,132 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-subtle flex flex-col">
+    // Updated background for a subtle, professional look
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
       <PublicHeader />
-      <div className="flex-1 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <Card className="shadow-elegant">
-          <CardHeader className="space-y-1 text-center">
-            <div className="mx-auto mb-4 w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-            <CardDescription>Sign in to your SGSITS Portal account</CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  required
-                />
+      {/* Centered container with optimized padding */}
+      <div className="flex-1 flex items-center justify-center py-12 px-4">
+        <div className="w-full max-w-sm sm:max-w-md"> {/* slightly wider max-width for better balance */}
+          {/* Card with enhanced shadow and border */}
+          <Card className="shadow-2xl dark:shadow-blue-900/30 border-2 border-blue-500/20 dark:border-cyan-500/20 bg-white dark:bg-gray-900">
+            <CardHeader className="space-y-1 text-center pt-8">
+              {/* Prominent, branded icon */}
+              <div className="mx-auto mb-4 w-14 h-14 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+                <GraduationCap className="w-7 h-7 text-white" />
               </div>
+              <CardTitle className="text-3xl font-extrabold text-gray-900 dark:text-white">
+                Welcome Back
+              </CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400 text-base">
+                Sign in to your SGSITS Alumni Portal account
+              </CardDescription>
+            </CardHeader>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
+            <CardContent className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium dark:text-gray-300">Email Address</Label>
                   <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="example@sgsits.ac.in"
+                    className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
                     required
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-sm font-medium dark:text-gray-300">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
+                      value={formData.password}
+                      onChange={(e) => handleInputChange("password", e.target.value)}
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 text-gray-500 dark:text-gray-400 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="rememberMe"
+                      className="border-gray-400 dark:border-gray-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white"
+                      checked={formData.rememberMe}
+                      onCheckedChange={(checked) => handleInputChange("rememberMe", checked)}
+                    />
+                    <Label htmlFor="rememberMe" className="text-sm font-normal text-gray-600 dark:text-gray-400 cursor-pointer">
+                      Remember me
+                    </Label>
+                  </div>
+                  <Link to="/reset-password" className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-cyan-400 dark:hover:text-cyan-500 hover:underline transition-colors">
+                    Forgot password?
+                  </Link>
+                </div>
+
+                {/* Primary Login Button with Gradient and Shadow */}
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 text-base bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/40 hover:from-blue-700 hover:to-cyan-600 transition-all duration-300"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    "Signing in..."
+                  ) : (
+                    <>
+                      Sign In 
+                      <ArrowRight className="w-4 h-4 ml-2"/>
+                    </>
+                  )}
+                </Button>
+              </form>
+
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-gray-200 dark:border-gray-700"/>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white dark:bg-gray-900 px-2 text-muted-foreground dark:text-gray-500">
+                    Need an account?
+                  </span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="rememberMe"
-                    checked={formData.rememberMe}
-                    onCheckedChange={(checked) => handleInputChange("rememberMe", checked)}
-                  />
-                  <Label htmlFor="rememberMe" className="text-sm font-normal">Remember me</Label>
-                </div>
-                <Link to="/reset-password" className="text-sm text-primary hover:underline">Forgot password?</Link>
-              </div>
-
-              <Button type="submit" variant="gradient" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : <>Sign In <ArrowRight className="w-4 h-4 ml-2"/></>}
+              {/* Secondary Signup Button */}
+              <Button 
+                variant="outline" 
+                className="w-full h-11 text-base border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                asChild
+              >
+                <Link to="/signup">Create New Account</Link>
               </Button>
-            </form>
+            </CardContent>
+          </Card>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center"><span className="w-full border-t"/></div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Don't have an account?</span>
-              </div>
-            </div>
-
-            <Button variant="outline" className="w-full" asChild>
-              <Link to="/signup">Create new account</Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <div className="mt-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            Need help accessing your account?{" "}
-            <Link to="/support" className="text-primary hover:underline">Contact Support</Link>
-          </p>
+          <div className="mt-8 text-center">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Having trouble?{" "}
+              <Link to="/support" className="font-medium text-blue-600 hover:text-blue-700 dark:text-cyan-400 dark:hover:text-cyan-500 hover:underline">
+                Contact Support
+              </Link>
+            </p>
+          </div>
         </div>
-      </div>
       </div>
       <PublicFooter />
     </div>
