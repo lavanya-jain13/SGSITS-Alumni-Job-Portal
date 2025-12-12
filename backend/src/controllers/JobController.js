@@ -9,6 +9,38 @@ const normalizeListText = (value) => {
   return String(value);
 };
 
+// Parse list-like payloads into clean string arrays
+const parseList = (value) => {
+  if (!value) return [];
+
+  const clean = (str) =>
+    String(str)
+      .replace(/^[\[\{\"]+|[\]\}\"]+$/g, "")
+      .replace(/\\/g, "")
+      .trim();
+
+  if (Array.isArray(value)) {
+    return value.map(clean).filter(Boolean);
+  }
+
+  const raw = String(value).trim();
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.map(clean).filter(Boolean);
+    }
+  } catch {
+    /* ignore parse errors, fallback below */
+  }
+
+  return raw
+    .split(",")
+    .map(clean)
+    .filter(Boolean);
+};
+
 const toNumberOrNull = (val) => {
   const n = Number(val);
   return Number.isNaN(n) ? null : n;
@@ -608,14 +640,17 @@ exports.applyJob = async (req, res) => {
       return res.status(400).json({ error: "Student profile not found." });
     }
 
-    const studentBranch = studentProfile.branch;
+    const studentBranch = (studentProfile.branch || "").trim();
 
     // Normalize allowed_branches (convert to an array of strings)
-    const allowedBranches = job.allowed_branches
-      ? job.allowed_branches.split(",").map((branch) => branch.trim())
-      : [];
+    const allowedBranches = parseList(job.allowed_branches);
+    const allowedBranchesLower = allowedBranches.map((b) => b.toLowerCase());
+    const studentBranchLower = studentBranch.toLowerCase();
 
-    if (!allowedBranches.includes(studentBranch)) {
+    if (
+      allowedBranchesLower.length > 0 &&
+      !allowedBranchesLower.includes(studentBranchLower)
+    ) {
       return res.status(400).json({
         error: "Your branch is not allowed to apply for this job.",
       });

@@ -21,6 +21,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, GraduationCap, Building } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { apiClient } from "@/lib/api";
+import PublicHeader from "@/components/PublicHeader";
+import PublicFooter from "@/components/PublicFooter";
 
 const SignUp = () => {
   const location = useLocation(); // detect route
@@ -172,9 +174,11 @@ const SignUp = () => {
   })();
 
   return (
-    <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <Card className="shadow-elegant">
+    <div className="min-h-screen bg-gradient-subtle flex flex-col">
+      <PublicHeader />
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <Card className="shadow-elegant">
           <CardHeader className="space-y-1 text-center">
             <div className="mx-auto mb-4 w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
               {userType === "alumni" ? (
@@ -470,8 +474,10 @@ const SignUp = () => {
               </Link>
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
       </div>
+      <PublicFooter />
     </div>
   );
 };

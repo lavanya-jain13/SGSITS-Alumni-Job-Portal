@@ -10,6 +10,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { apiClient, setToken } from "@/lib/api";
 import { useDispatch } from "react-redux";
 import { loginSuccess } from "@/store/authSlice";
+import PublicHeader from "@/components/PublicHeader";
+import PublicFooter from "@/components/PublicFooter";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -68,7 +70,9 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-subtle flex flex-col">
+      <PublicHeader />
+      <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <Card className="shadow-elegant">
           <CardHeader className="space-y-1 text-center">
@@ -153,6 +157,8 @@ const Login = () => {
           </p>
         </div>
       </div>
+      </div>
+      <PublicFooter />
     </div>
   );
 };

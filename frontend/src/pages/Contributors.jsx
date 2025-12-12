@@ -1,5 +1,7 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import PublicHeader from "@/components/PublicHeader";
+import PublicFooter from "@/components/PublicFooter";
 import NeeleshJain from "@/assets/contributors/Neelesh Jain.jpg";
 import PrinceKumar from "@/assets/contributors/Prince Kumar.jpg";
 import AkshatJain from "@/assets/contributors/Akshat Jain.jpg";
@@ -101,8 +103,10 @@ const ContributorCard = ({ person }) => {
 
 const Contributors = () => {
   return (
-    <div className="min-h-screen bg-gradient-subtle py-16">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+    <div className="min-h-screen bg-gradient-subtle flex flex-col">
+      <PublicHeader />
+      <div className="flex-1 py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div className="text-center space-y-4">
           <p className="text-sm font-semibold tracking-wide text-primary uppercase">
             Team
@@ -144,7 +148,9 @@ const Contributors = () => {
             ))}
           </div>
         </section>
+        </div>
       </div>
+      <PublicFooter />
     </div>
   );
 };
