@@ -319,6 +319,7 @@ export function JobApplicants({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBranches, setSelectedBranches] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedSkills, setSelectedSkills] = useState([]);
   const [sortBy, setSortBy] = useState("relevance");
   const [jobs, setJobs] = useState([]);
   const [selectedJobId, setSelectedJobId] = useState(null);
@@ -326,7 +327,7 @@ export function JobApplicants({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
-  const branches = ["Computer Science", "Information Technology"];
+  const branches = ["Computer Science Engineering", "Information Technology", "Electronics & Communication Engineering", "Electrical Engineering", "Mechanical Engineering", "Civil Engineering"];
   const statuses = ["pending", "accepted", "rejected", "on_hold"];
 
   const statusLabel = {
@@ -352,26 +353,56 @@ export function JobApplicants({
       .filter(Boolean);
   };
 
+  const splitAchievements = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.filter(Boolean).map((s) => String(s).trim());
+    return String(value)
+      .split(/[,|]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  };
+
+  const computeMatch = (studentSkills = [], requiredSkills = []) => {
+    if (!requiredSkills.length) return null;
+    const studentSet = new Set(studentSkills.map((s) => s.toLowerCase()));
+    const required = requiredSkills.map((s) => s.toLowerCase());
+    const hits = required.filter((s) => studentSet.has(s)).length;
+    return Math.round((hits / required.length) * 100);
+  };
+
   const formatDateTime = (value) =>
     value ? new Date(value).toLocaleString() : "Not available";
 
   const normalizeApplicants = (rows = []) =>
-    rows.map((row) => ({
-      id: row.application_id,
-      applicationId: row.application_id,
-      name: row.student_name || row.user_email || "Unknown",
-      class: row.student_grad_year ? `Grad ${row.student_grad_year}` : "N/A",
-      branch: row.student_branch || "N/A",
-      applicationTime: formatDateTime(row.applied_at),
-      skillMatch: null,
-      skills: splitSkills(row.student_skills),
-      status: row.application_status || "pending",
-      statusColor: statusColor[row.application_status] || "bg-gray-100 text-gray-800",
-      resume_url: row.resume_url || "",
-      user_email: row.user_email || "",
-      user_id: row.user_id,
-      job_id: row.job_id || selectedJobId,
-    }));
+    rows.map((row) => {
+      const studentSkills = splitSkills(row.student_skills);
+      const jobSkills = splitSkills(row.job_skills);
+      const match = row.skill_match ?? computeMatch(studentSkills, jobSkills);
+      return {
+        id: row.application_id,
+        applicationId: row.application_id,
+        name: row.student_name || row.user_email || "Unknown",
+        class: row.student_grad_year ? `Grad ${row.student_grad_year}` : "N/A",
+        branch: row.student_branch || "N/A",
+        student_branch: row.student_branch || "",
+        student_grad_year: row.student_grad_year || "",
+        applicationTime: formatDateTime(row.applied_at),
+        applied_at: row.applied_at || null,
+        skillMatch: match,
+        match,
+        skills: studentSkills,
+        job_skills: jobSkills,
+        status: row.application_status || "pending",
+        statusColor: statusColor[row.application_status] || "bg-gray-100 text-gray-800",
+        resume_url: row.resume_url || row.profile_resume_url || "",
+        user_email: row.user_email || "",
+        user_id: row.user_id,
+        job_id: row.job_id || selectedJobId,
+        student_phone: row.student_phone || "",
+        location: row.location || row.student_location || "",
+        achievements: splitAchievements(row.student_achievements),
+      };
+    });
 
   const fetchJobs = loadJobs || (async () => {
     const res = await apiClient.getMyJobs();
@@ -439,6 +470,7 @@ export function JobApplicants({
   }, [selectedJobId]);
 
   const filteredApplicants = useMemo(() => {
+    const skillKey = (s) => s?.toLowerCase();
     return applicants.filter((applicant) => {
       const matchesSearch =
         applicant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -448,10 +480,23 @@ export function JobApplicants({
         selectedBranches.includes(applicant.branch);
       const matchesStatus =
         !selectedStatus || applicant.status === selectedStatus;
+      const skillSet = new Set((applicant.skills || []).map((s) => skillKey(s)));
+      const matchesSkills =
+        selectedSkills.length === 0 ||
+        selectedSkills.every((s) => skillSet.has(skillKey(s)));
 
-      return matchesSearch && matchesBranch && matchesStatus;
+      return matchesSearch && matchesBranch && matchesStatus && matchesSkills;
     });
-  }, [applicants, searchTerm, selectedBranches, selectedStatus]);
+  }, [applicants, searchTerm, selectedBranches, selectedStatus, selectedSkills]);
+
+  const skillOptions = useMemo(() => {
+    const all = new Set();
+    applicants.forEach((a) => {
+      (a.skills || []).forEach((s) => s && all.add(s));
+      (a.job_skills || []).forEach((s) => s && all.add(s));
+    });
+    return Array.from(all).sort((a, b) => a.localeCompare(b));
+  }, [applicants]);
 
   const addBranchFilter = (branch) => {
     if (!selectedBranches.includes(branch)) {
@@ -459,13 +504,24 @@ export function JobApplicants({
     }
   };
 
+  const addSkillFilter = (skill) => {
+    if (!selectedSkills.includes(skill)) {
+      setSelectedSkills([...selectedSkills, skill]);
+    }
+  };
+
   const removeBranchFilter = (branch) => {
     setSelectedBranches(selectedBranches.filter(b => b !== branch));
+  };
+
+  const removeSkillFilter = (skill) => {
+    setSelectedSkills(selectedSkills.filter((s) => s !== skill));
   };
 
   const clearAllFilters = () => {
     setSelectedBranches([]);
     setSelectedStatus("");
+    setSelectedSkills([]);
     setSearchTerm("");
   };
 
@@ -626,26 +682,32 @@ export function JobApplicants({
 
             <div>
               <label className="text-sm font-medium mb-2 block">Skills</label>
-              <Select>
+              <Select onValueChange={addSkillFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select skills..." />
+                  <SelectValue placeholder={selectedSkills.length ? `${selectedSkills.length} selected` : "Select skills..."} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="java">Java</SelectItem>
-                  <SelectItem value="python">Python</SelectItem>
-                  <SelectItem value="javascript">JavaScript</SelectItem>
+                  {skillOptions.map((skill) => (
+                    <SelectItem key={skill} value={skill}>{skill}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           {/* Active Filters */}
-          {selectedBranches.length > 0 && (
+          {(selectedBranches.length > 0 || selectedSkills.length > 0) && (
             <div className="flex flex-wrap gap-2">
               {selectedBranches.map(branch => (
                 <Badge key={branch} variant="secondary" className="flex items-center space-x-1">
                   <span>{branch}</span>
                   <X className="h-3 w-3 cursor-pointer" onClick={() => removeBranchFilter(branch)} />
+                </Badge>
+              ))}
+              {selectedSkills.map(skill => (
+                <Badge key={skill} variant="secondary" className="flex items-center space-x-1">
+                  <span>{skill}</span>
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => removeSkillFilter(skill)} />
                 </Badge>
               ))}
             </div>
@@ -706,7 +768,7 @@ export function JobApplicants({
                   <td className="p-4 align-middle text-sm">{applicant.applicationTime}</td>
                   <td className="p-4 align-middle">
                     <div className="flex items-center space-x-2">
-                      {applicant.skillMatch ? (
+                      {applicant.skillMatch !== null && applicant.skillMatch !== undefined ? (
                         <>
                           <Progress value={applicant.skillMatch} className="w-16" />
                           <span className="text-sm font-medium">{applicant.skillMatch}%</span>

@@ -155,11 +155,18 @@ const StudentProfile = () => {
           name: profile.name || "",
           email: profile.email || "",
           phone: profile.phone_number || extras.phone || "",
-          dateOfBirth: profile.dob || extras.dateOfBirth || "",
+          // ensure date string fits <input type="date">
+          dateOfBirth: profile.dob
+            ? String(profile.dob).split("T")[0]
+            : extras.dateOfBirth || "",
           currentYear: profile.current_year || extras.currentYear || "",
           student_id: profile.student_id || "",
           branch: profile.branch || "",
-          grad_year: profile.grad_year || "",
+          // keep Select value as string
+          grad_year:
+            profile.grad_year !== undefined && profile.grad_year !== null
+              ? String(profile.grad_year)
+              : extras.grad_year || "",
           cgpa: profile.cgpa ?? extras.cgpa ?? "",
           achievements: profile.achievements ?? extras.achievements ?? "",
           // backend uses "proficiency" column for summary
@@ -265,14 +272,14 @@ const StudentProfile = () => {
       id: "skills",
       title: "Skills & Expertise",
       description: "List your technical skills",
-      completed: profileData.skills.length >= 1,
+      completed: (profileData.skills || []).length >= 1,
       weight: 20,
     },
     {
       id: "experience",
       title: "Experience",
       description: "Add your work experience or projects",
-      completed: profileData.experiences && profileData.experiences.length >= 1,
+      completed: (profileData.experiences || []).length >= 1,
       weight: 20,
     },
     {
@@ -286,8 +293,7 @@ const StudentProfile = () => {
       id: "preferences",
       title: "Job Preferences",
       description: "Set your preferred roles and locations",
-      completed:
-        profileData.desiredRoles && profileData.desiredRoles.length > 0,
+      completed: (profileData.desiredRoles || []).length > 0,
       weight: 10,
     },
   ];
@@ -341,12 +347,29 @@ const StudentProfile = () => {
     "GCP",
   ];
 
-  const handleSave = async () => {
+  const handleSave = async (updatedData = profileData) => {
     setIsLoading(true);
     try {
       const { apiFetch } = await import("@/lib/api");
 
-      const cleanedExperiences = (profileData.experiences || [])
+      // Merge with existing state so arrays are never lost
+      const mergedData = {
+        ...profileData,
+        ...updatedData,
+        skills: updatedData.skills ?? profileData.skills ?? [],
+        experiences: updatedData.experiences ?? profileData.experiences ?? [],
+        desiredRoles:
+          updatedData.desiredRoles ?? profileData.desiredRoles ?? [],
+        preferredLocations:
+          updatedData.preferredLocations ??
+          profileData.preferredLocations ??
+          [],
+      };
+
+      // accept the latest edits from the modal instead of stale state
+      setProfileData(mergedData);
+
+      const cleanedExperiences = (mergedData.experiences || [])
         .map((exp) => ({
           position: exp.title || exp.position || "",
           company: exp.company || "",
@@ -364,32 +387,32 @@ const StudentProfile = () => {
         );
 
       const basePayload = {
-        name: profileData.name,
-        studentId: profileData.student_id,
-        branch: profileData.branch,
-        gradYear: parseInt(profileData.grad_year) || undefined,
-        phone: profileData.phone || "",
-        dateOfBirth: profileData.dateOfBirth || "",
-        currentYear: profileData.currentYear || "",
-        cgpa: profileData.cgpa || "",
-        achievements: profileData.achievements || "",
-        summary: profileData.summary || "",
+        name: mergedData.name,
+        studentId: mergedData.student_id,
+        branch: mergedData.branch,
+        gradYear: parseInt(mergedData.grad_year) || undefined,
+        phone: mergedData.phone || "",
+        dateOfBirth: mergedData.dateOfBirth || "",
+        currentYear: mergedData.currentYear || "",
+        cgpa: mergedData.cgpa || "",
+        achievements: mergedData.achievements || "",
+        summary: mergedData.summary || "",
         yearsOfExperience: cleanedExperiences.length || 0,
-        skills: profileData.skills
+        skills: (mergedData.skills || [])
           .map((s) => (typeof s === "string" ? s : s.name))
           .filter(Boolean),
-        resumeUrl: profileData.resumeUrl || "",
+        resumeUrl: mergedData.resumeUrl || "",
         experiences: cleanedExperiences,
 
         // extra fields → backend
-        address: profileData.address || "",
-        desiredRoles: profileData.desiredRoles || [],
-        preferredLocations: profileData.preferredLocations || [],
-        workMode: profileData.workMode || "",
-        dataConsent: profileData.dataConsent || false,
-        contactPermissions: profileData.contactPermissions || false,
-        profileVisibility: profileData.profileVisibility || false,
-        codeOfConduct: profileData.codeOfConduct || false,
+        address: mergedData.address || "",
+        desiredRoles: mergedData.desiredRoles || [],
+        preferredLocations: mergedData.preferredLocations || [],
+        workMode: mergedData.workMode || "",
+        dataConsent: mergedData.dataConsent || false,
+        contactPermissions: mergedData.contactPermissions || false,
+        profileVisibility: mergedData.profileVisibility || false,
+        codeOfConduct: mergedData.codeOfConduct || false,
       };
 
       // remove empty/undefined values so validation passes
@@ -406,7 +429,7 @@ const StudentProfile = () => {
       if (!basePayload.resumeUrl) delete basePayload.resumeUrl;
 
       let res;
-      if (profileData.resumeFile) {
+      if (mergedData.resumeFile) {
         const formData = new FormData();
         Object.entries(basePayload).forEach(([key, value]) => {
           if (Array.isArray(value)) {
@@ -415,7 +438,7 @@ const StudentProfile = () => {
             formData.append(key, value);
           }
         });
-        formData.append("resume", profileData.resumeFile);
+        formData.append("resume", mergedData.resumeFile);
 
         res = await fetch(`${API_BASE_URL}/student/profile`, {
           method: "PUT",
@@ -449,19 +472,19 @@ const StudentProfile = () => {
 
       // Persist extra client-only fields locally so they survive refresh
       const extras = {
-        desiredRoles: profileData.desiredRoles || [],
-        preferredLocations: profileData.preferredLocations || [],
-        workMode: profileData.workMode || "hybrid",
-        summary: profileData.summary || "",
-        achievements: profileData.achievements || "",
-        cgpa: profileData.cgpa || "",
-        phone: profileData.phone || "",
-        dateOfBirth: profileData.dateOfBirth || "",
-        dataConsent: profileData.dataConsent || false,
-        codeOfConduct: profileData.codeOfConduct || false,
-        contactPermissions: profileData.contactPermissions || false,
-        address: profileData.address || "",
-        profileVisibility: profileData.profileVisibility || false,
+        desiredRoles: mergedData.desiredRoles || [],
+        preferredLocations: mergedData.preferredLocations || [],
+        workMode: mergedData.workMode || "hybrid",
+        summary: mergedData.summary || "",
+        achievements: mergedData.achievements || "",
+        cgpa: mergedData.cgpa || "",
+        phone: mergedData.phone || "",
+        dateOfBirth: mergedData.dateOfBirth || "",
+        dataConsent: mergedData.dataConsent || false,
+        codeOfConduct: mergedData.codeOfConduct || false,
+        contactPermissions: mergedData.contactPermissions || false,
+        address: mergedData.address || "",
+        profileVisibility: mergedData.profileVisibility || false,
       };
       localStorage.setItem(extrasKey, JSON.stringify(extras));
 
@@ -482,11 +505,11 @@ const StudentProfile = () => {
   };
 
   const addSkill = (skillName) => {
-    if (!profileData.skills.find((s) => s.name === skillName)) {
+    if (!(profileData.skills || []).find((s) => s.name === skillName)) {
       setProfileData((prev) => ({
         ...prev,
         skills: [
-          ...prev.skills,
+          ...(prev.skills || []),
           { name: skillName, proficiency: 3, experience: 1 },
         ],
       }));
@@ -496,14 +519,14 @@ const StudentProfile = () => {
   const removeSkill = (skillName) => {
     setProfileData((prev) => ({
       ...prev,
-      skills: prev.skills.filter((s) => s.name !== skillName),
+      skills: (prev.skills || []).filter((s) => s.name !== skillName),
     }));
   };
 
   const updateSkill = (skillName, field, value) => {
     setProfileData((prev) => ({
       ...prev,
-      skills: prev.skills.map((s) =>
+      skills: (prev.skills || []).map((s) =>
         s.name === skillName ? { ...s, [field]: value } : s
       ),
     }));
@@ -813,7 +836,7 @@ const StudentProfile = () => {
                           {skillOptions
                             .filter(
                               (skill) =>
-                                !profileData.skills.find(
+                                !(profileData.skills || []).find(
                                   (s) => s.name === skill
                                 )
                             )
@@ -826,7 +849,7 @@ const StudentProfile = () => {
                       </Select>
                     </div>
                     <div className="space-y-4">
-                      {profileData.skills.map((skill) => (
+                      {(profileData.skills || []).map((skill) => (
                         <div
                           key={skill.name}
                           className="p-4 border rounded-lg space-y-3"
@@ -905,7 +928,7 @@ const StudentProfile = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {profileData.experiences.map((exp, index) => (
+                    {(profileData.experiences || []).map((exp, index) => (
                       <div
                         key={index}
                         className="p-4 border rounded-lg space-y-3"
@@ -916,7 +939,9 @@ const StudentProfile = () => {
                             <Input
                               value={exp.title}
                               onChange={(e) => {
-                                const newExp = [...profileData.experiences];
+                                const newExp = [
+                                  ...(profileData.experiences || []),
+                                ];
                                 newExp[index].title = e.target.value;
                                 setProfileData((prev) => ({
                                   ...prev,
@@ -930,7 +955,9 @@ const StudentProfile = () => {
                             <Input
                               value={exp.company}
                               onChange={(e) => {
-                                const newExp = [...profileData.experiences];
+                                const newExp = [
+                                  ...(profileData.experiences || []),
+                                ];
                                 newExp[index].company = e.target.value;
                                 setProfileData((prev) => ({
                                   ...prev,
@@ -944,7 +971,9 @@ const StudentProfile = () => {
                             <Input
                               value={exp.duration}
                               onChange={(e) => {
-                                const newExp = [...profileData.experiences];
+                                const newExp = [
+                                  ...(profileData.experiences || []),
+                                ];
                                 newExp[index].duration = e.target.value;
                                 setProfileData((prev) => ({
                                   ...prev,
@@ -958,7 +987,9 @@ const StudentProfile = () => {
                             <Input
                               value={exp.link}
                               onChange={(e) => {
-                                const newExp = [...profileData.experiences];
+                                const newExp = [
+                                  ...(profileData.experiences || []),
+                                ];
                                 newExp[index].link = e.target.value;
                                 setProfileData((prev) => ({
                                   ...prev,
@@ -973,7 +1004,9 @@ const StudentProfile = () => {
                           <Textarea
                             value={exp.description}
                             onChange={(e) => {
-                              const newExp = [...profileData.experiences];
+                              const newExp = [
+                                ...(profileData.experiences || []),
+                              ];
                               newExp[index].description = e.target.value;
                               setProfileData((prev) => ({
                                 ...prev,
@@ -992,7 +1025,7 @@ const StudentProfile = () => {
                         setProfileData((prev) => ({
                           ...prev,
                           experiences: [
-                            ...prev.experiences,
+                            ...(prev.experiences || []),
                             {
                               title: "",
                               company: "",
@@ -1128,7 +1161,7 @@ const StudentProfile = () => {
                       <Label>Desired Roles</Label>
                       <Input
                         placeholder="Enter roles separated by commas"
-                        value={profileData.desiredRoles.join(", ")}
+                        value={(profileData.desiredRoles || []).join(", ")}
                         onChange={(e) => {
                           setProfileData((prev) => ({
                             ...prev,
@@ -1144,7 +1177,9 @@ const StudentProfile = () => {
                       <Label>Preferred Locations</Label>
                       <Input
                         placeholder="Enter locations separated by commas"
-                        value={profileData.preferredLocations.join(", ")}
+                        value={(profileData.preferredLocations || []).join(
+                          ", "
+                        )}
                         onChange={(e) => {
                           setProfileData((prev) => ({
                             ...prev,

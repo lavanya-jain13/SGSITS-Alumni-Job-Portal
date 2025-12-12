@@ -13,8 +13,6 @@ const AdminLayout = lazy(() => import("@/components/admin/AdminLayout").then(m =
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const CompaniesManagement = lazy(() => import("./pages/admin/CompaniesManagement"));
 const PostingsManagement = lazy(() => import("./pages/admin/PostingsManagement"));
-const TaxonomiesManagement = lazy(() => import("./pages/admin/TaxonomiesManagement"));
-const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 const ApplicationsOverview = lazy(() => import("./pages/admin/ApplicationsOverview"));
 
 /* ------------------ Lazy-loaded Student / Public pages ------------------ */
@@ -45,6 +43,7 @@ const AlumniJobDetails = lazy(() => import("./pages/AlumniJobDetails"));
 
 /* ------------------ Shared ------------------ */
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Contributors = lazy(() => import("./pages/Contributors"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -69,6 +68,7 @@ export default function App() {
             <Route path="/" element={<Index />} />
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/jobs/:id" element={<JobDetails />} />
+            <Route path="/contributors" element={<Contributors />} />
 
             {/* ---------- Auth routes ---------- */}
             <Route path="/login" element={<Login />} />
@@ -97,8 +97,6 @@ export default function App() {
               <Route path="companies" element={<CompaniesManagement />} />
               <Route path="postings" element={<PostingsManagement />} />
               <Route path="applications" element={<ApplicationsOverview />} />
-              <Route path="taxonomies" element={<TaxonomiesManagement />} />
-              <Route path="audit-logs" element={<AuditLogs />} />
             </Route>
 
             {/* ---------- Alumni routes (nested) ---------- */}

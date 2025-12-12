@@ -94,10 +94,20 @@ exports.postJob = async (req, res) => {
         .json({ error: "Alumni profile not found. Complete profile first." });
     }
 
-    // Find company linked to this alumni (simple version: first company)
-    const company = await db("companies")
-      .where({ alumni_id: alumniProfile.id })
-      .first();
+    // Prefer company explicitly selected in the payload (if it belongs to this alumni)
+    const requestedCompanyId = req.body.company_id || req.body.companyId;
+    let company = null;
+    if (requestedCompanyId) {
+      company = await db("companies")
+        .where({ id: requestedCompanyId, alumni_id: alumniProfile.id })
+        .first();
+    }
+    // fallback: first company for this alumni
+    if (!company) {
+      company = await db("companies")
+        .where({ alumni_id: alumniProfile.id })
+        .first();
+    }
 
     if (!company) {
       return res.status(400).json({
@@ -288,7 +298,11 @@ exports.repostJob = async (req, res) => {
       updateObj.max_applicants_allowed = Number(max_applicants_allowed);
     }
 
-    await db("jobs").where({ id }).update(updateObj);
+    // Reset applications when reposting so the new posting starts clean
+    await db.transaction(async (trx) => {
+      await trx("job_applications").where({ job_id: id }).del();
+      await trx("jobs").where({ id }).update(updateObj);
+    });
 
     const updated = await db("jobs").where({ id }).first();
     return res.json({ message: "Job reposted.", job: updated });
@@ -382,6 +396,7 @@ exports.viewJobApplicants = async (req, res) => {
     const applicants = await db("job_applications as ja")
       .join("users as u", "ja.user_id", "u.id")
       .leftJoin("student_profiles as sp", "sp.user_id", "u.id")
+      .leftJoin("jobs as j", "ja.job_id", "j.id")
       .where("ja.job_id", jobId)
       .select(
         "ja.id as application_id",
@@ -393,7 +408,12 @@ exports.viewJobApplicants = async (req, res) => {
         "u.email as user_email",
         "sp.name as student_name",
         "sp.branch as student_branch",
-        "sp.grad_year as student_grad_year"
+        "sp.grad_year as student_grad_year",
+        "sp.phone_number as student_phone",
+        "sp.achievements as student_achievements",
+        "sp.skills as student_skills",
+        "sp.resume_url as profile_resume_url",
+        "j.skills_required as job_skills"
       )
       .orderBy("ja.applied_at", "desc");
 
@@ -494,9 +514,17 @@ exports.holdJobApplication = (req, res) =>
 // 14. getAllJobsStudent
 exports.getAllJobsStudent = async (req, res) => {
   try {
-    const jobs = await db("jobs")
-      .where("status", "active")
-      .orderBy("created_at", "desc");
+    const jobs = await db("jobs as j")
+      .leftJoin("companies as c", "j.company_id", "c.id")
+      .where("j.status", "active")
+      .orderBy("j.created_at", "desc")
+      .select(
+        "j.*",
+        "c.name as company_name",
+        "c.industry as company_industry",
+        "c.company_size",
+        "c.website as company_website"
+      );
 
     return res.json({ jobs });
   } catch (err) {
@@ -511,15 +539,25 @@ exports.getJobByIdStudent = async (req, res) => {
     const { id } = req.params;
     const job = await db("jobs as j")
       .leftJoin("companies as c", "j.company_id", "c.id")
+      .leftJoin("job_applications as ja", "ja.job_id", "j.id")
+      .where("j.id", id)
+      .groupBy(
+        "j.id",
+        "c.name",
+        "c.website",
+        "c.industry",
+        "c.company_size",
+        "c.about"
+      )
       .select(
         "j.*",
         "c.name as company_name",
         "c.website as company_website",
         "c.industry as company_industry",
         "c.company_size",
-        "c.about as company_about"
+        "c.about as company_about",
+        db.raw("COUNT(ja.id) as applicants_count")
       )
-      .where("j.id", id)
       .first();
 
     if (!job) {
@@ -533,6 +571,7 @@ exports.getJobByIdStudent = async (req, res) => {
   }
 };
 
+// 16. applyJob (with Cloudinary resume upload)
 // 16. applyJob (with Cloudinary resume upload)
 exports.applyJob = async (req, res) => {
   const userId = req.user?.id;
@@ -560,7 +599,29 @@ exports.applyJob = async (req, res) => {
       });
     }
 
-    // 3) Current applications count
+    // 3) Check if student's branch is in allowed_branches
+    const studentProfile = await db("student_profiles")
+      .where({ user_id: userId })
+      .first();
+
+    if (!studentProfile) {
+      return res.status(400).json({ error: "Student profile not found." });
+    }
+
+    const studentBranch = studentProfile.branch;
+
+    // Normalize allowed_branches (convert to an array of strings)
+    const allowedBranches = job.allowed_branches
+      ? job.allowed_branches.split(",").map((branch) => branch.trim())
+      : [];
+
+    if (!allowedBranches.includes(studentBranch)) {
+      return res.status(400).json({
+        error: "Your branch is not allowed to apply for this job.",
+      });
+    }
+
+    // 4) Current applications count
     const countRow = await db("job_applications")
       .where({ job_id })
       .count("id as count")
@@ -573,7 +634,7 @@ exports.applyJob = async (req, res) => {
       });
     }
 
-    // 4) Check duplicate application
+    // 5) Check duplicate application
     const existing = await db("job_applications")
       .where({ job_id, user_id: userId })
       .first();
@@ -583,7 +644,7 @@ exports.applyJob = async (req, res) => {
         .json({ error: "You have already applied to this job." });
     }
 
-    // 5) Handle resume upload
+    // 6) Handle resume upload
     let resumeUrl = null;
     if (req.file && req.file.buffer) {
       const uploadResult = await uploadBufferToCloudinary(
@@ -599,7 +660,7 @@ exports.applyJob = async (req, res) => {
         .json({ error: "Resume file (resume) is required." });
     }
 
-    // 6) Do everything in a transaction
+    // 7) Do everything in a transaction
     const application = await db.transaction(async (trx) => {
       const [app] = await trx("job_applications")
         .insert(

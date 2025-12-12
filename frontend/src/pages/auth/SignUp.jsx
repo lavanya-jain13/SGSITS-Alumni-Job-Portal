@@ -2,8 +2,20 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, GraduationCap, Building } from "lucide-react";
@@ -81,7 +93,8 @@ const SignUp = () => {
       if (!formData.branch || !formData.gradYear || !formData.studentId) {
         toast({
           title: "Missing details",
-          description: "Branch, graduation year, and student ID are required for students.",
+          description:
+            "Branch, graduation year, and student ID are required for students.",
           variant: "destructive",
         });
         setIsLoading(false);
@@ -91,7 +104,8 @@ const SignUp = () => {
       if (!formData.gradYear || !formData.currentTitle) {
         toast({
           title: "Missing details",
-          description: "Graduation year and current title are required for alumni.",
+          description:
+            "Graduation year and current title are required for alumni.",
           variant: "destructive",
         });
         setIsLoading(false);
@@ -131,7 +145,8 @@ const SignUp = () => {
     } catch (error) {
       toast({
         title: "Registration failed",
-        description: error?.message || "Something went wrong. Please try again.",
+        description:
+          error?.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -149,8 +164,11 @@ const SignUp = () => {
       // Show current year and a few years ahead for expected graduation
       return Array.from({ length: 8 }, (_, i) => currentYear + i);
     }
-    // Alumni: show recent past years
-    return Array.from({ length: 30 }, (_, i) => currentYear - i);
+    // Alumni: show years from current year down to 1952 in descending order
+    return Array.from(
+      { length: currentYear - 1952 + 1 },
+      (_, i) => currentYear - i
+    );
   })();
 
   return (
@@ -265,7 +283,9 @@ const SignUp = () => {
                   <Label htmlFor="branch">Branch</Label>
                   <Select
                     value={formData.branch}
-                    onValueChange={(value) => handleInputChange("branch", value)}
+                    onValueChange={(value) =>
+                      handleInputChange("branch", value)
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select your branch" />
@@ -294,7 +314,9 @@ const SignUp = () => {
               {(userType === "alumni" || userType === "student") && (
                 <div className="space-y-2">
                   <Label htmlFor="gradYear">
-                    {userType === "student" ? "Expected Graduation Year" : "Graduation Year"}
+                    {userType === "student"
+                      ? "Expected Graduation Year"
+                      : "Graduation Year"}
                   </Label>
                   <Select
                     value={formData.gradYear}
@@ -325,7 +347,9 @@ const SignUp = () => {
                     type="text"
                     placeholder="e.g., Senior Engineer at ABC Corp"
                     value={formData.currentTitle}
-                    onChange={(e) => handleInputChange("currentTitle", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("currentTitle", e.target.value)
+                    }
                     required
                   />
                 </div>
@@ -352,7 +376,9 @@ const SignUp = () => {
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a strong password"
                     value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("password", e.target.value)
+                    }
                     required
                   />
                   <Button
@@ -390,9 +416,7 @@ const SignUp = () => {
                     variant="ghost"
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() =>
-                      setShowConfirmPassword(!showConfirmPassword)
-                    }
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="w-4 h-4" />

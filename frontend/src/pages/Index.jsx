@@ -39,6 +39,9 @@ const Index = () => {
               <Button variant="ghost" asChild>
                 <Link to="/login">Sign In</Link>
               </Button>
+              <Button variant="outline" asChild>
+                <Link to="/contributors">Contributors</Link>
+              </Button>
               <Button variant="gradient" asChild>
                 <Link to="/signup">Get Started</Link>
               </Button>
@@ -70,6 +73,14 @@ const Index = () => {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <Link to="/login">Sign In</Link>
+              </Button>
+              <Button
+                variant="outline"
+                asChild
+                className="w-full justify-start text-left"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Link to="/contributors">Contributors</Link>
               </Button>
               <Button
                 variant="gradient"
