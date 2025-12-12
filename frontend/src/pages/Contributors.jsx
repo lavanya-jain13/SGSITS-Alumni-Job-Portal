@@ -37,12 +37,7 @@ const developers = [
     role: "Developer",
     image: LavanyaJain,
   },
-  {
-    name: "Harshita Pandey",
-    role: "Developer",
-    image: HarshitaPandey,
-    initials: "HP",
-  },
+
   {
     name: "Mohammed Lakhrawala",
     role: "Developer",
@@ -52,6 +47,12 @@ const developers = [
     name: "Aryan Agrawal",
     role: "Developer",
     image: AryanAgrawal,
+  },
+  {
+    name: "Harshita Pandey",
+    role: "Developer",
+    image: HarshitaPandey,
+    initials: "HP",
   },
   {
     name: "Akshat Jain",
@@ -130,17 +131,6 @@ const Contributors = () => {
             </div>
           </section>
 
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold text-center">
-              Project Manager
-            </h2>
-            <div className="flex justify-center">
-              <div className="max-w-sm w-full">
-                <ContributorCard person={manager} />
-              </div>
-            </div>
-          </section>
-
           <section className="space-y-6">
             <div className="space-y-2">
               <h2 className="text-2xl font-semibold text-center">Developers</h2>
@@ -152,6 +142,17 @@ const Contributors = () => {
               {developers.map((dev) => (
                 <ContributorCard key={dev.name} person={dev} />
               ))}
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-2xl font-semibold text-center">
+              Project Manager
+            </h2>
+            <div className="flex justify-center">
+              <div className="max-w-sm w-full">
+                <ContributorCard person={manager} />
+              </div>
             </div>
           </section>
         </div>
