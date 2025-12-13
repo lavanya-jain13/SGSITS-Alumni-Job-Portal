@@ -84,6 +84,9 @@ const StudentProfile = () => {
     profileVisibility: false,
   });
 
+  const [desiredRolesInput, setDesiredRolesInput] = useState("");
+  const [preferredLocationsInput, setPreferredLocationsInput] = useState("");
+
   useEffect(() => {
     const loadExtras = () => {
       try {
@@ -130,8 +133,28 @@ const StudentProfile = () => {
             address: extras.address || "",
             profileVisibility: extras.profileVisibility || false,
           }));
+          setDesiredRolesInput((extras.desiredRoles || []).join(", "));
+          setPreferredLocationsInput(
+            (extras.preferredLocations || []).join(", ")
+          );
           return;
         }
+
+        const desiredRolesArr = Array.isArray(profile.desired_roles)
+          ? profile.desired_roles
+          : (profile.desired_roles || "")
+              .split(",")
+              .map((r) => r.trim())
+              .filter(Boolean);
+
+        const preferredLocationsArr = Array.isArray(
+          profile.preferred_locations
+        )
+          ? profile.preferred_locations
+          : (profile.preferred_locations || "")
+              .split(",")
+              .map((l) => l.trim())
+              .filter(Boolean);
 
         const skillNames = Array.isArray(profile.skills)
           ? profile.skills
@@ -182,9 +205,9 @@ const StudentProfile = () => {
           resumeFileName: profile.resume_url ? "Uploaded Resume" : "",
           resumeFile: null,
           // prefer DB values, fallback to extras
-          desiredRoles: profile.desired_roles || extras.desiredRoles || [],
+          desiredRoles: desiredRolesArr || extras.desiredRoles || [],
           preferredLocations:
-            profile.preferred_locations || extras.preferredLocations || [],
+            preferredLocationsArr || extras.preferredLocations || [],
           workMode: profile.work_mode || extras.workMode || "hybrid",
           dataConsent:
             typeof profile.consent_data_sharing === "boolean"
@@ -204,6 +227,11 @@ const StudentProfile = () => {
               : extras.codeOfConduct || false,
           address: profile.address || extras.address || "",
         }));
+
+        setDesiredRolesInput((desiredRolesArr || []).join(", "));
+        setPreferredLocationsInput(
+          (preferredLocationsArr || []).join(", ")
+        );
       } catch (err) {
         console.error("Failed to load profile", err);
         // If the token is invalid/expired, clear it and force re-login
@@ -248,6 +276,8 @@ const StudentProfile = () => {
       address: "",
       profileVisibility: false,
     }));
+    setDesiredRolesInput("");
+    setPreferredLocationsInput("");
 
     loadProfile();
   }, [extrasKey, navigate, toast]);
@@ -1161,11 +1191,13 @@ const StudentProfile = () => {
                       <Label>Desired Roles</Label>
                       <Input
                         placeholder="Enter roles separated by commas"
-                        value={(profileData.desiredRoles || []).join(", ")}
+                        value={desiredRolesInput}
                         onChange={(e) => {
+                          const value = e.target.value;
+                          setDesiredRolesInput(value);
                           setProfileData((prev) => ({
                             ...prev,
-                            desiredRoles: e.target.value
+                            desiredRoles: value
                               .split(",")
                               .map((r) => r.trim())
                               .filter(Boolean),
@@ -1177,13 +1209,13 @@ const StudentProfile = () => {
                       <Label>Preferred Locations</Label>
                       <Input
                         placeholder="Enter locations separated by commas"
-                        value={(profileData.preferredLocations || []).join(
-                          ", "
-                        )}
+                        value={preferredLocationsInput}
                         onChange={(e) => {
+                          const value = e.target.value;
+                          setPreferredLocationsInput(value);
                           setProfileData((prev) => ({
                             ...prev,
-                            preferredLocations: e.target.value
+                            preferredLocations: value
                               .split(",")
                               .map((l) => l.trim())
                               .filter(Boolean),
