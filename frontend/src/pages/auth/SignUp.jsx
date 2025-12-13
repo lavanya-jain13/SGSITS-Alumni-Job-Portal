@@ -135,15 +135,25 @@ const SignUp = () => {
 
 
     try {
-      // Mock API call to simulate registration based on type
       if (userType === "student") {
-        // await apiClient.registerStudent({...});
+        await apiClient.registerStudent({
+          name: formData.name,
+          role: "student",
+          email: formData.email,
+          password_hash: formData.password,
+          branch: formData.branch,
+          gradYear: formData.gradYear,
+          student_id: formData.studentId,
+        });
       } else {
-        // await apiClient.registerAlumni({...});
+        await apiClient.registerAlumni({
+          name: formData.name,
+          grad_year: formData.gradYear,
+          email: formData.email,
+          password_hash: formData.password,
+          current_title: formData.currentTitle,
+        });
       }
-
-      // Simulate API success delay
-      await new Promise(resolve => setTimeout(resolve, 1500)); 
 
       toast({
         title: "Account created successfully!",

@@ -45,15 +45,11 @@ const splitSkills = (value) => {
 };
 
 const computeMatch = (studentSkills = [], requiredSkills = []) => {
-  const req = requiredSkills.map(normalizeSkill).filter(Boolean);
-  const stud = studentSkills.map(normalizeSkill).filter(Boolean);
+  const req = Array.from(new Set(requiredSkills.map(normalizeSkill).filter(Boolean)));
+  const stud = Array.from(new Set(studentSkills.map(normalizeSkill).filter(Boolean)));
   if (!req.length) return null;
   const studentSet = new Set(stud);
-  const hits = req.filter(
-    (r) =>
-      studentSet.has(r) ||
-      Array.from(studentSet).some((s) => s.includes(r) || r.includes(s))
-  ).length;
+  const hits = req.filter((r) => studentSet.has(r)).length;
   return Math.round((hits / req.length) * 100);
 };
 
@@ -84,10 +80,7 @@ export function ApplicantDetails() {
   const studentSkills = splitSkills(applicant.skills || applicant.student_skills);
   const jobSkills = splitSkills(applicant.job_skills);
   const computedMatch = computeMatch(studentSkills, jobSkills);
-  const skillMatch =
-    applicant.match ??
-    applicant.skillMatch ??
-    (computedMatch === null ? 0 : computedMatch);
+  const skillMatch = computedMatch === null ? 0 : computedMatch;
   const appliedDate =
     applicant.applied_at || applicant.appliedDate || applicant.applicationTime || null;
   const skills = studentSkills;
@@ -99,7 +92,7 @@ export function ApplicantDetails() {
   const phone = applicant.student_phone || applicant.phone || "Not provided";
   const email = applicant.user_email || applicant.email || "Not provided";
 
-  const handleDownloadResume = () => {
+  const handleDownloadResume = async () => {
     if (!resumeUrl) {
       toast({
         title: "Resume not available",
@@ -108,7 +101,27 @@ export function ApplicantDetails() {
       });
       return;
     }
-    window.open(resumeUrl, "_blank", "noopener,noreferrer");
+
+    // Try to force a download to PDF/attachment; fall back to opening in a new tab
+    try {
+      const response = await fetch(resumeUrl, { mode: "cors" });
+      if (!response.ok) throw new Error("Failed to fetch resume");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const filename =
+        applicant.name?.replace(/\s+/g, "_")?.toLowerCase() || "resume";
+      const ext = blob.type === "application/pdf" ? ".pdf" : "";
+      link.download = `${filename}${ext || ".pdf"}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      // If fetch/download fails (e.g., due to CORS), open the URL in a new tab
+      window.open(resumeUrl, "_blank", "noopener,noreferrer");
+    }
   };
 
   return (

@@ -148,15 +148,11 @@ const splitAchievements = (value) => {
 };
 
 const computeMatch = (studentSkills = [], requiredSkills = []) => {
-  const req = requiredSkills.map(normalizeSkill).filter(Boolean);
-  const stud = studentSkills.map(normalizeSkill).filter(Boolean);
+  const req = Array.from(new Set(requiredSkills.map(normalizeSkill).filter(Boolean)));
+  const stud = Array.from(new Set(studentSkills.map(normalizeSkill).filter(Boolean)));
   if (!req.length) return 0;
   const studentSet = new Set(stud);
-  const hits = req.filter(
-    (r) =>
-      studentSet.has(r) ||
-      Array.from(studentSet).some((s) => s.includes(r) || r.includes(s))
-  ).length;
+  const hits = req.filter((r) => studentSet.has(r)).length;
   return Math.round((hits / req.length) * 100);
 };
 
