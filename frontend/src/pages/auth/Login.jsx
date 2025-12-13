@@ -31,20 +31,10 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // Mock API call (assuming apiClient.login is defined elsewhere)
-      // const response = await apiClient.login({
-      //   email: formData.email,
-      //   password: formData.password,
-      // });
-      
-      // MOCK RESPONSE for UI demonstration
-      const response = { 
-          token: "mock-token-123", 
-          user: { 
-              role: 'alumni', 
-              name: 'John Doe' 
-          } 
-      };
+      const response = await apiClient.login({
+        email: formData.email,
+        password: formData.password,
+      });
 
       // Store token and user data
       setToken(response.token);

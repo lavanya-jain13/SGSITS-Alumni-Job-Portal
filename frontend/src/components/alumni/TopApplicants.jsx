@@ -101,13 +101,41 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/lib/api";
 
+const normalizeSkill = (s) => {
+  if (!s) return "";
+  const lowered = String(s).toLowerCase();
+  if (lowered.includes("javascript") || lowered === "js") return "javascript";
+  if (lowered.includes("react")) return "react";
+  if (lowered.includes("vue")) return "vue";
+  if (lowered.includes("node")) return "node";
+  if (lowered.includes("python")) return "python";
+  return lowered.replace(/[^a-z0-9+.#]/g, " ").replace(/\s+/g, " ").trim();
+};
+
 const splitSkills = (value) => {
   if (!value) return [];
   if (Array.isArray(value)) return value.filter(Boolean).map((s) => String(s).trim());
-  return String(value)
+
+  // Try JSON array first (common when stored as text)
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      return parsed.filter(Boolean).map((s) => String(s).trim());
+    }
+  } catch (_err) {
+    // fall back to delimiter split
+  }
+
+  const cleaned = String(value).replace(/[{}\[\]"']/g, ""); // strip stray brackets/quotes if present (PG arrays)
+  const primarySplit = cleaned
     .split(/[,|]/)
     .map((s) => s.trim())
     .filter(Boolean);
+
+  if (primarySplit.length > 1) return primarySplit.map(normalizeSkill).filter(Boolean);
+
+  // fallback: space-separated list
+  return cleaned.split(/\s+/).map(normalizeSkill).filter(Boolean);
 };
 
 const splitAchievements = (value) => {
@@ -120,11 +148,16 @@ const splitAchievements = (value) => {
 };
 
 const computeMatch = (studentSkills = [], requiredSkills = []) => {
-  if (!requiredSkills.length) return 0;
-  const studentSet = new Set(studentSkills.map((s) => s.toLowerCase()));
-  const requiredSet = requiredSkills.map((s) => s.toLowerCase());
-  const hits = requiredSet.filter((s) => studentSet.has(s)).length;
-  return Math.round((hits / requiredSet.length) * 100);
+  const req = requiredSkills.map(normalizeSkill).filter(Boolean);
+  const stud = studentSkills.map(normalizeSkill).filter(Boolean);
+  if (!req.length) return 0;
+  const studentSet = new Set(stud);
+  const hits = req.filter(
+    (r) =>
+      studentSet.has(r) ||
+      Array.from(studentSet).some((s) => s.includes(r) || r.includes(s))
+  ).length;
+  return Math.round((hits / req.length) * 100);
 };
 
 export function TopApplicants() {
