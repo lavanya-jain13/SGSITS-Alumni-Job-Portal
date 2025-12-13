@@ -304,6 +304,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
+import { downloadResumeFile } from "@/lib/downloadResume";
 
 export function JobApplicants({
   backPath = "/alumni",
@@ -597,7 +598,15 @@ export function JobApplicants({
       });
       return;
     }
-    window.open(url, "_blank", "noopener,noreferrer");
+
+    downloadResumeFile({
+      url,
+      applicantName: applicant.name,
+      fileLabel: `${applicant.name}-Resume`,
+      toast,
+    }).catch(() => {
+      // toast already handled in helper fallback
+    });
   };
 
   const infoText =

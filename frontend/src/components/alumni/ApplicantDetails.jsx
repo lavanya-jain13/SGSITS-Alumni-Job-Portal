@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { downloadResumeFile } from "@/lib/downloadResume";
 
 const normalizeSkill = (s) => {
   if (!s) return "";
@@ -102,26 +103,14 @@ export function ApplicantDetails() {
       return;
     }
 
-    // Try to force a download to PDF/attachment; fall back to opening in a new tab
-    try {
-      const response = await fetch(resumeUrl, { mode: "cors" });
-      if (!response.ok) throw new Error("Failed to fetch resume");
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      const filename =
-        applicant.name?.replace(/\s+/g, "_")?.toLowerCase() || "resume";
-      const ext = blob.type === "application/pdf" ? ".pdf" : "";
-      link.download = `${filename}${ext || ".pdf"}`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      // If fetch/download fails (e.g., due to CORS), open the URL in a new tab
-      window.open(resumeUrl, "_blank", "noopener,noreferrer");
-    }
+    downloadResumeFile({
+      url: resumeUrl,
+      applicantName: applicant.name,
+      fileLabel: `${applicant.name}-Resume`,
+      toast,
+    }).catch(() => {
+      // toast already handled in helper fallback
+    });
   };
 
   return (
