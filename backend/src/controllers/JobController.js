@@ -3,6 +3,17 @@ const db = require("../config/db");
 const cloudinary = require("../config/cloudinary");
 
 // ---------- Helpers ----------
+// Normalize branch strings for comparison (lowercase, trim, remove common suffixes)
+const normalizeBranchForMatch = (value) => {
+  if (!value) return "";
+  return String(value)
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/\b(engg|engineering|eng)\b/g, "") // drop engineering suffixes
+    .replace(/\s+/g, " ") // collapse whitespace
+    .trim();
+};
+
 const normalizeListText = (value) => {
   if (value == null) return null;
   if (Array.isArray(value)) return value.filter(Boolean).join(", ");
@@ -412,6 +423,7 @@ exports.viewJobApplicants = async (req, res) => {
         "sp.phone_number as student_phone",
         "sp.achievements as student_achievements",
         "sp.skills as student_skills",
+        "sp.address as student_location",
         "sp.resume_url as profile_resume_url",
         "j.skills_required as job_skills"
       )
@@ -608,14 +620,27 @@ exports.applyJob = async (req, res) => {
       return res.status(400).json({ error: "Student profile not found." });
     }
 
-    const studentBranch = studentProfile.branch;
+    // Normalize branch names for comparison (trim + lowercase + strip suffixes)
+    const studentBranch = normalizeBranchForMatch(studentProfile.branch);
 
     // Normalize allowed_branches (convert to an array of strings)
     const allowedBranches = job.allowed_branches
-      ? job.allowed_branches.split(",").map((branch) => branch.trim())
+      ? job.allowed_branches
+          .split(",")
+          .map((branch) => normalizeBranchForMatch(branch))
+          .filter(Boolean)
       : [];
 
-    if (!allowedBranches.includes(studentBranch)) {
+    const branchAllowed =
+      allowedBranches.length === 0 ||
+      allowedBranches.some(
+        (allowed) =>
+          allowed === studentBranch ||
+          studentBranch.includes(allowed) ||
+          allowed.includes(studentBranch)
+      );
+
+    if (!branchAllowed) {
       return res.status(400).json({
         error: "Your branch is not allowed to apply for this job.",
       });
