@@ -10,7 +10,7 @@ const SECRET_KEY = process.env.JWT_SECRET || "your_jwt_secret";
 // ==================== REGISTER STUDENT ====================
 const registerStudent = async (req, res) => {
   try {
-    const { name, role, email, password_hash, branch, gradYear, student_id } =
+    const { name, role, email, password_hash, branch, gradYear, student_id, otp } =
       req.body;
 
       console.log(req.body);
@@ -21,9 +21,10 @@ const registerStudent = async (req, res) => {
       !password_hash ||
       !branch ||
       !gradYear ||
-      !student_id
+      !student_id ||
+      !otp
     ) {
-      return res.status(400).json({ error: "All fields are required" });
+      return res.status(400).json({ error: "All fields (including OTP) are required" });
     }
     if (email.split("@")[1] !== "sgsits.ac.in") {
       return res.status(400).json({ error: "Email is not authorised" });
@@ -55,6 +56,16 @@ const registerStudent = async (req, res) => {
         .json({ error: "User with this email already exists" });
     }
 
+    // Validate OTP before creating the account
+    const otpEntry = await db("otp_verifications")
+      .where({ email, otp })
+      .andWhere("expires_at", ">", new Date())
+      .first();
+
+    if (!otpEntry) {
+      return res.status(400).json({ error: "Invalid or expired OTP" });
+    }
+
     const hashedPassword = await bcrypt.hash(password_hash, 10);
 
     // ✅ Use transaction to ensure atomicity
@@ -65,6 +76,7 @@ const registerStudent = async (req, res) => {
           email,
           password_hash: hashedPassword,
           role,
+          is_verified: true,
         },
         ["id"] // important: this returns the id (Postgres syntax)
       );
@@ -77,6 +89,9 @@ const registerStudent = async (req, res) => {
         branch,
         grad_year: gradYear,
       });
+
+      // consume OTP after successful creation
+      await trx("otp_verifications").where({ email, otp }).del();
     });
 
     res.status(201).json({ message: "User registered successfully" });
@@ -117,10 +132,10 @@ const login = async (req, res) => {
 
 // ==================== REGISTER ALUMNI ====================
 const registerAlumni = async (req, res) => {
-  const { name, grad_year, email, password_hash, current_title } = req.body;
+  const { name, grad_year, email, password_hash, current_title, otp } = req.body;
 
-  if (!name || !email || !password_hash || !current_title || !grad_year) {
-    return res.status(400).json({ error: "All fields are required" });
+  if (!name || !email || !password_hash || !current_title || !grad_year || !otp) {
+    return res.status(400).json({ error: "All fields (including OTP) are required" });
   }
   
 
@@ -159,6 +174,16 @@ const registerAlumni = async (req, res) => {
       });
     }
 
+    // Validate OTP before creating the account
+    const otpEntry = await db("otp_verifications")
+      .where({ email, otp })
+      .andWhere("expires_at", ">", new Date())
+      .first();
+
+    if (!otpEntry) {
+      return res.status(400).json({ error: "Invalid or expired OTP" });
+    }
+
     const role = "alumni";
   
   const hashedPassword = await bcrypt.hash(password_hash, 10);
@@ -169,7 +194,7 @@ const registerAlumni = async (req, res) => {
         password_hash: hashedPassword,
         role,
         status: "pending",
-        is_verified: false,
+        is_verified: true,
       },
       ["id"] // important: this returns the id (Postgres syntax)
     );
@@ -190,6 +215,9 @@ const registerAlumni = async (req, res) => {
         user_id: newUser.id,
         status: "pending",
       });
+
+      // consume OTP
+      await trx("otp_verifications").where({ email, otp }).del();
     });
 
     res.status(201).json({

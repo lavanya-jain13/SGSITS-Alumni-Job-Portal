@@ -107,6 +107,18 @@ export const apiClient = {
       body: JSON.stringify({ email }),
     }),
 
+  sendVerificationOtp: (email) =>
+    apiFetch("/auth/email/send-otp", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  verifyEmailOtp: (email, otp) =>
+    apiFetch("/auth/email/verify-otp", {
+      method: "POST",
+      body: JSON.stringify({ email, otp }),
+    }),
+
   resetPassword: (email, otp, newPassword) =>
     apiFetch("/auth/reset-password", {
       method: "POST",

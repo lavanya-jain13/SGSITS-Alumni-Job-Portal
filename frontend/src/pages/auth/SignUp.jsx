@@ -47,6 +47,7 @@ const SignUp = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    otp: "",
     password: "",
     confirmPassword: "",
     phone: "",
@@ -56,6 +57,9 @@ const SignUp = () => {
     currentTitle: "",
     acceptTerms: false,
   });
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
 
   // ✅ Auto-detect user type based on route and handle initial state setting
   useEffect(() => {
@@ -71,7 +75,11 @@ const SignUp = () => {
       gradYear: "",
       branch: "",
       currentTitle: "",
+      otp: "",
     }));
+    setOtpSent(false);
+    setOtpSending(false);
+    setOtpVerified(false);
   }, [location.pathname]);
 
   const handleSubmit = async (e) => {
@@ -103,6 +111,16 @@ const SignUp = () => {
       toast({
         title: "Terms not accepted",
         description: "Please accept the terms and conditions to continue.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (!otpSent || !formData.otp || !otpVerified) {
+      toast({
+        title: "Verify your email",
+        description: "Send the OTP to your email, enter it, and verify before continuing.",
         variant: "destructive",
       });
       setIsLoading(false);
@@ -144,6 +162,7 @@ const SignUp = () => {
           branch: formData.branch,
           gradYear: formData.gradYear,
           student_id: formData.studentId,
+          otp: formData.otp,
         });
       } else {
         await apiClient.registerAlumni({
@@ -152,6 +171,7 @@ const SignUp = () => {
           email: formData.email,
           password_hash: formData.password,
           current_title: formData.currentTitle,
+          otp: formData.otp,
         });
       }
 
@@ -175,7 +195,91 @@ const SignUp = () => {
   };
 
   const handleInputChange = (field, value) => {
+    if (field === "email") {
+      setOtpSent(false);
+      setOtpVerified(false);
+      setFormData((prev) => ({ ...prev, otp: "" }));
+    }
+    if (field === "otp") {
+      setOtpVerified(false);
+    }
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSendOtp = async () => {
+    if (!formData.email) {
+      toast({
+        title: "Enter email",
+        description: "Add your email to receive the OTP.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (userType === "student" && !formData.email.endsWith("@sgsits.ac.in")) {
+      toast({
+        title: "Enter institute email",
+        description: "Use your @sgsits.ac.in email to receive the OTP.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setOtpSending(true);
+    try {
+      await apiClient.sendVerificationOtp(formData.email);
+      setOtpSent(true);
+      toast({
+        title: "OTP sent",
+        description: "Check your email for the verification OTP.",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to send OTP",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const handleVerifyOtp = () => {
+    if (!formData.otp) {
+      toast({
+        title: "Enter OTP",
+        description: "Please enter the OTP you received to verify.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!otpSent) {
+      toast({
+        title: "Send OTP first",
+        description: "Send the OTP to your institute email before verifying.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setOtpVerified(true);
+    toast({
+      title: "OTP ready",
+      description: "We will validate this OTP when you create your account.",
+    });
+  };
+
+  const handleUserTypeChange = (type) => {
+    setUserType(type);
+    setFormData((prev) => ({
+      ...prev,
+      studentId: "",
+      gradYear: "",
+      branch: "",
+      currentTitle: "",
+      otp: "",
+    }));
+    setOtpSent(false);
+    setOtpSending(false);
+    setOtpVerified(false);
   };
 
   // Generate Year options
@@ -224,7 +328,7 @@ const SignUp = () => {
                   className={`flex items-center gap-2 h-12 text-base font-semibold transition-all duration-300 ${
                     userType === "student" ? selectedButtonClasses : unselectedButtonClasses
                   }`}
-                  onClick={() => setUserType("student")}
+                  onClick={() => handleUserTypeChange("student")}
                 >
                   <GraduationCap className="w-5 h-5" />
                   Student Registration
@@ -235,7 +339,7 @@ const SignUp = () => {
                   className={`flex items-center gap-2 h-12 text-base font-semibold transition-all duration-300 ${
                     userType === "alumni" ? selectedButtonClasses : unselectedButtonClasses
                   }`}
-                  onClick={() => setUserType("alumni")}
+                  onClick={() => handleUserTypeChange("alumni")}
                 >
                   <Building className="w-5 h-5" />
                   Alumni Registration
@@ -245,7 +349,7 @@ const SignUp = () => {
               <form onSubmit={handleSubmit} className="space-y-6">
                 
                 {/* Name & Email (Always required) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name" className="text-sm font-medium dark:text-gray-300">Full Name</Label>
                     <Input
@@ -258,30 +362,100 @@ const SignUp = () => {
                       required
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-medium dark:text-gray-300">
-                      Email {userType === "student" && "(Institute Email)"}
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder={
-                        userType === "student"
-                          ? "yourname@sgsits.ac.in"
-                          : "your.email@example.com"
-                      }
-                      className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                      value={formData.email}
-                      onChange={(e) => handleInputChange("email", e.target.value)}
-                      required
-                    />
-                    {userType === "student" && (
+
+                  {userType === "student" ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-sm font-medium dark:text-gray-300">
+                        Email (Institute Email)
+                      </Label>
+                      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="yourname@sgsits.ac.in"
+                          className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white flex-1"
+                          value={formData.email}
+                          onChange={(e) => handleInputChange("email", e.target.value)}
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={`w-full sm:w-40 h-11 font-semibold rounded-lg shadow-sm border-transparent text-white ${selectedButtonClasses}`}
+                          onClick={handleSendOtp}
+                          disabled={otpSending}
+                        >
+                          {otpSending ? "Sending..." : otpSent ? "Resend OTP" : "Send OTP"}
+                        </Button>
+                      </div>
                       <p className="text-xs text-red-500 dark:text-red-400 font-medium">
                         *Required: Must be your official SGSITS email address
                       </p>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-sm font-medium dark:text-gray-300">
+                        Email
+                      </Label>
+                      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="your.email@example.com"
+                          className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white flex-1"
+                          value={formData.email}
+                          onChange={(e) => handleInputChange("email", e.target.value)}
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={`w-full sm:w-40 h-11 font-semibold rounded-lg shadow-sm border-transparent text-white ${selectedButtonClasses}`}
+                          onClick={handleSendOtp}
+                          disabled={otpSending}
+                        >
+                          {otpSending ? "Sending..." : otpSent ? "Resend OTP" : "Send OTP"}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                        We will verify this email with an OTP.
+                      </p>
+                    </div>
+                  )}
                 </div>
+
+                {/* Email OTP verification */}
+                {true && (
+                  <div className="space-y-2">
+                    <Label htmlFor="otp" className="text-sm font-medium dark:text-gray-300">
+                      Email OTP Verification
+                    </Label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Input
+                        id="otp"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="Enter the OTP sent to your institute email"
+                        className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white flex-1"
+                        value={formData.otp}
+                        onChange={(e) => handleInputChange("otp", e.target.value)}
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="sm:w-32 h-11"
+                        onClick={handleVerifyOtp}
+                        disabled={!formData.otp}
+                      >
+                        Verify OTP
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      After sending the OTP, enter it here and verify. We will validate it when you create your account.
+                    </p>
+                  </div>
+                )}
 
                 {/* Role-Specific Fields */}
                 <h3 className="text-lg font-semibold border-b pb-1 dark:text-white">
