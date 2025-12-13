@@ -3,15 +3,58 @@ const db = require("../config/db");
 const cloudinary = require("../config/cloudinary");
 
 // ---------- Helpers ----------
-// Normalize branch strings for comparison (lowercase, trim, remove common suffixes)
+// Normalize branch strings for comparison (lowercase, trim, map common variants/abbreviations)
 const normalizeBranchForMatch = (value) => {
   if (!value) return "";
-  return String(value)
+  const base = String(value)
     .toLowerCase()
     .replace(/&/g, "and")
+    .replace(/[\.\-]/g, " ")
+    .replace(/[\[\]\(\)'"]/g, " ") // strip brackets/quotes from serialized arrays
+    .replace(/[^a-z0-9\s]/g, " ") // drop other punctuation
     .replace(/\b(engg|engineering|eng)\b/g, "") // drop engineering suffixes
-    .replace(/\s+/g, " ") // collapse whitespace
+    .replace(/\s+/g, " ")
     .trim();
+
+  const branchMap = [
+    { regex: /(computer\s*science|cse|cs)/, normalized: "computer science" },
+    { regex: /(information\s*technology|it)/, normalized: "information technology" },
+    {
+      regex: /(electronics\s*(and)?\s*(telecommunication|communication)|entc|etc|ece)/,
+      normalized: "electronics and telecommunication",
+    },
+    {
+      regex: /(electronics\s*(and)?\s*instrumentation|ei|eie)/,
+      normalized: "electronics and instrumentation",
+    },
+    { regex: /(electrical|ee)/, normalized: "electrical" },
+    { regex: /(mechanical|me)/, normalized: "mechanical" },
+    { regex: /(civil|ce)/, normalized: "civil" },
+    {
+      regex: /(industrial\s*(and)?\s*(production|engg)|ip)/,
+      normalized: "industrial production",
+    },
+    { regex: /(biomedical)/, normalized: "biomedical engineering" },
+  ];
+
+  const match = branchMap.find((entry) => entry.regex.test(base));
+  return match ? match.normalized : base;
+};
+
+const toBranchList = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") {
+    // Accept JSON stringified arrays
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (err) {
+      /* fall through */
+    }
+    return value.split(/[,\\n;]+/); // fallback: split common separators
+  }
+  return [];
 };
 
 const normalizeListText = (value) => {
@@ -624,12 +667,10 @@ exports.applyJob = async (req, res) => {
     const studentBranch = normalizeBranchForMatch(studentProfile.branch);
 
     // Normalize allowed_branches (convert to an array of strings)
-    const allowedBranches = job.allowed_branches
-      ? job.allowed_branches
-          .split(",")
-          .map((branch) => normalizeBranchForMatch(branch))
-          .filter(Boolean)
-      : [];
+    const allowedBranchesRaw = toBranchList(job.allowed_branches);
+    const allowedBranches = allowedBranchesRaw
+      .map((branch) => normalizeBranchForMatch(branch))
+      .filter(Boolean);
 
     const branchAllowed =
       allowedBranches.length === 0 ||
@@ -641,8 +682,18 @@ exports.applyJob = async (req, res) => {
       );
 
     if (!branchAllowed) {
+      console.warn("Branch check failed", {
+        studentBranchOriginal: studentProfile.branch,
+        studentBranchNormalized: studentBranch,
+        allowedBranchesRaw,
+        allowedBranchesNormalized: allowedBranches,
+      });
       return res.status(400).json({
         error: "Your branch is not allowed to apply for this job.",
+        details: {
+          student_branch: studentBranch,
+          allowed_branches: allowedBranches,
+        },
       });
     }
 

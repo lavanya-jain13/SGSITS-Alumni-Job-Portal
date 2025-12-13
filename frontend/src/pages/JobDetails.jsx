@@ -450,7 +450,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ApplicationModal from "@/components/ApplicationModals";
 import { useToast } from "@/hooks/use-toast";
@@ -719,23 +718,6 @@ export default function JobDetails() {
                         {jobDetails?.job_description ||
                           "No description provided."}
                       </p>
-                    </div>
-
-                    <Separator className="my-6" />
-
-                    <div>
-                      <h3 className="font-semibold mb-3">Benefits</h3>
-                      <ul className="space-y-2">
-                        {toArray(jobDetails?.benefits).map((benefit, index) => (
-                          <li
-                            key={index}
-                            className="flex items-center space-x-2"
-                          >
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="text-sm">{benefit}</span>
-                          </li>
-                        ))}
-                      </ul>
                     </div>
                   </CardContent>
                 </Card>
