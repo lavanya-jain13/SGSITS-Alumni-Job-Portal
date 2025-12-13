@@ -5,7 +5,7 @@
 // ----------------------------
 
 // Local backend URL (your laptop)
-export const LOCAL_API_BASE_URL = "http://localhost:5004/api";
+export const LOCAL_API_BASE_URL = "http://18.217.68.204/api";
 
 // Production backend URL (AWS EC2) - keep existing public IP as default
 export const PROD_API_BASE_URL = "http://18.217.68.204/api";
@@ -13,12 +13,8 @@ export const PROD_API_BASE_URL = "http://18.217.68.204/api";
 // ----------------------------
 // Auto switch (Env override > Prod in production > Local otherwise)
 // ----------------------------
-const ENV_API = import.meta.env?.VITE_API_URL;
-export const API_BASE_URL =
-  ENV_API ||
-  (import.meta.env?.MODE === "production"
-    ? PROD_API_BASE_URL
-    : LOCAL_API_BASE_URL);
+
+export const API_BASE_URL = PROD_API_BASE_URL;
 
 // ----------------------------
 // Common endpoint groups

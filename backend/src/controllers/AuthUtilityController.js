@@ -44,7 +44,7 @@ const forgotPassword = async (req, res) => {
       created_at: new Date(),
     });
 
-    const base = process.env.FRONTEND_URL || "http://localhost:3000";
+    const base = process.env.FRONTEND_URL ;
     const resetLink = `${base}/reset-password?token=${encodeURIComponent(
       plainToken
     )}&uid=${encodeURIComponent(user.id)}`;

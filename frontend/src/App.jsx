@@ -7,6 +7,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Provider } from "react-redux";
 import { store } from "@/store";
 import RequireAuth from "@/components/RequireAuth";
+import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 
 /* ------------------ Lazy-loaded Admin pages ------------------ */
 const AdminLayout = lazy(() => import("@/components/admin/AdminLayout").then(m => ({ default: m.AdminLayout })));
@@ -62,6 +63,7 @@ export default function App() {
           <AppToaster />
           <Sonner />
           <BrowserRouter>
+          <ChunkErrorBoundary>
           <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* ---------- Student / Public routes ---------- */}
@@ -127,6 +129,7 @@ export default function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
+          </ChunkErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>
       </Provider>
