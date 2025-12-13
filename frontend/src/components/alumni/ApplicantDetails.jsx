@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { downloadResumeFile } from "@/lib/downloadResume";
 
 const normalizeSkill = (s) => {
   if (!s) return "";
@@ -108,7 +109,15 @@ export function ApplicantDetails() {
       });
       return;
     }
-    window.open(resumeUrl, "_blank", "noopener,noreferrer");
+
+    downloadResumeFile({
+      url: resumeUrl,
+      applicantName: applicant.name,
+      fileLabel: `${applicant.name}-Resume`,
+      toast,
+    }).catch(() => {
+      // toast already handled in helper fallback
+    });
   };
 
   return (
