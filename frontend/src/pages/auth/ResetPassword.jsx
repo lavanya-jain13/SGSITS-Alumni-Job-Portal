@@ -8,6 +8,16 @@ import { GraduationCap, ArrowLeft, Mail, Eye, EyeOff, CheckCircle, Send } from "
 import { Link, useNavigate } from "react-router-dom";
 import { apiClient } from "@/lib/api";
 
+const isStrongPassword = (pwd) => {
+  if (typeof pwd !== "string") return false;
+  const hasMinLength = pwd.length >= 8;
+  const hasUpper = /[A-Z]/.test(pwd);
+  const hasLower = /[a-z]/.test(pwd);
+  const hasNumber = /\d/.test(pwd);
+  const hasSpecial = /[^A-Za-z0-9]/.test(pwd);
+  return hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial;
+};
+
 const ResetPassword = () => {
   const [step, setStep] = useState(1); // 1: email, 2: OTP & new password, 3: success
   const [isLoading, setIsLoading] = useState(false);
@@ -61,10 +71,11 @@ const ResetPassword = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
+    if (!isStrongPassword(newPassword)) {
       toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters long.",
+        title: "Weak password",
+        description:
+          "Use at least 8 characters with uppercase, lowercase, number, and special symbol.",
         variant: "destructive",
       });
       return;
@@ -196,7 +207,7 @@ const ResetPassword = () => {
                     <Input
                       id="newPassword"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Enter new password (min 6 characters)"
+                      placeholder="Enter new password (8+ chars with upper/lower/number/symbol)"
                       className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
@@ -212,6 +223,9 @@ const ResetPassword = () => {
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </Button>
                   </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Must be 8+ chars with uppercase, lowercase, number, and special symbol.
+                  </p>
                 </div>
 
                 {/* Confirm Password */}

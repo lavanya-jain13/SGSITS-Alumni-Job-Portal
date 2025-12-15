@@ -1,6 +1,7 @@
 // src/controllers/jobController.js
 const db = require("../config/db");
 const cloudinary = require("../config/cloudinary");
+const { sendEmail } = require("../services/emailService");
 
 // ---------- Helpers ----------
 // Normalize branch strings for comparison (lowercase, trim, map common variants/abbreviations)
@@ -547,6 +548,40 @@ const updateJobApplicationStatus = async (req, res, newStatus) => {
     await db("job_applications")
       .where({ id: applicationId })
       .update({ status: newStatus, is_read: true });
+
+    // Send status-change email to the student (best-effort)
+    try {
+      const studentUser = await db("users")
+        .where({ id: application.user_id })
+        .first();
+      const studentProfile = await db("student_profiles")
+        .where({ user_id: application.user_id })
+        .first();
+
+      if (studentUser?.email) {
+        const studentName =
+          studentProfile?.name || studentUser.name || "there";
+        const jobTitle = job.job_title || "the job";
+        const friendlyStatus = newStatus.replace("_", " ");
+
+        await sendEmail({
+          to: studentUser.email,
+          subject: `Your application for ${jobTitle} was ${friendlyStatus}`,
+          text: `Hi ${studentName},
+
+Your application for "${jobTitle}" has been ${friendlyStatus} by the alumni reviewer.
+
+Status: ${friendlyStatus}
+
+If you have questions, you can reply to this email.
+
+Thanks,
+SGSITS Alumni Portal`,
+        });
+      }
+    } catch (emailErr) {
+      console.warn("Email notification failed:", emailErr && emailErr.message);
+    }
 
     return res.json({
       message: `Application marked as ${newStatus}.`,

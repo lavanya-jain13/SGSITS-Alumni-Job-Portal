@@ -1,8 +1,18 @@
 const db = require("../config/db.js");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer");
 const crypto = require("crypto");
+const { sendEmail } = require("../services/emailService");
+
+const isStrongPassword = (pwd) => {
+  if (typeof pwd !== "string") return false;
+  const hasMinLength = pwd.length >= 8;
+  const hasUpper = /[A-Z]/.test(pwd);
+  const hasLower = /[a-z]/.test(pwd);
+  const hasNumber = /\d/.test(pwd);
+  const hasSpecial = /[^A-Za-z0-9]/.test(pwd);
+  return hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial;
+};
 
 // Use the same JWT secret as authMiddleware
 const SECRET_KEY = process.env.JWT_SECRET || "your_jwt_secret";
@@ -64,6 +74,13 @@ const registerStudent = async (req, res) => {
 
     if (!otpEntry) {
       return res.status(400).json({ error: "Invalid or expired OTP" });
+    }
+
+    if (!isStrongPassword(password_hash)) {
+      return res.status(400).json({
+        error:
+          "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.",
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password_hash, 10);
@@ -184,6 +201,13 @@ const registerAlumni = async (req, res) => {
       return res.status(400).json({ error: "Invalid or expired OTP" });
     }
 
+    if (!isStrongPassword(password_hash)) {
+      return res.status(400).json({
+        error:
+          "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.",
+      });
+    }
+
     const role = "alumni";
   
   const hashedPassword = await bcrypt.hash(password_hash, 10);
@@ -237,24 +261,6 @@ const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString(); // always 6 digits
 };
 
-// ==================== EMAIL SENDER ====================
-const sendEmail = async (to, subject, text) => {
-  const transporter = nodemailer.createTransport({
-    service: "Gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to,
-    subject,
-    text,
-  });
-};
-
 // ==================== FORGOT PASSWORD: GENERATE OTP ====================
 const forgotPasswordGenerateOtp = async (req, res) => {
   try {
@@ -271,7 +277,7 @@ const forgotPasswordGenerateOtp = async (req, res) => {
     const otp = generateOTP(); // a 6-digit string
     const expiryTime = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    console.log(otp + "????????LLLLL");
+    console.log(`[OTP] Password reset for ${email}: ${otp}`);
 
     await db("otp_verifications").where({ email: user.email }).del();
 
@@ -348,7 +354,7 @@ const generateEmailVerificationOTP = async (req, res) => {
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    console.log(otp + "????????LLLLL");
+    console.log(`[OTP] Email verification for ${email}: ${otp}`);
 
     await db("otp_verifications").insert({
       email,
@@ -356,11 +362,12 @@ const generateEmailVerificationOTP = async (req, res) => {
       expires_at: expiresAt,
     });
 
-    await sendEmail(
-      email,
-      "<h1>Email Verification OTP,</h1>",
-      `<h2>Your verification OTP is: ${otp}</h2>`
-    );
+    await sendEmail({
+      to: email,
+      subject: "Email Verification OTP",
+      text: `Your verification OTP is: ${otp}`,
+      html: `<h1>Email Verification OTP</h1><p>Your verification OTP is: <strong>${otp}</strong></p>`,
+    });
 
     return res.json({ message: "Verification OTP sent to email." });
   } catch (error) {
@@ -385,10 +392,16 @@ const verifyEmailWithOTP = async (req, res) => {
     if (!otpEntry)
       return res.status(400).json({ error: "Invalid or expired OTP" });
 
-    await db("users").where({ email }).update({ is_verified: true });
-    await db("otp_verifications").where({ email, otp }).del();
+    const user = await db("users").where({ email }).first();
 
-    return res.json({ message: "Email verified successfully" });
+    if (user) {
+      await db("users").where({ email }).update({ is_verified: true });
+      await db("otp_verifications").where({ email, otp }).del();
+      return res.json({ message: "Email verified successfully" });
+    }
+
+    // For pre-registration verification: just confirm OTP validity
+    return res.json({ message: "OTP verified. Complete your registration." });
   } catch (error) {
     console.error("Email Verification Error:", error);
     return res.status(500).json({ error: "Internal server error" });

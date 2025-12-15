@@ -35,6 +35,16 @@ const BRANCHES = [
   "Industrial Production",
 ];
 
+const isStrongPassword = (pwd) => {
+  if (typeof pwd !== "string") return false;
+  const hasMinLength = pwd.length >= 8;
+  const hasUpper = /[A-Z]/.test(pwd);
+  const hasLower = /[a-z]/.test(pwd);
+  const hasNumber = /\d/.test(pwd);
+  const hasSpecial = /[^A-Za-z0-9]/.test(pwd);
+  return hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial;
+};
+
 const SignUp = () => {
   const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
@@ -60,6 +70,7 @@ const SignUp = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
 
   // ✅ Auto-detect user type based on route and handle initial state setting
   useEffect(() => {
@@ -91,6 +102,17 @@ const SignUp = () => {
       toast({
         title: "Password mismatch",
         description: "Passwords do not match. Please try again.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (!isStrongPassword(formData.password)) {
+      toast({
+        title: "Weak password",
+        description:
+          "Use at least 8 characters with uppercase, lowercase, number, and special symbol.",
         variant: "destructive",
       });
       setIsLoading(false);
@@ -243,7 +265,7 @@ const SignUp = () => {
     }
   };
 
-  const handleVerifyOtp = () => {
+  const handleVerifyOtp = async () => {
     if (!formData.otp) {
       toast({
         title: "Enter OTP",
@@ -260,11 +282,24 @@ const SignUp = () => {
       });
       return;
     }
-    setOtpVerified(true);
-    toast({
-      title: "OTP ready",
-      description: "We will validate this OTP when you create your account.",
-    });
+    setOtpVerifying(true);
+    try {
+      await apiClient.verifyEmailOtp(formData.email, formData.otp);
+      setOtpVerified(true);
+      toast({
+        title: "OTP verified",
+        description: "Email verification successful.",
+      });
+    } catch (error) {
+      setOtpVerified(false);
+      toast({
+        title: "Invalid OTP",
+        description: error?.message || "The OTP is incorrect or expired. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setOtpVerifying(false);
+    }
   };
 
   const handleUserTypeChange = (type) => {
@@ -446,13 +481,13 @@ const SignUp = () => {
                         variant="secondary"
                         className="sm:w-32 h-11"
                         onClick={handleVerifyOtp}
-                        disabled={!formData.otp}
+                        disabled={!formData.otp || !otpSent || otpVerifying}
                       >
-                        Verify OTP
+                        {otpVerifying ? "Verifying..." : "Verify OTP"}
                       </Button>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      After sending the OTP, enter it here and verify. We will validate it when you create your account.
+                      After sending the OTP, enter it here and verify. We validate it immediately on this step.
                     </p>
                   </div>
                 )}
@@ -586,6 +621,9 @@ const SignUp = () => {
                         )}
                       </Button>
                     </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Must be 8+ chars with uppercase, lowercase, number, and special symbol.
+                    </p>
                   </div>
 
                   {/* Confirm Password */}
