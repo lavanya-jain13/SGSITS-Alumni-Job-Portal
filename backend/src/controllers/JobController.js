@@ -604,19 +604,43 @@ exports.holdJobApplication = (req, res) =>
 // 14. getAllJobsStudent
 exports.getAllJobsStudent = async (req, res) => {
   try {
-    const jobs = await db("jobs as j")
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+    const offset = (page - 1) * limit;
+
+    const baseQuery = db("jobs as j")
       .leftJoin("companies as c", "j.company_id", "c.id")
       .where("j.status", "active")
-      .orderBy("j.created_at", "desc")
       .select(
-        "j.*",
+        "j.id",
+        "j.job_title",
+        "j.job_description",
+        "j.location",
+        "j.job_type",
+        "j.experience_required",
+        "j.application_deadline",
+        "j.created_at",
+        "j.updated_at",
+        "j.allowed_branches",
+        "j.max_applicants_allowed",
+        "j.status",
         "c.name as company_name",
         "c.industry as company_industry",
         "c.company_size",
         "c.website as company_website"
       );
 
-    return res.json({ jobs });
+    const [jobs, [{ total }]] = await Promise.all([
+      baseQuery.clone().orderBy("j.created_at", "desc").limit(limit).offset(offset),
+      baseQuery.clone().clearSelect().count({ total: "*" }),
+    ]);
+
+    return res.json({
+      jobs,
+      page,
+      limit,
+      total: Number(total),
+    });
   } catch (err) {
     console.error("getAllJobsStudent error:", err);
     return res.status(500).json({ error: "Server error" });

@@ -445,11 +445,36 @@ const updateProjectApplicationStatus = async (req, res, newStatus) => {
 // 14. getAllProjectsStudent
 exports.getAllProjectsStudent = async (req, res) => {
   try {
-    const projects = await db("project_posts")
-      .where("status", "active")
-      .orderBy("created_at", "desc");
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+    const offset = (page - 1) * limit;
 
-    return res.json({ projects });
+    const baseQuery = db("project_posts")
+      .where("status", "active")
+      .select(
+        "id",
+        "title",
+        "description",
+        "location",
+        "project_type",
+        "created_at",
+        "updated_at",
+        "application_deadline",
+        "max_applicants_allowed",
+        "status"
+      );
+
+    const [projects, [{ total }]] = await Promise.all([
+      baseQuery.clone().orderBy("created_at", "desc").limit(limit).offset(offset),
+      baseQuery.clone().clearSelect().count({ total: "*" }),
+    ]);
+
+    return res.json({
+      projects,
+      page,
+      limit,
+      total: Number(total),
+    });
   } catch (err) {
     console.error("getAllProjectsStudent error:", err);
     return res.status(500).json({ error: "Server error" });

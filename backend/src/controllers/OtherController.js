@@ -469,11 +469,36 @@ exports.holdOtherPostApplication = (req, res) =>
 // 14. getAllOtherPostsStudent
 exports.getAllOtherPostsStudent = async (req, res) => {
   try {
-    const posts = await db("other_posts")
-      .where("status", "active")
-      .orderBy("created_at", "desc");
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+    const offset = (page - 1) * limit;
 
-    return res.json({ posts });
+    const baseQuery = db("other_posts")
+      .where("status", "active")
+      .select(
+        "id",
+        "title",
+        "description",
+        "location",
+        "post_type",
+        "created_at",
+        "updated_at",
+        "application_deadline",
+        "max_applicants_allowed",
+        "status"
+      );
+
+    const [posts, [{ total }]] = await Promise.all([
+      baseQuery.clone().orderBy("created_at", "desc").limit(limit).offset(offset),
+      baseQuery.clone().clearSelect().count({ total: "*" }),
+    ]);
+
+    return res.json({
+      posts,
+      page,
+      limit,
+      total: Number(total),
+    });
   } catch (err) {
     console.error("getAllOtherPostsStudent error:", err);
     return res.status(500).json({ error: "Server error" });
