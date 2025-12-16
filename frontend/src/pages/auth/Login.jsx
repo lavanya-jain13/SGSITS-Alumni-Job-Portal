@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, GraduationCap, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { apiClient, setToken } from "@/lib/api";
+import { apiClient } from "@/lib/api";
 import { useDispatch } from "react-redux";
 import { loginSuccess } from "@/store/authSlice";
 import PublicHeader from "@/components/PublicHeader";
@@ -36,11 +36,7 @@ const Login = () => {
         password: formData.password,
       });
 
-      // Store token and user data
-      setToken(response.token);
-      localStorage.setItem("user", JSON.stringify(response.user));
-      
-      dispatch(loginSuccess({ user: response.user, token: response.token }));
+      dispatch(loginSuccess({ user: response.user }));
 
       // Redirect based on user role
       if (response.user.role === 'admin') {

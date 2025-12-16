@@ -17,13 +17,32 @@ const isStrongPassword = (pwd) => {
 // Use the same JWT secret as authMiddleware
 const SECRET_KEY = process.env.JWT_SECRET || "your_jwt_secret";
 
+const buildCookieOptions = () => {
+  const frontendUrl = process.env.FRONTEND_URL || "";
+  const isLocalhost =
+    frontendUrl.includes("localhost") || frontendUrl.includes("127.0.0.1");
+  const isHttps = frontendUrl.startsWith("https://");
+  const sameSite =
+    process.env.COOKIE_SAMESITE || (isHttps ? "none" : "lax");
+  const secure =
+    process.env.COOKIE_SECURE === "true" || (isHttps && sameSite === "none");
+
+  return {
+    httpOnly: true,
+    secure,
+    sameSite,
+    path: "/",
+    maxAge: 60 * 60 * 1000, // 1 hour
+  };
+};
+
 // ==================== REGISTER STUDENT ====================
 const registerStudent = async (req, res) => {
   try {
     const { name, role, email, password_hash, branch, gradYear, student_id, otp } =
       req.body;
 
-      console.log(req.body);
+    const normalizedRole = (role || "student").toLowerCase();
 
     if (
       !name ||
@@ -84,6 +103,7 @@ const registerStudent = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password_hash, 10);
+    let createdUser = null;
 
     // ✅ Use transaction to ensure atomicity
     await db.transaction(async (trx) => {
@@ -92,11 +112,17 @@ const registerStudent = async (req, res) => {
         {
           email,
           password_hash: hashedPassword,
-          role,
+          role: normalizedRole,
           is_verified: true,
         },
-        ["id"] // important: this returns the id (Postgres syntax)
+        ["id", "role"] // important: this returns the id (Postgres syntax)
       );
+
+      createdUser = {
+        id: newUser.id,
+        email,
+        role: (newUser.role || normalizedRole).toLowerCase(),
+      };
 
       // Insert into student_profiles with the fetched user_id
       await trx("student_profiles").insert({
@@ -111,7 +137,18 @@ const registerStudent = async (req, res) => {
       await trx("otp_verifications").where({ email, otp }).del();
     });
 
-    res.status(201).json({ message: "User registered successfully" });
+    const token = jwt.sign(
+      { id: createdUser.id, email, role: createdUser.role },
+      SECRET_KEY,
+      { expiresIn: "1h" }
+    );
+
+    res.cookie("access_token", token, buildCookieOptions());
+
+    res.status(201).json({
+      message: "User registered successfully",
+      user: createdUser,
+    });
   } catch (error) {
     console.error("Student Registration Error:", error);
     res.status(500).json({ error: "An error occurred during registration." });
@@ -137,13 +174,15 @@ const login = async (req, res) => {
     }
   );
 
+  res.cookie("access_token", token, buildCookieOptions());
+
   res.json({
-    token,
     user: {
       id: user.id,
       email: user.email,
-      role: roleToAssign
-    }
+      role: roleToAssign,
+    },
+    message: "Login successful",
   });
 };
 
@@ -174,12 +213,10 @@ const registerAlumni = async (req, res) => {
   }
   
   if (!isBusinessEmail(email)) {
-    console.log("Corporate email detected:", email);
     return res
       .status(400)
       .json({ error: "Please use a valid business/company email ID" });
   }else{
-    console.log("Business email verified");
   }
 
   try {
@@ -211,6 +248,7 @@ const registerAlumni = async (req, res) => {
     const role = "alumni";
   
   const hashedPassword = await bcrypt.hash(password_hash, 10);
+  let createdUser = null;
   await db.transaction(async (trx) => {
     const [newUser] = await trx("users").insert(
       {
@@ -222,6 +260,13 @@ const registerAlumni = async (req, res) => {
       },
       ["id"] // important: this returns the id (Postgres syntax)
     );
+
+    createdUser = {
+      id: newUser.id,
+      email,
+      role,
+      status: "pending",
+    };
 
       const [newAlumni] = await trx("alumni_profiles").insert(
         {
@@ -244,9 +289,18 @@ const registerAlumni = async (req, res) => {
       await trx("otp_verifications").where({ email, otp }).del();
     });
 
+    const token = jwt.sign(
+      { id: createdUser.id, email, role, status: createdUser.status },
+      SECRET_KEY,
+      { expiresIn: "1h" }
+    );
+
+    res.cookie("access_token", token, buildCookieOptions());
+
     res.status(201).json({
       message:
         "Registration submitted successfully. You will receive an email once your account has been verified by an administrator.",
+      user: createdUser,
     });
   } catch (error) {
     console.error("Alumni Registration Error:", error);
@@ -277,8 +331,6 @@ const forgotPasswordGenerateOtp = async (req, res) => {
     const otp = generateOTP(); // a 6-digit string
     const expiryTime = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    console.log(`[OTP] Password reset for ${email}: ${otp}`);
-
     await db("otp_verifications").where({ email: user.email }).del();
 
     //Insert OTP record
@@ -287,8 +339,6 @@ const forgotPasswordGenerateOtp = async (req, res) => {
       otp,
       expires_at: expiryTime,
     });
-    console.log(user.email + "????????LLLLL");
-
     try {
       await sendEmail(email, "Password Reset OTP", `Your OTP is: ${otp}`);
     } catch (err) {
@@ -354,8 +404,6 @@ const generateEmailVerificationOTP = async (req, res) => {
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    console.log(`[OTP] Email verification for ${email}: ${otp}`);
-
     await db("otp_verifications").insert({
       email,
       otp,
@@ -412,10 +460,13 @@ const verifyEmailWithOTP = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
-    // In stateless JWT auth, logout is handled on frontend side
+    res.clearCookie("access_token", {
+      ...buildCookieOptions(),
+      maxAge: undefined,
+    });
     res.status(200).json({
       success: true,
-      message: "Logout successful. Please delete the token on client-side.",
+      message: "Logout successful.",
     });
   } catch (error) {
     console.error("Logout error:", error);

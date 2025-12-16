@@ -132,8 +132,6 @@ const upsertProfile = async (req, res) => {
     let finalResumeUrl = resumeUrl || null;
 
     if (req.file) {
-      console.log("Uploading resume to Cloudinary...");
-
       const uploadPromise = new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {

@@ -1,39 +1,34 @@
 // frontend/src/lib/api.js
-
-// 🔗 Take base URL from central constants file
 import { API_BASE_URL } from "../constants";
 
-// Use the shared base URL (auto-switches between localhost & AWS)
 const API_BASE = API_BASE_URL;
 
-// ---------------------------
-// Token Helpers
-// ---------------------------
 export function setToken(token) {
-  if (token) localStorage.setItem("api_token", token);
-  else localStorage.removeItem("api_token");
+  localStorage.removeItem("api_token");
+  localStorage.removeItem("token");
 }
 
 export function getToken() {
-  // fallback for older sessions that stored "token"
-  return localStorage.getItem("api_token") || localStorage.getItem("token");
+  const legacy =
+    localStorage.getItem("api_token") || localStorage.getItem("token");
+  if (legacy) {
+    localStorage.removeItem("api_token");
+    localStorage.removeItem("token");
+  }
+  return null;
 }
 
-// ---------------------------
-// Generic API Fetch Wrapper
-// ---------------------------
 export async function apiFetch(path, options = {}) {
   const url = `${API_BASE}${path}`;
-  const headers = options.headers || {};
-  const token = getToken();
+  const headers = options.headers ? { ...options.headers } : {};
+  const isFormData = options.body instanceof FormData;
 
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  if (!isFormData) {
+    headers["Content-Type"] = headers["Content-Type"] || "application/json";
   }
 
-  headers["Content-Type"] = headers["Content-Type"] || "application/json";
-
   const res = await fetch(url, {
+    credentials: "include",
     ...options,
     headers,
   });
@@ -63,9 +58,6 @@ function safeParseJson(text) {
   }
 }
 
-// ---------------------------
-// Parse JWT Token
-// ---------------------------
 export function parseJwt(token) {
   if (!token) return null;
   try {
@@ -77,119 +69,91 @@ export function parseJwt(token) {
   }
 }
 
-// ---------------------------
-// API Client (USED IN Login.jsx)
-// ---------------------------
 export const apiClient = {
-  // LOGIN API
   login: (body) =>
     apiFetch("/auth/login", {
       method: "POST",
       body: JSON.stringify(body),
     }),
-
   registerStudent: (body) =>
     apiFetch("/auth/register/student", {
       method: "POST",
       body: JSON.stringify(body),
     }),
-
   registerAlumni: (body) =>
     apiFetch("/auth/register/alumni", {
       method: "POST",
       body: JSON.stringify(body),
     }),
-
-  // Forgot/Reset Password
   forgotPassword: (email) =>
     apiFetch("/auth/forgot-password", {
       method: "POST",
       body: JSON.stringify({ email }),
     }),
-
   sendVerificationOtp: (email) =>
     apiFetch("/auth/email/send-otp", {
       method: "POST",
       body: JSON.stringify({ email }),
     }),
-
   verifyEmailOtp: (email, otp) =>
     apiFetch("/auth/email/verify-otp", {
       method: "POST",
       body: JSON.stringify({ email, otp }),
     }),
-
   resetPassword: (email, otp, newPassword) =>
     apiFetch("/auth/reset-password", {
       method: "POST",
       body: JSON.stringify({ email, otp, newPassword }),
     }),
-
-  // Alumni profile/company
   getAlumniProfile: () => apiFetch("/alumni/me"),
-
   completeAlumniProfile: (body) =>
     apiFetch("/alumni/profile", {
       method: "POST",
       body: JSON.stringify(body),
     }),
-
   updateAlumniProfile: (body) =>
     apiFetch("/alumni/update-profile", {
       method: "POST",
       body: JSON.stringify(body),
     }),
-
   addCompany: (body) =>
     apiFetch("/alumni/add-company", {
       method: "POST",
       body: JSON.stringify(body),
     }),
-
   getMyCompanies: () => apiFetch("/alumni/companies"),
-
   getCompanyById: (id) => apiFetch(`/alumni/companies/${id}`),
-
   updateCompany: (id, body) =>
     apiFetch(`/alumni/companies/${id}`, {
       method: "PUT",
       body: JSON.stringify(body),
     }),
-
-  // Alumni jobs
   postJob: (body) =>
     apiFetch("/job/post-job", {
       method: "POST",
       body: JSON.stringify(body),
     }),
-
   getMyJobs: () => apiFetch("/job/my-jobs"),
-
   getJobApplicants: (jobId) => apiFetch(`/job/job/${jobId}/applicants`),
-
   updateJob: (id, body) =>
     apiFetch(`/job/job/${id}`, {
       method: "PUT",
       body: JSON.stringify(body),
     }),
-
   deleteJob: (id) =>
     apiFetch(`/job/job/${id}`, {
       method: "DELETE",
     }),
-
   getJobById: (id) => apiFetch(`/job/job/${id}`),
-
   repostJob: (id) =>
     apiFetch(`/job/job/${id}/repost`, {
       method: "POST",
     }),
-
-  // ---------- Admin ----------
   adminStats: () => apiFetch("/admin/stats"),
   adminUsers: () => apiFetch("/admin/users"),
   adminApplications: () => apiFetch("/admin/applications"),
-  adminJobApplications: (jobId) => apiFetch(`/admin/jobs/${jobId}/applications`),
+  adminJobApplications: (jobId) =>
+    apiFetch(`/admin/jobs/${jobId}/applications`),
   adminPendingAlumni: () => apiFetch("/admin/alumni/pending"),
   adminVerifyAlumni: (userId, status) =>
     apiFetch(`/admin/alumni/verify/${userId}`, {
@@ -212,18 +176,10 @@ export const apiClient = {
       method: "POST",
       body: JSON.stringify({ message, targetRole }),
     }),
-
-  // Job application status updates (alumni)
   acceptJobApplication: (applicationId) =>
-    apiFetch(`/job/applications/${applicationId}/accept`, {
-      method: "PATCH",
-    }),
+    apiFetch(`/job/applications/${applicationId}/accept`, { method: "PATCH" }),
   rejectJobApplication: (applicationId) =>
-    apiFetch(`/job/applications/${applicationId}/reject`, {
-      method: "PATCH",
-    }),
+    apiFetch(`/job/applications/${applicationId}/reject`, { method: "PATCH" }),
   holdJobApplication: (applicationId) =>
-    apiFetch(`/job/applications/${applicationId}/hold`, {
-      method: "PATCH",
-    }),
+    apiFetch(`/job/applications/${applicationId}/hold`, { method: "PATCH" }),
 };

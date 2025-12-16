@@ -3,11 +3,13 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 const authenticate = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
+  const cookieToken = req.cookies?.access_token;
+  const headerToken = req.headers.authorization?.split(" ")[1];
+  const token = cookieToken || headerToken;
+
   if (!token) return res.status(401).json({ error: "No token provided" });
 
   try {
-    // 👇 use the same secret string you used in the controller
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();

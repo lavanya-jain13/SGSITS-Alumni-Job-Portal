@@ -7,13 +7,11 @@ exports.seed = async function (knex) {
   const password = process.env.INIT_ADMIN_PASSWORD;
 
   if (!email || !password) {
-    console.log("INIT_ADMIN_EMAIL/INIT_ADMIN_PASSWORD not set; skipping admin seed.");
     return;
   }
 
   const existing = await knex("users").where({ email }).first();
   if (existing) {
-    console.log("Admin seed: user already exists, skipping.");
     return;
   }
 
@@ -27,5 +25,5 @@ exports.seed = async function (knex) {
     status: "approved",
   });
 
-  console.log(`Admin seed: created admin user ${email}`);
+  return;
 };

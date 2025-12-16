@@ -17,9 +17,8 @@ const transporter = nodemailer.createTransport({
 });
 
 // Optional: verify transporter once at startup (logs but does not crash the app)
-transporter.verify().then(
-  () => console.log("Email transporter is ready"),
-  (err) => console.warn("Email transporter verify failed:", err && err.message)
+transporter.verify().catch((err) =>
+  console.warn("Email transporter verify failed:", err && err.message)
 );
 
 /**
@@ -52,9 +51,6 @@ const sendEmail = async (...args) => {
       html,
     });
 
-    console.log(
-      `Email sent to ${to}${info && info.messageId ? ` (messageId: ${info.messageId})` : ""}`
-    );
     return info;
   } catch (err) {
     console.error("Email error:", err && (err.message || err));

@@ -125,7 +125,6 @@ const updateProfile = async (req, res) => {
 const addCompany = async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id;
-    console.log("addCompany req.user =", req.user, "resolved userId =", userId);
 
     if (!userId) {
       return res.status(401).json({ error: "Unauthenticated user." });

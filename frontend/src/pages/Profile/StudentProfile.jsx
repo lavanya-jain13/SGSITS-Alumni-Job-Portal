@@ -17,7 +17,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import ProfileCompletionMeter from "@/components/profile/ProfileCompletionMeter";
 import ProfileEditor from "@/components/profile/ProfileEditor";
-import { getToken, setToken } from "@/lib/api";
 import { API_BASE_URL } from "@/constants";
 import {
   User,
@@ -99,8 +98,8 @@ const StudentProfile = () => {
 
     const loadProfile = async () => {
       try {
-        const token = getToken();
-        if (!token) {
+        const storedUser = localStorage.getItem("user");
+        if (!storedUser) {
           toast({
             title: "Please log in",
             description: "You need to sign in to view or edit your profile.",
@@ -234,9 +233,9 @@ const StudentProfile = () => {
         );
       } catch (err) {
         console.error("Failed to load profile", err);
-        // If the token is invalid/expired, clear it and force re-login
+        // If the session is invalid/expired, clear and force re-login
         if (err?.status === 401) {
-          setToken(null);
+          localStorage.removeItem("user");
           toast({
             title: "Session expired",
             description: "Please log in again to continue.",
@@ -472,9 +471,7 @@ const StudentProfile = () => {
 
         res = await fetch(`${API_BASE_URL}/student/profile`, {
           method: "PUT",
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-          },
+          credentials: "include",
           body: formData,
         }).then(async (r) => {
           const text = await r.text();

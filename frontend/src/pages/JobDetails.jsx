@@ -453,7 +453,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ApplicationModal from "@/components/ApplicationModals";
 import { useToast } from "@/hooks/use-toast";
-import { getToken } from "@/lib/api";
 
 export default function JobDetails() {
   const { id } = useParams();
@@ -525,8 +524,8 @@ export default function JobDetails() {
       return;
     }
 
-    const token = getToken();
-    if (!token) {
+    const storedUser = localStorage.getItem("user");
+    if (!storedUser) {
       toast({
         title: "Please log in",
         description: "You need to sign in as a student to apply.",

@@ -115,5 +115,4 @@ exports.seed = async function (knex) {
     },
   ]);
 
-  console.log("Seed data inserted successfully");
 };
