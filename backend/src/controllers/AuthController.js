@@ -390,6 +390,24 @@ const resetPasswordWithOTP = async (req, res) => {
 
     await db("otp_verifications").where({ email, otp }).del();
 
+    // Send confirmation email
+    try {
+      await sendEmail({
+        to: email,
+        subject: "Password Changed Successfully",
+        text: "Your password has been changed successfully. If you did not make this change, please contact support immediately.",
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2 style="color: #28a745;">Password Changed Successfully</h2>
+            <p>Your password has been changed successfully.</p>
+            <p style="color: #dc3545;">If you did not make this change, please contact support immediately.</p>
+          </div>
+        `,
+      });
+    } catch (emailErr) {
+      console.error("Password reset confirmation email error:", emailErr.message);
+    }
+
     res.json({ message: "Password reset successful" });
   } catch (error) {
     console.error("Password Reset Error:", error);
@@ -416,8 +434,14 @@ const generateEmailVerificationOTP = async (req, res) => {
     await sendEmail({
       to: email,
       subject: "Email Verification OTP",
-      text: `Your verification OTP is: ${otp}`,
-      html: `<h1>Email Verification OTP</h1><p>Your verification OTP is: <strong>${otp}</strong></p>`,
+      text: `Your verification OTP is: ${otp}. This code expires in 10 minutes.`,
+       html: `
+       <div style="font-family: Arial, sans-serif; padding: 20px;">
+       <h2 style="color: #333;">Email Verification</h2>
+       <p>Your verification OTP is: <strong style="font-size: 24px; color: #007bff;">${otp}</strong></p>
+       <p style="color: #666; font-size: 12px;">This code expires in 10 minutes.</p>
+       </div>
+       `,
     });
 
     return res.json({ message: "Verification OTP sent to email." });

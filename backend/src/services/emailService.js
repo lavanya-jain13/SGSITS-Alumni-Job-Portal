@@ -1,25 +1,27 @@
 const nodemailer = require("nodemailer");
-require("dotenv").config();
 
-const host = process.env.EMAIL_HOST;
-const port = Number(process.env.EMAIL_PORT || 587);
-const user = process.env.EMAIL_USER; // from .env
-const pass = process.env.EMAIL_PASS; // from .env
+let transporter = null;
 
-// Only include auth when credentials are provided
-const auth = user && pass ? { user, pass } : undefined;
+const getTransporter = () => {
+  if (!transporter) {
+    const host = process.env.EMAIL_HOST;
+    const port = Number(process.env.EMAIL_PORT || 587);
+    const user = process.env.EMAIL_USER;
+    const pass = process.env.EMAIL_PASS;
 
-const transporter = nodemailer.createTransport({
-  host,
-  port,
-  secure: port === 465, // true for 465, false for other ports (STARTTLS on 587)
-  auth,
-});
+    const auth = user && pass ? { user, pass } : undefined;
 
-// Optional: verify transporter once at startup (logs but does not crash the app)
-transporter.verify().catch((err) =>
-  console.warn("Email transporter verify failed:", err && err.message)
-);
+    transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth,
+    });
+
+    console.log("Email transporter initialized with host:", host);
+  }
+  return transporter;
+};
 
 /**
  * sendEmail supports:
@@ -40,10 +42,11 @@ const sendEmail = async (...args) => {
     return null;
   }
 
+  const user = process.env.EMAIL_USER;
   const from = user ? `Alumni Portal <${user}>` : "Alumni Portal <no-reply@localhost>";
 
   try {
-    const info = await transporter.sendMail({
+    const info = await getTransporter().sendMail({
       from,
       to,
       subject,

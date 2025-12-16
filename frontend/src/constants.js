@@ -14,10 +14,7 @@ export const PROD_API_BASE_URL = "http://18.217.68.204/api";
 // Auto switch based on mode
 // ----------------------------
 // Vite runs in "development" or "production"
-export const API_BASE_URL =
-  import.meta.env.MODE === "development"
-    ? LOCAL_API_BASE_URL
-    : PROD_API_BASE_URL;
+export const API_BASE_URL = "http://18.217.68.204/api";
 
 // ----------------------------
 // Common endpoint groups

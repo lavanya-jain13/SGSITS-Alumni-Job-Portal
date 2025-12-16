@@ -37,17 +37,12 @@ const ResetPassword = () => {
     setIsLoading(true);
 
     try {
-      // Mock API call: await apiClient.forgotPassword(email);
-      // Simulating success
-      setTimeout(() => {
-        toast({
-          title: "OTP Sent!",
-          description: "Check your email for the verification code.",
-        });
-        setStep(2);
-        setIsLoading(false);
-      }, 1500);
-      
+      await apiClient.forgotPassword(email);
+      toast({
+        title: "OTP Sent!",
+        description: "Check your email for the verification code.",
+      });
+      setStep(2);
     } catch (error) {
       toast({
         title: "Could not send OTP",
@@ -55,6 +50,7 @@ const ResetPassword = () => {
         variant: "default",
         className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -87,17 +83,12 @@ const ResetPassword = () => {
     setIsLoading(true);
 
     try {
-      // Mock API call: await apiClient.resetPassword(email, otp, newPassword);
-      // Simulating success
-      setTimeout(() => {
-        toast({
-          title: "Password Reset Successful!",
-          description: "You can now login with your new password.",
-        });
-        setStep(3);
-        setIsLoading(false);
-      }, 1500);
-
+      await apiClient.resetPassword(email, otp, newPassword);
+      toast({
+        title: "Password Reset Successful!",
+        description: "You can now login with your new password.",
+      });
+      setStep(3);
     } catch (error) {
       toast({
         title: "OTP verification failed",
@@ -106,7 +97,7 @@ const ResetPassword = () => {
         className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
     } finally {
-      // setIsLoading(false); // Done in setTimeout mock
+      setIsLoading(false);
     }
   };
 
@@ -114,16 +105,11 @@ const ResetPassword = () => {
   const handleResendOTP = async () => {
     setIsLoading(true);
     try {
-      // Mock API call: await apiClient.forgotPassword(email);
-      // Simulating success
-      setTimeout(() => {
-        toast({
-          title: "OTP Resent!",
-          description: "A new verification code has been sent to your email.",
-        });
-        setIsLoading(false);
-      }, 1000);
-
+      await apiClient.forgotPassword(email);
+      toast({
+        title: "OTP Resent!",
+        description: "A new verification code has been sent to your email.",
+      });
     } catch (error) {
       toast({
         title: "Could not resend OTP",
@@ -132,7 +118,7 @@ const ResetPassword = () => {
         className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
     } finally {
-      // setIsLoading(false); // Done in setTimeout mock
+      setIsLoading(false);
     }
   };
 
