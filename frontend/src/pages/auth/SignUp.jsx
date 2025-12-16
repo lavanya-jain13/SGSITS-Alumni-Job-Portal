@@ -72,6 +72,8 @@ const SignUp = () => {
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
 
+  const RequiredMark = () => <span className="text-red-500 ml-0.5">*</span>;
+
   // ✅ Auto-detect user type based on route and handle initial state setting
   useEffect(() => {
     let initialType = "student";
@@ -100,9 +102,10 @@ const SignUp = () => {
     // --- Validation ---
     if (formData.password !== formData.confirmPassword) {
       toast({
-        title: "Password mismatch",
-        description: "Passwords do not match. Please try again.",
-        variant: "destructive",
+        title: "Passwords don't match",
+        description: "Re-enter both fields to continue.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
       setIsLoading(false);
       return;
@@ -110,10 +113,11 @@ const SignUp = () => {
 
     if (!isStrongPassword(formData.password)) {
       toast({
-        title: "Weak password",
+        title: "Create a stronger password",
         description:
-          "Use at least 8 characters with uppercase, lowercase, number, and special symbol.",
-        variant: "destructive",
+          "Use 8+ characters with uppercase, lowercase, a number, and a symbol.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
       setIsLoading(false);
       return;
@@ -121,9 +125,21 @@ const SignUp = () => {
 
     if (userType === "student" && !formData.email.endsWith("@sgsits.ac.in")) {
       toast({
-        title: "Invalid email",
-        description: "Students must use their official SGSITS institute email address.",
-        variant: "destructive",
+        title: "Use your SGSITS email",
+        description: "Students should sign up with their @sgsits.ac.in address.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (!formData.phone.trim()) {
+      toast({
+        title: "Add your phone number",
+        description: "Please include a phone number to finish signup.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
       setIsLoading(false);
       return;
@@ -131,9 +147,10 @@ const SignUp = () => {
 
     if (!formData.acceptTerms) {
       toast({
-        title: "Terms not accepted",
-        description: "Please accept the terms and conditions to continue.",
-        variant: "destructive",
+        title: "Accept the terms",
+        description: "Please agree to the Terms of Service and Privacy Policy.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
       setIsLoading(false);
       return;
@@ -142,8 +159,9 @@ const SignUp = () => {
     if (!otpSent || !formData.otp || !otpVerified) {
       toast({
         title: "Verify your email",
-        description: "Send the OTP to your email, enter it, and verify before continuing.",
-        variant: "destructive",
+        description: "Send the OTP, enter the code, and verify to continue.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
       setIsLoading(false);
       return;
@@ -153,9 +171,10 @@ const SignUp = () => {
     if (userType === "student") {
       if (!formData.branch || !formData.gradYear || !formData.studentId) {
         toast({
-          title: "Missing details",
-          description: "Branch, expected graduation year, and student ID are required for student registration.",
-          variant: "destructive",
+          title: "Add your student details",
+          description: "Branch, expected graduation year, and student ID are required.",
+          variant: "default",
+          className: "bg-blue-600 text-white dark:bg-cyan-600",
         });
         setIsLoading(false);
         return;
@@ -163,9 +182,10 @@ const SignUp = () => {
     } else if (userType === "alumni") {
       if (!formData.gradYear || !formData.currentTitle) {
         toast({
-          title: "Missing details",
-          description: "Graduation year and current job title are required for alumni registration.",
-          variant: "destructive",
+          title: "Add your alumni details",
+          description: "Graduation year and current title are required.",
+          variant: "default",
+          className: "bg-blue-600 text-white dark:bg-cyan-600",
         });
         setIsLoading(false);
         return;
@@ -184,6 +204,7 @@ const SignUp = () => {
           branch: formData.branch,
           gradYear: formData.gradYear,
           student_id: formData.studentId,
+          phone: formData.phone,
           otp: formData.otp,
         });
       } else {
@@ -193,6 +214,7 @@ const SignUp = () => {
           email: formData.email,
           password_hash: formData.password,
           current_title: formData.currentTitle,
+          phone: formData.phone,
           otp: formData.otp,
         });
       }
@@ -206,10 +228,11 @@ const SignUp = () => {
       navigate("/login");
     } catch (error) {
       toast({
-        title: "Registration failed",
+        title: "Could not create account",
         description:
-          error?.message || "An account with this email may already exist. Please try again.",
-        variant: "destructive",
+          error?.message || "If you already registered, try signing in or use another email.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
     } finally {
       setIsLoading(false);
@@ -231,17 +254,19 @@ const SignUp = () => {
   const handleSendOtp = async () => {
     if (!formData.email) {
       toast({
-        title: "Enter email",
-        description: "Add your email to receive the OTP.",
-        variant: "destructive",
+        title: "Enter your email",
+        description: "Add your email so we can send the OTP.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
       return;
     }
     if (userType === "student" && !formData.email.endsWith("@sgsits.ac.in")) {
       toast({
-        title: "Enter institute email",
-        description: "Use your @sgsits.ac.in email to receive the OTP.",
-        variant: "destructive",
+        title: "Use your institute email",
+        description: "Sign up with your @sgsits.ac.in address to get the OTP.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
       return;
     }
@@ -256,9 +281,10 @@ const SignUp = () => {
       });
     } catch (error) {
       toast({
-        title: "Failed to send OTP",
-        description: error?.message || "Please try again.",
-        variant: "destructive",
+        title: "Could not send OTP",
+        description: error?.message || "Please check your email address and try again.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
     } finally {
       setOtpSending(false);
@@ -268,17 +294,19 @@ const SignUp = () => {
   const handleVerifyOtp = async () => {
     if (!formData.otp) {
       toast({
-        title: "Enter OTP",
-        description: "Please enter the OTP you received to verify.",
-        variant: "destructive",
+        title: "Enter your OTP",
+        description: "Type the code you received to verify your email.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
       return;
     }
     if (!otpSent) {
       toast({
-        title: "Send OTP first",
-        description: "Send the OTP to your institute email before verifying.",
-        variant: "destructive",
+        title: "Send the OTP first",
+        description: "Request the OTP, then enter the code to verify.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
       return;
     }
@@ -293,9 +321,10 @@ const SignUp = () => {
     } catch (error) {
       setOtpVerified(false);
       toast({
-        title: "Invalid OTP",
-        description: error?.message || "The OTP is incorrect or expired. Please try again.",
-        variant: "destructive",
+        title: "OTP verification failed",
+        description: error?.message || "The code seems incorrect or expired. Please resend and try again.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
     } finally {
       setOtpVerifying(false);
@@ -386,7 +415,9 @@ const SignUp = () => {
                 {/* Name & Email (Always required) */}
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-sm font-medium dark:text-gray-300">Full Name</Label>
+                    <Label htmlFor="name" className="text-sm font-medium dark:text-gray-300">
+                      Full Name <RequiredMark />
+                    </Label>
                     <Input
                       id="name"
                       type="text"
@@ -401,7 +432,7 @@ const SignUp = () => {
                   {userType === "student" ? (
                     <div className="space-y-2">
                       <Label htmlFor="email" className="text-sm font-medium dark:text-gray-300">
-                        Email (Institute Email)
+                        Email (Institute Email) <RequiredMark />
                       </Label>
                       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
                         <Input
@@ -430,7 +461,7 @@ const SignUp = () => {
                   ) : (
                     <div className="space-y-2">
                       <Label htmlFor="email" className="text-sm font-medium dark:text-gray-300">
-                        Email
+                        Email <RequiredMark />
                       </Label>
                       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
                         <Input
@@ -452,18 +483,15 @@ const SignUp = () => {
                           {otpSending ? "Sending..." : otpSent ? "Resend OTP" : "Send OTP"}
                         </Button>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                        We will verify this email with an OTP.
-                      </p>
-                    </div>
-                  )}
+                  </div>
+                )}
                 </div>
 
                 {/* Email OTP verification */}
                 {true && (
                   <div className="space-y-2">
                     <Label htmlFor="otp" className="text-sm font-medium dark:text-gray-300">
-                      Email OTP Verification
+                      Email OTP Verification <RequiredMark />
                     </Label>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <Input
@@ -475,6 +503,7 @@ const SignUp = () => {
                         className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white flex-1"
                         value={formData.otp}
                         onChange={(e) => handleInputChange("otp", e.target.value)}
+                        required
                       />
                       <Button
                         type="button"
@@ -486,9 +515,6 @@ const SignUp = () => {
                         {otpVerifying ? "Verifying..." : "Verify OTP"}
                       </Button>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      After sending the OTP, enter it here and verify. We validate it immediately on this step.
-                    </p>
                   </div>
                 )}
 
@@ -502,7 +528,9 @@ const SignUp = () => {
                   {/* Branch (Students) / Title (Alumni) */}
                   {userType === "student" ? (
                     <div className="space-y-2">
-                      <Label htmlFor="branch" className="text-sm font-medium dark:text-gray-300">Branch</Label>
+                      <Label htmlFor="branch" className="text-sm font-medium dark:text-gray-300">
+                        Branch <RequiredMark />
+                      </Label>
                       <Select
                         value={formData.branch}
                         onValueChange={(value) => handleInputChange("branch", value)}
@@ -522,7 +550,9 @@ const SignUp = () => {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <Label htmlFor="currentTitle" className="text-sm font-medium dark:text-gray-300">Current Title / Role</Label>
+                      <Label htmlFor="currentTitle" className="text-sm font-medium dark:text-gray-300">
+                        Current Title / Role <RequiredMark />
+                      </Label>
                       <Input
                         id="currentTitle"
                         type="text"
@@ -538,7 +568,7 @@ const SignUp = () => {
                   {/* Graduation Year */}
                   <div className="space-y-2">
                     <Label htmlFor="gradYear" className="text-sm font-medium dark:text-gray-300">
-                      {userType === "student" ? "Expected Graduation Year" : "Graduation Year"}
+                      {userType === "student" ? "Expected Graduation Year" : "Graduation Year"} <RequiredMark />
                     </Label>
                     <Select
                       value={formData.gradYear}
@@ -561,7 +591,9 @@ const SignUp = () => {
                   {/* Student ID (only for students) */}
                   {userType === "student" && (
                     <div className="space-y-2">
-                      <Label htmlFor="studentId" className="text-sm font-medium dark:text-gray-300">Student ID / Enrollment No.</Label>
+                      <Label htmlFor="studentId" className="text-sm font-medium dark:text-gray-300">
+                        Student ID / Enrollment No. <RequiredMark />
+                      </Label>
                       <Input
                         id="studentId"
                         type="text"
@@ -574,9 +606,11 @@ const SignUp = () => {
                     </div>
                   )}
 
-                  {/* Phone (Optional) */}
+                  {/* Phone */}
                   <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-sm font-medium dark:text-gray-300">Phone Number (Optional)</Label>
+                    <Label htmlFor="phone" className="text-sm font-medium dark:text-gray-300">
+                      Phone Number <RequiredMark />
+                    </Label>
                     <Input
                       id="phone"
                       type="tel"
@@ -584,6 +618,7 @@ const SignUp = () => {
                       className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                       value={formData.phone}
                       onChange={(e) => handleInputChange("phone", e.target.value)}
+                      required
                     />
                   </div>
                 </div>
@@ -596,7 +631,9 @@ const SignUp = () => {
                   
                   {/* Password */}
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-medium dark:text-gray-300">Password</Label>
+                    <Label htmlFor="password" className="text-sm font-medium dark:text-gray-300">
+                      Password <RequiredMark />
+                    </Label>
                     <div className="relative">
                       <Input
                         id="password"
@@ -628,7 +665,9 @@ const SignUp = () => {
 
                   {/* Confirm Password */}
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-sm font-medium dark:text-gray-300">Confirm Password</Label>
+                    <Label htmlFor="confirmPassword" className="text-sm font-medium dark:text-gray-300">
+                      Confirm Password <RequiredMark />
+                    </Label>
                     <div className="relative">
                       <Input
                         id="confirmPassword"
@@ -673,7 +712,8 @@ const SignUp = () => {
                     and{" "}
                     <Link to="/privacy" className="text-blue-600 dark:text-cyan-400 hover:underline font-medium">
                       Privacy Policy
-                    </Link>
+                    </Link>{" "}
+                    <RequiredMark />
                   </Label>
                 </div>
 

@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster as AppToaster } from "@/components/ui/toaster";
@@ -8,6 +8,8 @@ import { Provider } from "react-redux";
 import { store } from "@/store";
 import RequireAuth from "@/components/RequireAuth";
 import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
+import { useSelector } from "react-redux";
+import { selectAuth } from "@/store/authSlice";
 
 /* ------------------ Lazy-loaded Admin pages ------------------ */
 const AdminLayout = lazy(() => import("@/components/admin/AdminLayout").then(m => ({ default: m.AdminLayout })));
@@ -51,6 +53,18 @@ const PageLoader = () => (
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
   </div>
 );
+
+// Redirect authenticated users away from public landing/auth routes
+const RedirectIfAuthed = ({ children }) => {
+  const { isAuthenticated, user } = useSelector(selectAuth);
+  if (!isAuthenticated) return children;
+
+  const role = (user?.role || "").toLowerCase();
+  const target =
+    role === "admin" ? "/admin" : role === "alumni" ? "/alumni" : "/dashboard";
+
+  return <Navigate to={target} replace />;
+};
 /* ---------------------------------------------------------- */
 
 const queryClient = new QueryClient();
@@ -67,24 +81,66 @@ export default function App() {
           <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* ---------- Student / Public routes ---------- */}
-            <Route path="/" element={<Index />} />
+            <Route
+              path="/"
+              element={
+                <RedirectIfAuthed>
+                  <Index />
+                </RedirectIfAuthed>
+              }
+            />
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/jobs/:id" element={<JobDetails />} />
             <Route path="/contributors" element={<Contributors />} />
 
             {/* ---------- Auth routes ---------- */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<SignUp />} />
+            <Route
+              path="/login"
+              element={
+                <RedirectIfAuthed>
+                  <Login />
+                </RedirectIfAuthed>
+              }
+            />
+            <Route
+              path="/signup"
+              element={
+                <RedirectIfAuthed>
+                  <SignUp />
+                </RedirectIfAuthed>
+              }
+            />
 
             {/* ✅ Added these two new routes */}
             <Route path="/signup/student" element={<SignUp userType="student" />} />
             <Route path="/signup/alumni" element={<SignUp userType="alumni" />} />
 
-            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route
+              path="/reset-password"
+              element={
+                <RedirectIfAuthed>
+                  <ResetPassword />
+                </RedirectIfAuthed>
+              }
+            />
 
             {/* ---------- Student dashboard & profile ---------- */}
-            <Route path="/dashboard" element={<StudentDashboard />} />
-            <Route path="/student/profile" element={<StudentProfile />} />
+            <Route
+              path="/dashboard"
+              element={
+                <RequireAuth allowedRoles={["student"]}>
+                  <StudentDashboard />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/student/profile"
+              element={
+                <RequireAuth allowedRoles={["student"]}>
+                  <StudentProfile />
+                </RequireAuth>
+              }
+            />
 
             {/* ---------- Admin routes (nested) ---------- */}
             <Route

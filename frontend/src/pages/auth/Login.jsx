@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,8 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, GraduationCap, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiClient } from "@/lib/api";
-import { useDispatch } from "react-redux";
-import { loginSuccess } from "@/store/authSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { loginSuccess, selectAuth } from "@/store/authSlice";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 
@@ -19,12 +19,27 @@ const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { isAuthenticated, user } = useSelector(selectAuth);
 
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     rememberMe: false,
   });
+
+  const getTargetForRole = (role) => {
+    const normalized = (role || "").toLowerCase();
+    if (normalized === "admin") return "/admin";
+    if (normalized === "alumni") return "/alumni";
+    return "/dashboard";
+  };
+
+  // If already signed in, keep users on their dashboard instead of showing login
+  useEffect(() => {
+    if (isAuthenticated && user?.role) {
+      navigate(getTargetForRole(user.role), { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,22 +54,21 @@ const Login = () => {
       dispatch(loginSuccess({ user: response.user }));
 
       // Redirect based on user role
-      if (response.user.role === 'admin') {
-        toast({ title: "Welcome, Admin!", description: "Redirecting to Admin Dashboard", variant: "default" });
-        navigate("/admin");
-      } else if (response.user.role === 'student') {
-        toast({ title: "Welcome back, Student!", description: "Redirecting to Student Dashboard", variant: "default" });
-        navigate("/dashboard");
-      } else if (response.user.role === 'alumni') {
-        toast({ title: "Welcome, Alumni!", description: "Redirecting to Alumni Dashboard", variant: "default" });
-        navigate("/alumni");
-      }
+      const target = getTargetForRole(response.user.role);
+      const roleLabel = (response.user.role || "").toLowerCase();
+      toast({
+        title: "Welcome back!",
+        description: `Taking you to your ${roleLabel} dashboard.`,
+        variant: "default",
+      });
+      navigate(target, { replace: true });
 
     } catch (error) {
       toast({
-        title: "Login Failed",
-        description: error.message || "Invalid credentials. Please try again.",
-        variant: "destructive"
+        title: "Unable to sign in",
+        description: error.message || "Check your email and password or create an account to continue.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600"
       });
     } finally {
       setIsLoading(false);

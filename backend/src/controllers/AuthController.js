@@ -160,7 +160,10 @@ const login = async (req, res) => {
   const { email, password } = req.body;
 
   const user = await db("users").where({ email }).first();
-  if (!user) return res.status(400).json({ message: "User not found" });
+  if (!user)
+    return res
+      .status(400)
+      .json({ message: "Your account not found please Signup to login" });
 
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) return res.status(401).json({ message: "Invalid password" });

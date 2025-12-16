@@ -50,9 +50,10 @@ const ResetPassword = () => {
       
     } catch (error) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to send OTP. Please try again.",
-        variant: "destructive",
+        title: "Could not send OTP",
+        description: error.message || "Please check your email address and try again.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
       setIsLoading(false);
     }
@@ -66,17 +67,19 @@ const ResetPassword = () => {
       toast({
         title: "Passwords don't match",
         description: "Please make sure both passwords are the same.",
-        variant: "destructive",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
       return;
     }
 
     if (!isStrongPassword(newPassword)) {
       toast({
-        title: "Weak password",
+        title: "Create a stronger password",
         description:
-          "Use at least 8 characters with uppercase, lowercase, number, and special symbol.",
-        variant: "destructive",
+          "Use 8+ characters with uppercase, lowercase, a number, and a symbol.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
       return;
     }
@@ -97,9 +100,10 @@ const ResetPassword = () => {
 
     } catch (error) {
       toast({
-        title: "Error",
-        description: error.message || "Invalid or expired OTP. Please try again.",
-        variant: "destructive",
+        title: "OTP verification failed",
+        description: error.message || "The code seems incorrect or expired. Please resend and try again.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
     } finally {
       // setIsLoading(false); // Done in setTimeout mock
@@ -122,9 +126,10 @@ const ResetPassword = () => {
 
     } catch (error) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to resend OTP.",
-        variant: "destructive",
+        title: "Could not resend OTP",
+        description: error.message || "Please check your email address and try again.",
+        variant: "default",
+        className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
     } finally {
       // setIsLoading(false); // Done in setTimeout mock
