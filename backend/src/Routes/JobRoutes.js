@@ -90,10 +90,20 @@ router.patch(
 // ================== STUDENT JOB ROUTES ==================
 
 // 14. Get all active jobs (student view)
-router.get("/get-all-jobs-student", jobController.getAllJobsStudent);
+router.get(
+  "/get-all-jobs-student",
+  authenticate,
+  isStudent,
+  jobController.getAllJobsStudent
+);
 
 // 15. Get job details for student
-router.get("/get-job-by-id-student/:id", jobController.getJobByIdStudent);
+router.get(
+  "/get-job-by-id-student/:id",
+  authenticate,
+  isStudent,
+  jobController.getJobByIdStudent
+);
 
 // 16. Apply to a job (with resume upload)
 router.post(
