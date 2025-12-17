@@ -36,7 +36,16 @@ const putProfileSchema = {
     gradYear: Joi.number().integer().min(1950).max(2100).optional(),
     skills: Joi.alternatives(
       Joi.string(),
-      Joi.array().items(Joi.string())
+      Joi.array().items(
+        Joi.alternatives().try(
+          Joi.string(),
+          Joi.object({
+            name: Joi.string().required(),
+            proficiency: Joi.number().min(1).max(5).optional(),
+            experience: Joi.number().min(0).max(50).optional(),
+          })
+        )
+      )
     ).optional(),
     resumeUrl: Joi.string().uri().allow("").optional(),
     phone: Joi.string().max(20).allow("").optional(),

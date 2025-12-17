@@ -7,12 +7,37 @@ const getUserIdFromReq = (req) => req?.user?.userId || req?.user?.id;
 // normalize skills to store in text[] (accept array or string)
 const normalizeSkills = (skills) => {
   if (skills == null) return null;
-  if (Array.isArray(skills)) return skills;
+  const toEntry = (s) => {
+    if (!s) return null;
+    if (typeof s === "string") return s.trim();
+    if (typeof s === "object") {
+      const name = s.name || s.skill || s.title || "";
+      if (!name) return null;
+      const proficiency =
+        s.proficiency !== undefined && s.proficiency !== null
+          ? Number(s.proficiency)
+          : undefined;
+      const experience =
+        s.experience !== undefined && s.experience !== null
+          ? Number(s.experience)
+          : undefined;
+      return JSON.stringify({
+        name,
+        ...(Number.isFinite(proficiency) ? { proficiency } : {}),
+        ...(Number.isFinite(experience) ? { experience } : {}),
+      });
+    }
+    return null;
+  };
+
+  if (Array.isArray(skills)) {
+    return skills.map(toEntry).filter(Boolean);
+  }
 
   // try parsing JSON array string
   try {
     const parsed = JSON.parse(skills);
-    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed)) return parsed.map(toEntry).filter(Boolean);
   } catch (e) {}
 
   // fallback: comma-separated string -> array of trimmed
@@ -25,11 +50,52 @@ const normalizeSkills = (skills) => {
 // parse DB skills to array for the frontend
 const parseSkills = (skills) => {
   if (!skills) return [];
-  if (Array.isArray(skills)) return skills;
-  return String(skills)
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const toObj = (s) => {
+    if (!s) return null;
+    if (typeof s === "object" && s.name) {
+      return {
+        name: s.name,
+        proficiency: Number.isFinite(s.proficiency)
+          ? Number(s.proficiency)
+          : 3,
+        experience: Number.isFinite(s.experience)
+          ? Number(s.experience)
+          : 1,
+      };
+    }
+    if (typeof s === "string") {
+      const trimmed = s.trim();
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === "object" && parsed.name) {
+          return {
+            name: parsed.name,
+            proficiency: Number.isFinite(parsed.proficiency)
+              ? Number(parsed.proficiency)
+              : 3,
+            experience: Number.isFinite(parsed.experience)
+              ? Number(parsed.experience)
+              : 1,
+          };
+        }
+      } catch (e) {
+        // not JSON, treat as plain name
+      }
+      if (trimmed) {
+        return { name: trimmed, proficiency: 3, experience: 1 };
+      }
+    }
+    return null;
+  };
+
+  const arr = Array.isArray(skills)
+    ? skills
+    : String(skills)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+  return arr.map(toObj).filter(Boolean);
 };
 
 // normalize list-like fields (array or comma string) to comma-separated string

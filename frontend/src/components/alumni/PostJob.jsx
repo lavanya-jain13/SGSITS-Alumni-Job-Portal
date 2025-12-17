@@ -285,6 +285,7 @@ export function PostJob() {
         location: formData.location || null,
         salary_range: salaryRange,
         experience_required: formData.experienceBand || null,
+        experienceBand: formData.experienceBand || null,
         skills_required:
           requiredSkills.length > 0 ? requiredSkills.join(", ") : null,
         stipend:

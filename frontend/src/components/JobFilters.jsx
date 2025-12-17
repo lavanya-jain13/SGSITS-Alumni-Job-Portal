@@ -1,45 +1,74 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
-export default function JobFilters() {
-  const [selectedBranches, setSelectedBranches] = useState([]);
-  const [selectedModes, setSelectedModes] = useState([]);
-  const [selectedTypes, setSelectedTypes] = useState([]);
-  const [stipendRange, setStipendRange] = useState([0, 1500000]);
-  const [selectedExperience, setSelectedExperience] = useState([]);
+const workModes = ["Remote", "On-site", "Hybrid"];
+const jobTypes = ["Full-time", "Internship", "Contract", "Part-time"];
+const popularSkills = ["React", "Python", "JavaScript", "Java", "Node.js", "AWS", "MongoDB", "SQL"];
+const stipendOptions = [
+  { id: "u25", label: "Under ₹25k", min: 0, max: 25000 },
+  { id: "25-50", label: "₹25k - ₹50k", min: 25000, max: 50000 },
+  { id: "50-100", label: "₹50k - ₹1L", min: 50000, max: 100000 },
+  { id: "1-3l", label: "₹1L - ₹3L", min: 100000, max: 300000 },
+  { id: "3-6l", label: "₹3L - ₹6L", min: 300000, max: 600000 },
+  { id: "6l+", label: "₹6L+", min: 600000, max: null },
+];
 
-  const branches = [
-    "Computer Science & Engineering",
-    "Information Technology", 
-    "Electronics & Communication",
-    "Mechanical Engineering",
-    "Civil Engineering",
-    "Electrical Engineering",
-    "Chemical Engineering"
-  ];
+export default function JobFilters({
+  filters = {},
+  onChange = () => {},
+  onClear = () => {},
+  branchOptions = [],
+}) {
+  const {
+    branches: selectedBranches = [],
+    jobTypes: selectedTypes = [],
+    workModes: selectedModes = [],
+    experience: selectedExperience = [],
+    stipendBands = [],
+    skills: selectedSkills = [],
+  } = filters;
 
-  const workModes = ["Remote", "On-site", "Hybrid"];
-  const jobTypes = ["Full-time", "Internship", "Contract", "Part-time"];
-  const experienceLevels = ["0-1 years", "1-2 years", "2-3 years", "3+ years"];
-
-  const toggleSelection = (value, selected, setter) => {
-    if (selected.includes(value)) {
-      setter(selected.filter(item => item !== value));
-    } else {
-      setter([...selected, value]);
-    }
+  const toggleSelection = (value, key, selected) => {
+    const exists = selected.includes(value);
+    const next = exists ? selected.filter((v) => v !== value) : [...selected, value];
+    onChange(key, next);
   };
+
+  const toggleStipend = (id) => {
+    const exists = stipendBands.includes(id);
+    const next = exists
+      ? stipendBands.filter((v) => v !== id)
+      : [...stipendBands, id];
+    onChange("stipendBands", next);
+  };
+
+  const branches =
+    branchOptions.length > 0
+      ? Array.from(new Set(branchOptions))
+      : [
+          "Computer Science",
+          "Information Technology",
+          "Electronics and Telecommunication",
+          "Electronics and Instrumentation",
+          "Electrical Engineering",
+          "Mechanical Engineering",
+          "Civil Engineering",
+          "Industrial and Production",
+          "Biomedical Engineering",
+        ];
 
   return (
     <Card className="sticky top-6">
       <CardHeader>
         <CardTitle className="text-lg font-semibold">Filters</CardTitle>
-        <Button variant="link" className="text-muted-foreground p-0 h-auto w-fit">
+        <Button
+          variant="link"
+          className="text-muted-foreground p-0 h-auto w-fit"
+          onClick={onClear}
+        >
           Clear all
         </Button>
       </CardHeader>
@@ -53,7 +82,9 @@ export default function JobFilters() {
                 <Checkbox
                   id={branch}
                   checked={selectedBranches.includes(branch)}
-                  onCheckedChange={() => toggleSelection(branch, selectedBranches, setSelectedBranches)}
+                  onCheckedChange={() =>
+                    toggleSelection(branch, "branches", selectedBranches)
+                  }
                 />
                 <label htmlFor={branch} className="text-sm cursor-pointer">
                   {branch}
@@ -74,7 +105,9 @@ export default function JobFilters() {
                 <Checkbox
                   id={type}
                   checked={selectedTypes.includes(type)}
-                  onCheckedChange={() => toggleSelection(type, selectedTypes, setSelectedTypes)}
+                  onCheckedChange={() =>
+                    toggleSelection(type, "jobTypes", selectedTypes)
+                  }
                 />
                 <label htmlFor={type} className="text-sm cursor-pointer">
                   {type}
@@ -95,7 +128,9 @@ export default function JobFilters() {
                 <Checkbox
                   id={mode}
                   checked={selectedModes.includes(mode)}
-                  onCheckedChange={() => toggleSelection(mode, selectedModes, setSelectedModes)}
+                  onCheckedChange={() =>
+                    toggleSelection(mode, "workModes", selectedModes)
+                  }
                 />
                 <label htmlFor={mode} className="text-sm cursor-pointer">
                   {mode}
@@ -110,37 +145,16 @@ export default function JobFilters() {
         {/* Stipend Range Filter */}
         <div>
           <h3 className="font-medium mb-3">Stipend Range</h3>
-          <div className="px-2">
-            <Slider
-              value={stipendRange}
-              onValueChange={setStipendRange}
-              max={1500000}
-              min={0}
-              step={50000}
-              className="mb-4"
-            />
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>₹{(stipendRange[0] / 100000).toFixed(1)}L</span>
-              <span>₹{(stipendRange[1] / 100000).toFixed(1)}L</span>
-            </div>
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Experience Filter */}
-        <div>
-          <h3 className="font-medium mb-3">Experience Level</h3>
           <div className="space-y-2">
-            {experienceLevels.map((level) => (
-              <div key={level} className="flex items-center space-x-2">
+            {stipendOptions.map((opt) => (
+              <div key={opt.id} className="flex items-center space-x-2">
                 <Checkbox
-                  id={level}
-                  checked={selectedExperience.includes(level)}
-                  onCheckedChange={() => toggleSelection(level, selectedExperience, setSelectedExperience)}
+                  id={opt.id}
+                  checked={stipendBands.includes(opt.id)}
+                  onCheckedChange={() => toggleStipend(opt.id)}
                 />
-                <label htmlFor={level} className="text-sm cursor-pointer">
-                  {level}
+                <label htmlFor={opt.id} className="text-sm cursor-pointer">
+                  {opt.label}
                 </label>
               </div>
             ))}
@@ -153,15 +167,19 @@ export default function JobFilters() {
         <div>
           <h3 className="font-medium mb-3">Popular Skills</h3>
           <div className="flex flex-wrap gap-2">
-            {["React", "Python", "JavaScript", "Java", "Node.js", "AWS", "MongoDB", "SQL"].map((skill) => (
-              <Badge
-                key={skill}
-                variant="outline"
-                className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-              >
-                {skill}
-              </Badge>
-            ))}
+            {popularSkills.map((skill) => {
+              const active = selectedSkills.includes(skill);
+              return (
+                <Badge
+                  key={skill}
+                  variant={active ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => toggleSelection(skill, "skills", selectedSkills)}
+                >
+                  {skill}
+                </Badge>
+              );
+            })}
           </div>
         </div>
       </CardContent>

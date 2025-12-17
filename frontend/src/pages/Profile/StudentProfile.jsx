@@ -20,6 +20,7 @@ import ProfileEditor from "@/components/profile/ProfileEditor";
 import { API_BASE_URL } from "@/constants";
 import {
   User,
+  ArrowLeft,
   GraduationCap,
   Code,
   Briefcase,
@@ -155,12 +156,32 @@ const StudentProfile = () => {
               .map((l) => l.trim())
               .filter(Boolean);
 
-        const skillNames = Array.isArray(profile.skills)
+        const skillList = Array.isArray(profile.skills)
           ? profile.skills
           : (profile.skills || "")
               .split(",")
               .map((s) => s.trim())
               .filter(Boolean);
+
+        const normalizedSkills = (skillList || []).map((s) => {
+          if (typeof s === "string") {
+            return { name: s, proficiency: 3, experience: 1 };
+          }
+          if (s && typeof s === "object") {
+            return {
+              name: s.name || "",
+              proficiency:
+                Number.isFinite(Number(s.proficiency)) && Number(s.proficiency) > 0
+                  ? Number(s.proficiency)
+                  : 3,
+              experience:
+                Number.isFinite(Number(s.experience)) && Number(s.experience) >= 0
+                  ? Number(s.experience)
+                  : 1,
+            };
+          }
+          return null;
+        }).filter(Boolean);
 
         const experienceList = Array.isArray(profile.experiences)
           ? profile.experiences.map((exp) => ({
@@ -193,11 +214,7 @@ const StudentProfile = () => {
           achievements: profile.achievements ?? extras.achievements ?? "",
           // backend uses "proficiency" column for summary
           summary: profile.proficiency ?? extras.summary ?? "",
-          skills: skillNames.map((name) => ({
-            name,
-            proficiency: 3,
-            experience: 1,
-          })),
+          skills: normalizedSkills,
           experiences: experienceList,
           resumeUrl: profile.resume_url || "",
           resumeUploaded: !!profile.resume_url,
@@ -428,8 +445,26 @@ const StudentProfile = () => {
         summary: mergedData.summary || "",
         yearsOfExperience: cleanedExperiences.length || 0,
         skills: (mergedData.skills || [])
-          .map((s) => (typeof s === "string" ? s : s.name))
-          .filter(Boolean),
+          .map((s) => {
+            if (!s) return null;
+            if (typeof s === "string") {
+              return { name: s, proficiency: 3, experience: 1 };
+            }
+            const proficiency = Number(s.proficiency);
+            const experience = Number(s.experience);
+            return {
+              name: s.name,
+              proficiency:
+                Number.isFinite(proficiency) && proficiency > 0
+                  ? proficiency
+                  : 3,
+              experience:
+                Number.isFinite(experience) && experience >= 0
+                  ? experience
+                  : 0,
+            };
+          })
+          .filter((s) => s && s.name),
         resumeUrl: mergedData.resumeUrl || "",
         experiences: cleanedExperiences,
 
@@ -450,7 +485,7 @@ const StudentProfile = () => {
         const isEmptyArray = Array.isArray(val) && val.length === 0;
         const isEmptyString = val === "";
         const isUndefined = val === undefined || val === null;
-        if (isEmptyArray || isEmptyString || isUndefined) {
+        if (isEmptyString || isUndefined || (key !== "skills" && isEmptyArray)) {
           delete basePayload[key];
         }
       });
@@ -575,11 +610,21 @@ const StudentProfile = () => {
               </p>
             </div>
           </div>
-          <ProfileEditor
-            profileData={profileData}
-            setProfileData={setProfileData}
-            onSave={handleSave}
-          />
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/dashboard")}
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Button>
+            <ProfileEditor
+              profileData={profileData}
+              setProfileData={setProfileData}
+              onSave={handleSave}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
