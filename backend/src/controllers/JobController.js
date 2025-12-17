@@ -79,7 +79,9 @@ const buildJobPayload = (body, companyId, alumniId) => ({
   location: body.location || null,
   salary_range: body.salary_range || null,
   experience_required: body.experience_required || null,
-  skills_required: body.skills_required || null,
+  skills_required: normalizeListText(
+    body.skills_required || body.requiredSkills || body.required_skills
+  ),
   stipend: body.stipend || null,
   application_deadline: body.application_deadline || null,
 
@@ -89,8 +91,10 @@ const buildJobPayload = (body, companyId, alumniId) => ({
       : 50,
 
   allowed_branches: normalizeListText(body.allowed_branches),
-  nice_to_have_skills: normalizeListText(body.nice_to_have_skills),
-  work_mode: body.work_mode || null,
+  nice_to_have_skills: normalizeListText(
+    body.nice_to_have_skills || body.niceToHaveSkills
+  ),
+  work_mode: body.work_mode || body.workMode || null,
   number_of_openings: toNumberOrNull(body.number_of_openings),
   custom_questions: normalizeListText(body.custom_questions),
   nda_required: body.nda_required === true || body.nda_required === "true",
@@ -278,8 +282,15 @@ exports.updateJob = async (req, res) => {
     const normalizedUpdate = {
       ...updateData,
       allowed_branches: normalizeListText(updateData.allowed_branches),
-      nice_to_have_skills: normalizeListText(updateData.nice_to_have_skills),
-      work_mode: updateData.work_mode || null,
+      skills_required: normalizeListText(
+        updateData.skills_required ||
+          updateData.requiredSkills ||
+          updateData.required_skills
+      ),
+      nice_to_have_skills: normalizeListText(
+        updateData.nice_to_have_skills || updateData.niceToHaveSkills
+      ),
+      work_mode: updateData.work_mode || updateData.workMode || null,
       number_of_openings: toNumberOrNull(updateData.number_of_openings),
       custom_questions: normalizeListText(updateData.custom_questions),
       nda_required:
@@ -609,26 +620,34 @@ exports.getAllJobsStudent = async (req, res) => {
     const offset = (page - 1) * limit;
 
     const baseQuery = db("jobs as j")
-      .leftJoin("companies as c", "j.company_id", "c.id")
-      .where("j.status", "active")
-      .select(
-        "j.id",
-        "j.job_title",
-        "j.job_description",
-        "j.location",
-        "j.job_type",
-        "j.experience_required",
-        "j.application_deadline",
-        "j.created_at",
-        "j.updated_at",
-        "j.allowed_branches",
-        "j.max_applicants_allowed",
-        "j.status",
-        "c.name as company_name",
-        "c.industry as company_industry",
-        "c.company_size",
-        "c.website as company_website"
-      );
+  .leftJoin("companies as c", "j.company_id", "c.id")
+  .select(
+    "j.id",
+    "j.job_title",
+    "j.job_description",
+    "j.location",
+    "j.job_type",
+    "j.experience_required",
+    "j.application_deadline",
+    "j.created_at",
+    "j.updated_at",
+    "j.allowed_branches",
+    "j.stipend",
+    "j.salary_range",
+    "j.ctc_type",
+    "j.min_ctc",
+    "j.max_ctc",
+    "j.skills_required",        // ✅ add
+    "j.nice_to_have_skills",    // ✅ add (optional but recommended)
+    "j.work_mode",     
+    "j.max_applicants_allowed",
+    "j.status",
+    "c.name as company_name",
+    "c.industry as company_industry",
+    "c.company_size",
+    "c.website as company_website"
+  );
+
 
     const [jobs, [{ total }]] = await Promise.all([
       baseQuery.clone().orderBy("j.created_at", "desc").limit(limit).offset(offset),
