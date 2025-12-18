@@ -425,6 +425,9 @@ const generateEmailVerificationOTP = async (req, res) => {
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
+    // Ensure only the latest OTP is valid
+    await db("otp_verifications").where({ email }).del();
+
     await db("otp_verifications").insert({
       email,
       otp,
@@ -467,11 +470,13 @@ const verifyEmailWithOTP = async (req, res) => {
     if (!otpEntry)
       return res.status(400).json({ error: "Invalid or expired OTP" });
 
+    // Consume OTP on first successful check so it can't be reused.
+    await db("otp_verifications").where({ email, otp }).del();
+
     const user = await db("users").where({ email }).first();
 
     if (user) {
       await db("users").where({ email }).update({ is_verified: true });
-      await db("otp_verifications").where({ email, otp }).del();
       return res.json({ message: "Email verified successfully" });
     }
 

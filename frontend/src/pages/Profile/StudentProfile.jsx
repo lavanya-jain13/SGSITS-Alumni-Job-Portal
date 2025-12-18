@@ -31,6 +31,7 @@ import {
   X,
   Star,
 } from "lucide-react";
+import { downloadResumeFile } from "@/lib/downloadResume";
 
 // Helper: get current user id from localStorage
 const getCurrentUserId = () => {
@@ -48,6 +49,7 @@ const StudentProfile = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const [tempResumeUrl, setTempResumeUrl] = useState(null);
 
   const currentUserId = getCurrentUserId();
   // Per-user key so one user's extras don't leak into another
@@ -86,6 +88,53 @@ const StudentProfile = () => {
 
   const [desiredRolesInput, setDesiredRolesInput] = useState("");
   const [preferredLocationsInput, setPreferredLocationsInput] = useState("");
+  useEffect(
+    () => () => {
+      if (tempResumeUrl) {
+        URL.revokeObjectURL(tempResumeUrl);
+      }
+    },
+    [tempResumeUrl]
+  );
+  const viewResumeEnabled =
+    profileData.resumeUploaded && (profileData.resumeUrl || profileData.resumeFile);
+
+  const handleViewResume = () => {
+    if (!viewResumeEnabled) {
+      toast({
+        title: "No resume available",
+        description: "Upload your resume first to preview it.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (profileData.resumeFile) {
+      const blobUrl = URL.createObjectURL(profileData.resumeFile);
+      setTempResumeUrl(blobUrl);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = profileData.resumeFile.name || "resume.pdf";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      return;
+    }
+
+    downloadResumeFile({
+      url: profileData.resumeUrl,
+      applicantName: profileData.name || "",
+      fileLabel: profileData.resumeFileName || "resume",
+      toast,
+    }).catch(() => {
+      // toast handled inside helper on failure; also guard here
+      toast({
+        title: "Download failed",
+        description: "Could not download the resume. Please try again.",
+        variant: "destructive",
+      });
+    });
+  };
 
   useEffect(() => {
     const loadExtras = () => {
@@ -1163,26 +1212,6 @@ const StudentProfile = () => {
                         )}
                       </div>
 
-                      <div className="space-y-2">
-                        <Label>Or paste a resume URL</Label>
-                        <Input
-                          type="url"
-                          placeholder="https://..."
-                          value={profileData.resumeUrl}
-                          onChange={(e) =>
-                            setProfileData((prev) => ({
-                              ...prev,
-                              resumeUrl: e.target.value,
-                              resumeUploaded: !!e.target.value,
-                              resumeFile: null,
-                              resumeFileName: e.target.value
-                                ? "Linked resume"
-                                : "",
-                            }))
-                          }
-                        />
-                      </div>
-
                       {(profileData.resumeUrl ||
                         profileData.resumeFileName) && (
                         <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
@@ -1194,25 +1223,41 @@ const StudentProfile = () => {
                                   "Resume attached"}
                               </p>
                               <p className="text-sm text-muted-foreground truncate max-w-xs">
-                                {profileData.resumeUrl ||
-                                  "Will be uploaded on save"}
+                                {profileData.resumeUrl
+                                  ? "Resume uploaded"
+                                  : "Will be uploaded on save"}
                               </p>
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            onClick={() =>
-                              setProfileData((prev) => ({
-                                ...prev,
-                                resumeUploaded: false,
-                                resumeFileName: "",
-                                resumeUrl: "",
-                                resumeFile: null,
-                              }))
-                            }
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleViewResume}
+                              disabled={!viewResumeEnabled}
+                            >
+                              View Uploaded Resume
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (tempResumeUrl) {
+                                  URL.revokeObjectURL(tempResumeUrl);
+                                  setTempResumeUrl(null);
+                                }
+                                setProfileData((prev) => ({
+                                  ...prev,
+                                  resumeUploaded: false,
+                                  resumeFileName: "",
+                                  resumeUrl: "",
+                                  resumeFile: null,
+                                }));
+                              }}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>

@@ -9,6 +9,23 @@ const normalizeDriveUrl = (url = "") => {
   return url;
 };
 
+const normalizeCloudinaryUrl = (url = "") => {
+  if (!url || !url.includes("res.cloudinary.com")) return url;
+  try {
+    const parsed = new URL(url);
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    const uploadIdx = parts.indexOf("upload");
+    // Inject attachment transformation so Cloudinary serves a download
+    if (uploadIdx !== -1 && parts[uploadIdx + 1] !== "fl_attachment") {
+      parts.splice(uploadIdx + 1, 0, "fl_attachment");
+      parsed.pathname = `/${parts.join("/")}`;
+    }
+    return parsed.toString();
+  } catch (_err) {
+    return url;
+  }
+};
+
 const inferExtension = (mime = "", url = "") => {
   if (mime.includes("pdf")) return "pdf";
   if (mime.includes("wordprocessingml")) return "docx";
@@ -64,7 +81,7 @@ export const downloadResumeFile = async ({
   fileLabel = "",
   toast,
 }) => {
-  const normalizedUrl = normalizeDriveUrl(url);
+  const normalizedUrl = normalizeCloudinaryUrl(normalizeDriveUrl(url));
   if (!normalizedUrl) {
     throw new Error("Resume URL is missing");
   }
