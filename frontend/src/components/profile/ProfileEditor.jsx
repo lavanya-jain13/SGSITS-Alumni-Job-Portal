@@ -36,6 +36,19 @@ const ProfileEditor = ({ profileData, setProfileData, onSave }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   
+  const normalizeConsent = (data) => ({
+    dataConsent: Boolean(data?.consent?.dataSharing ?? data?.dataConsent),
+    contactPermissions: Boolean(
+      data?.consent?.marketingEmails ?? data?.contactPermissions
+    ),
+    profileVisibility: Boolean(
+      data?.consent?.profileVisibility ?? data?.profileVisibility
+    ),
+    codeOfConduct: Boolean(
+      data?.consent?.termsConditions ?? data?.codeOfConduct
+    ),
+  });
+
   // Local state for editing
   const buildInitial = () => ({
     ...profileData,
@@ -57,9 +70,9 @@ const ProfileEditor = ({ profileData, setProfileData, onSave }) => {
     consent: profileData.consent || {
       dataSharing: profileData.dataConsent || false,
       marketingEmails: profileData.contactPermissions || false,
-      profileVisibility: profileData.codeOfConduct || false,
-      termsConditions: profileData.codeOfConduct || false
-    }
+      profileVisibility: profileData.profileVisibility || false,
+      termsConditions: profileData.codeOfConduct || false,
+    },
   });
   const [editData, setEditData] = useState(buildInitial());
 
@@ -78,8 +91,9 @@ const ProfileEditor = ({ profileData, setProfileData, onSave }) => {
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      await onSave(editData);
-      setProfileData(editData);
+      const consentValues = normalizeConsent(editData);
+      await onSave({ ...editData, ...consentValues });
+      setProfileData({ ...editData, ...consentValues });
       setIsOpen(false);
       toast({
         title: "Profile updated!",
