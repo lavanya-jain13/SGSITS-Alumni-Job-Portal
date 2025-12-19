@@ -327,6 +327,7 @@ export function JobApplicants({
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [expandedSkills, setExpandedSkills] = useState(() => new Set());
   
   const branches = ["Computer Science Engineering", "Information Technology", "Electronics & Communication Engineering", "Electrical Engineering", "Mechanical Engineering", "Civil Engineering"];
   const statuses = ["pending", "accepted", "rejected", "on_hold"];
@@ -553,6 +554,18 @@ export function JobApplicants({
     setSelectedStatus("");
     setSelectedSkills([]);
     setSearchTerm("");
+  };
+
+  const toggleSkills = (id) => {
+    setExpandedSkills((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
   const updateStatus = async (applicationId, nextStatus) => {
@@ -819,11 +832,24 @@ export function JobApplicants({
                   <td className="p-4 align-middle">
                     {applicant.skills?.length ? (
                       <div className="flex flex-wrap gap-1">
-                        {applicant.skills.map((skill, index) => (
+                        {(expandedSkills.has(applicant.id)
+                          ? applicant.skills
+                          : applicant.skills.slice(0, 3)
+                        ).map((skill, index) => (
                           <Badge key={index} variant="secondary" className="text-xs">
                             {skill}
                           </Badge>
                         ))}
+                        {applicant.skills.length > 3 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleSkills(applicant.id)}
+                            className="h-6 px-2 text-xs"
+                          >
+                            {expandedSkills.has(applicant.id) ? "Show less" : "View more"}
+                          </Button>
+                        )}
                       </div>
                     ) : (
                       <span className="text-sm text-muted-foreground">N/A</span>

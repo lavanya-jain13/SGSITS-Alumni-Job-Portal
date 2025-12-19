@@ -1,97 +1,3 @@
-// import { Eye, MessageSquare, Star } from "lucide-react";
-// import { Button } from "@/components/ui/button";
-// import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-// import { Badge } from "@/components/ui/badge";
-
-// const applicants = [
-//   {
-//     id: 1,
-//     name: "John Doe",
-//     degree: "Computer Science",
-//     skills: ["React", "Node.js"],
-//     rating: 4.8,
-//     cgpa: "8.5",
-//   },
-//   {
-//     id: 2,
-//     name: "Jane Smith",
-//     degree: "Computer Science", 
-//     skills: ["Python", "ML"],
-//     rating: 4.6,
-//     cgpa: "8.2",
-//   },
-//   {
-//     id: 3,
-//     name: "Bob Johnson",
-//     degree: "Information Technology",
-//     skills: ["JavaScript", "React"],
-//     rating: 4.4,
-//     cgpa: "7.9",
-//   },
-// ];
-
-// export function TopApplicants() {
-//   return (
-//     <Card className="gradient-card shadow-glow">
-//       <CardHeader className="flex flex-row items-center justify-between">
-//         <CardTitle className="text-lg font-semibold">Top Applicants</CardTitle>
-//         <select className="rounded-md border border-input bg-background px-3 py-1 text-sm">
-//           <option>All Postings</option>
-//           <option>Software Engineer</option>
-//           <option>Data Analyst</option>
-//         </select>
-//       </CardHeader>
-//       <CardContent className="space-y-4">
-//         {applicants.map((applicant) => (
-//           <div
-//             key={applicant.id}
-//             className="flex items-center space-x-4 rounded-lg border border-border/50 p-4 transition-all hover:bg-accent/50"
-//           >
-//             <Avatar className="h-12 w-12">
-//               <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-//                 {applicant.name.split(" ").map(n => n[0]).join("")}
-//               </AvatarFallback>
-//             </Avatar>
-            
-//             <div className="flex-1 space-y-1">
-//               <div className="flex items-center justify-between">
-//                 <h4 className="font-medium">{applicant.name}</h4>
-//                 <div className="flex items-center space-x-1">
-//                   <Star className="h-4 w-4 fill-warning text-warning" />
-//                   <span className="text-sm font-medium">{applicant.rating}</span>
-//                 </div>
-//               </div>
-//               <p className="text-sm text-muted-foreground">{applicant.degree}</p>
-//               <div className="flex items-center space-x-2">
-//                 <span className="text-xs text-muted-foreground">CGPA: {applicant.cgpa}</span>
-//                 <div className="flex space-x-1">
-//                   {applicant.skills.map((skill) => (
-//                     <Badge key={skill} variant="secondary" className="text-xs">
-//                       {skill}
-//                     </Badge>
-//                   ))}
-//                 </div>
-//               </div>
-//             </div>
-            
-//             <div className="flex space-x-2">
-//               <Button size="sm" variant="outline">
-//                 <Eye className="h-4 w-4" />
-//                 <span className="ml-1 hidden sm:inline">View</span>
-//               </Button>
-//               <Button size="sm" variant="outline">
-//                 <MessageSquare className="h-4 w-4" />
-//                 <span className="ml-1 hidden sm:inline">Contact</span>
-//               </Button>
-//             </div>
-//           </div>
-//         ))}
-//       </CardContent>
-//     </Card>
-//   );
-// }
-
 import { useEffect, useMemo, useState } from "react";
 import { Eye, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -126,7 +32,8 @@ const splitSkills = (value) => {
     // fall back to delimiter split
   }
 
-  const cleaned = String(value).replace(/[{}\[\]"']/g, ""); // strip stray brackets/quotes if present (PG arrays)
+  // strip stray brackets/quotes if present (PG arrays)
+  const cleaned = String(value).replace(/[{}\[\]"']/g, "");
   const primarySplit = cleaned
     .split(/[,|]/)
     .map((s) => s.trim())
@@ -158,12 +65,14 @@ const computeMatch = (studentSkills = [], requiredSkills = []) => {
 
 export function TopApplicants() {
   const navigate = useNavigate();
+
   const [jobs, setJobs] = useState([]);
   const [selectedJobId, setSelectedJobId] = useState("");
   const [applicants, setApplicants] = useState([]);
   const [jobSkills, setJobSkills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [expandedSkills, setExpandedSkills] = useState(() => new Set());
 
   useEffect(() => {
     const loadJobs = async () => {
@@ -182,19 +91,23 @@ export function TopApplicants() {
         setLoading(false);
       }
     };
+
     loadJobs();
   }, []);
 
   useEffect(() => {
     const loadApplicants = async () => {
       if (!selectedJobId) return;
+
       setLoading(true);
       setError("");
+
       try {
         const [jobRes, appsRes] = await Promise.all([
           apiClient.getJobById(selectedJobId),
           apiClient.getJobApplicants(selectedJobId),
         ]);
+
         const requiredSkills = splitSkills(jobRes?.job?.skills_required);
         setJobSkills(requiredSkills);
 
@@ -202,6 +115,7 @@ export function TopApplicants() {
           const skills = splitSkills(app.student_skills);
           return {
             id: app.application_id,
+            applicationId: app.application_id,
             name: app.student_name || app.user_email || "Unknown",
             degree: app.student_branch || "N/A",
             student_branch: app.student_branch || "",
@@ -212,6 +126,7 @@ export function TopApplicants() {
             applied_at: app.applied_at,
             resume_url: app.resume_url || "",
             email: app.user_email || "",
+            user_id: app.user_id,
             phone: app.student_phone || "",
             location: app.location || app.student_location || "",
             status: app.application_status || "pending",
@@ -219,6 +134,7 @@ export function TopApplicants() {
             achievements: splitAchievements(app.student_achievements),
           };
         });
+
         setApplicants(normalized);
       } catch (err) {
         setError(err?.message || "Failed to load applicants");
@@ -231,10 +147,20 @@ export function TopApplicants() {
   }, [selectedJobId]);
 
   const topApplicants = useMemo(() => {
-    return [...applicants]
-      .sort((a, b) => b.match - a.match)
-      .slice(0, 5);
+    return [...applicants].sort((a, b) => b.match - a.match).slice(0, 5);
   }, [applicants]);
+
+  const toggleSkills = (id) => {
+    setExpandedSkills((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   return (
     <Card className="gradient-card shadow-glow">
@@ -245,6 +171,7 @@ export function TopApplicants() {
             Based on skill match for the selected job
           </p>
         </div>
+
         <select
           className="rounded-md border border-input bg-background px-3 py-1 text-sm"
           value={selectedJobId}
@@ -258,15 +185,14 @@ export function TopApplicants() {
           ))}
         </select>
       </CardHeader>
+
       <CardContent className="space-y-4">
         {loading ? (
           <div className="text-sm text-muted-foreground">Loading applicants…</div>
         ) : error ? (
           <div className="text-sm text-destructive">{error}</div>
         ) : topApplicants.length === 0 ? (
-          <div className="text-sm text-muted-foreground">
-            No applicants yet for this job.
-          </div>
+          <div className="text-sm text-muted-foreground">No applicants yet for this job.</div>
         ) : (
           topApplicants.map((applicant) => (
             <div
@@ -287,23 +213,34 @@ export function TopApplicants() {
                   <h4 className="font-medium">{applicant.name}</h4>
                   <div className="flex items-center space-x-1">
                     <Star className="h-4 w-4 fill-warning text-warning" />
-                    <span className="text-sm font-medium">
-                      {applicant.match}%
-                    </span>
+                    <span className="text-sm font-medium">{applicant.match}%</span>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {applicant.degree}
-                </p>
+
+                <p className="text-sm text-muted-foreground">{applicant.degree}</p>
+
                 <div className="flex items-center gap-2 flex-wrap">
                   {applicant.skills.length ? (
-                    applicant.skills.map((skill) => (
+                    (expandedSkills.has(applicant.id)
+                      ? applicant.skills
+                      : applicant.skills.slice(0, 3)
+                    ).map((skill) => (
                       <Badge key={skill} variant="secondary" className="text-xs">
                         {skill}
                       </Badge>
                     ))
                   ) : (
                     <span className="text-xs text-muted-foreground">No skills listed</span>
+                  )}
+                  {applicant.skills.length > 3 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleSkills(applicant.id)}
+                      className="h-6 px-2 text-xs"
+                    >
+                      {expandedSkills.has(applicant.id) ? "Show less" : "View more"}
+                    </Button>
                   )}
                 </div>
               </div>
@@ -325,6 +262,7 @@ export function TopApplicants() {
             </div>
           ))
         )}
+
         {jobSkills.length > 0 && (
           <div className="text-xs text-muted-foreground">
             Required skills: {jobSkills.join(", ")}
