@@ -1,0 +1,25 @@
+# focus on ignoring local envs
+backend/.env
+frontend/.env
+
+#other ignores
+CLAUDE.md
+deploy.py
+backup_with_env
+
+# Node
+node_modules
+
+# Logs
+npm-debug.log*
+dist
+
+env.local
+*.local
+
+# VS Code
+.vscode
+.idea
+
+# System
+.DS_Store
