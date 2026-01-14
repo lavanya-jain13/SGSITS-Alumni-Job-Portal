@@ -22,8 +22,7 @@ const buildCookieOptions = () => {
   const isLocalhost =
     frontendUrl.includes("localhost") || frontendUrl.includes("127.0.0.1");
   const isHttps = frontendUrl.startsWith("https://");
-  const sameSite =
-    process.env.COOKIE_SAMESITE || (isHttps ? "none" : "lax");
+  const sameSite = process.env.COOKIE_SAMESITE || (isHttps ? "none" : "lax");
   const secure =
     process.env.COOKIE_SECURE === "true" || (isHttps && sameSite === "none");
 
@@ -39,8 +38,16 @@ const buildCookieOptions = () => {
 // ==================== REGISTER STUDENT ====================
 const registerStudent = async (req, res) => {
   try {
-    const { name, role, email, password_hash, branch, gradYear, student_id, otp } =
-      req.body;
+    const {
+      name,
+      role,
+      email,
+      password_hash,
+      branch,
+      gradYear,
+      student_id,
+      otp,
+    } = req.body;
 
     const normalizedRole = (role || "student").toLowerCase();
 
@@ -53,7 +60,9 @@ const registerStudent = async (req, res) => {
       !student_id ||
       !otp
     ) {
-      return res.status(400).json({ error: "All fields (including OTP) are required" });
+      return res
+        .status(400)
+        .json({ error: "All fields (including OTP) are required" });
     }
     if (email.split("@")[1] !== "sgsits.ac.in") {
       return res.status(400).json({ error: "Email is not authorised" });
@@ -85,11 +94,16 @@ const registerStudent = async (req, res) => {
         .json({ error: "User with this email already exists" });
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedOtp = String(otp);
+
+
     // Validate OTP before creating the account
     const otpEntry = await db("otp_verifications")
-      .where({ email, otp })
-      .andWhere("expires_at", ">", new Date())
+      .where({ email: normalizedEmail, otp: normalizedOtp })
+      .andWhere("expires_at", ">", db.fn.now())
       .first();
+    console.log(otpEntry);
 
     if (!otpEntry) {
       return res.status(400).json({ error: "Invalid or expired OTP" });
@@ -191,12 +205,21 @@ const login = async (req, res) => {
 
 // ==================== REGISTER ALUMNI ====================
 const registerAlumni = async (req, res) => {
-  const { name, grad_year, email, password_hash, current_title, otp } = req.body;
+  const { name, grad_year, email, password_hash, current_title, otp } =
+    req.body;
 
-  if (!name || !email || !password_hash || !current_title || !grad_year || !otp) {
-    return res.status(400).json({ error: "All fields (including OTP) are required" });
+  if (
+    !name ||
+    !email ||
+    !password_hash ||
+    !current_title ||
+    !grad_year ||
+    !otp
+  ) {
+    return res
+      .status(400)
+      .json({ error: "All fields (including OTP) are required" });
   }
-  
 
   // ✅ Enforce business/company email
   const corporateDomains = [
@@ -214,12 +237,12 @@ const registerAlumni = async (req, res) => {
     const domain = email.split("@")[1].toLowerCase();
     return !corporateDomains.includes(domain);
   }
-  
+
   if (!isBusinessEmail(email)) {
     return res
       .status(400)
       .json({ error: "Please use a valid business/company email ID" });
-  }else{
+  } else {
   }
 
   try {
@@ -249,27 +272,27 @@ const registerAlumni = async (req, res) => {
     }
 
     const role = "alumni";
-  
-  const hashedPassword = await bcrypt.hash(password_hash, 10);
-  let createdUser = null;
-  await db.transaction(async (trx) => {
-    const [newUser] = await trx("users").insert(
-      {
+
+    const hashedPassword = await bcrypt.hash(password_hash, 10);
+    let createdUser = null;
+    await db.transaction(async (trx) => {
+      const [newUser] = await trx("users").insert(
+        {
+          email,
+          password_hash: hashedPassword,
+          role,
+          status: "pending",
+          is_verified: true,
+        },
+        ["id"] // important: this returns the id (Postgres syntax)
+      );
+
+      createdUser = {
+        id: newUser.id,
         email,
-        password_hash: hashedPassword,
         role,
         status: "pending",
-        is_verified: true,
-      },
-      ["id"] // important: this returns the id (Postgres syntax)
-    );
-
-    createdUser = {
-      id: newUser.id,
-      email,
-      role,
-      status: "pending",
-    };
+      };
 
       const [newAlumni] = await trx("alumni_profiles").insert(
         {
@@ -315,7 +338,8 @@ const registerAlumni = async (req, res) => {
 
 // ==================== OTP GENERATION ====================
 const generateOTP = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString(); // always 6 digits
+  return Math.floor(100000 + Math.random() * 900000).toString();
+  console.log("Generated OTP:", Math.floor(100000 + Math.random())); // always 6 digits
 };
 
 // ==================== FORGOT PASSWORD: GENERATE OTP ====================
@@ -405,7 +429,10 @@ const resetPasswordWithOTP = async (req, res) => {
         `,
       });
     } catch (emailErr) {
-      console.error("Password reset confirmation email error:", emailErr.message);
+      console.error(
+        "Password reset confirmation email error:",
+        emailErr.message
+      );
     }
 
     res.json({ message: "Password reset successful" });
@@ -425,20 +452,24 @@ const generateEmailVerificationOTP = async (req, res) => {
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
+     const normalizedEmail = email.trim().toLowerCase();
+
     // Ensure only the latest OTP is valid
-    await db("otp_verifications").where({ email }).del();
+    await db("otp_verifications").where({ email: normalizedEmail }).del();
+    console.log(otp);
 
     await db("otp_verifications").insert({
-      email,
+      email: normalizedEmail,
       otp,
       expires_at: expiresAt,
     });
+    console.log(email, otp, expiresAt);
 
     await sendEmail({
       to: email,
       subject: "Email Verification OTP",
       text: `Your verification OTP is: ${otp}. This code expires in 10 minutes.`,
-       html: `
+      html: `
        <div style="font-family: Arial, sans-serif; padding: 20px;">
        <h2 style="color: #333;">Email Verification</h2>
        <p>Your verification OTP is: <strong style="font-size: 24px; color: #007bff;">${otp}</strong></p>
@@ -460,23 +491,23 @@ const verifyEmailWithOTP = async (req, res) => {
 
   if (!email || !otp)
     return res.status(400).json({ error: "Email and OTP are required" });
-
+   const normalizedEmail = email.trim().toLowerCase();
   try {
     const otpEntry = await db("otp_verifications")
-      .where({ email, otp })
-      .andWhere("expires_at", ">", new Date())
+      .where({ email: normalizedEmail, otp })
+      .andWhere("expires_at", ">", db.fn.now())
       .first();
 
     if (!otpEntry)
       return res.status(400).json({ error: "Invalid or expired OTP" });
 
     // Consume OTP on first successful check so it can't be reused.
-    await db("otp_verifications").where({ email, otp }).del();
+    await db("otp_verifications").where({ email: normalizedEmail, otp }).del();
 
-    const user = await db("users").where({ email }).first();
+    const user = await db("users").where({ email: normalizedEmail }).first();
 
     if (user) {
-      await db("users").where({ email }).update({ is_verified: true });
+      await db("users").where({ email: normalizedEmail }).update({ is_verified: true });
       return res.json({ message: "Email verified successfully" });
     }
 
