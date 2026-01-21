@@ -122,7 +122,12 @@ export const apiClient = {
       body: JSON.stringify(body), 
     }), 
   getMyCompanies: () => apiFetch("/alumni/companies"), 
-  getCompanyById: (id) => apiFetch(`/alumni/companies/${id}`), 
+  getCompanyById: (id) => apiFetch(`/alumni/companies/${id}`),
+  getAllCompaniesPublic: () => apiFetch("/job/companies-public", { method: "GET" }),
+  getCompanyByIdPublic: (id) => apiFetch(`/job/companies-public/${id}`, { method: "GET" }),
+  getCompanyJobsPublic: (companyId, page = 1, limit = 20) => 
+    apiFetch(`/job/companies-public/${companyId}/jobs?page=${page}&limit=${limit}`, { method: "GET" }),
+  getFeaturedJobsPublic: (limit = 6) => apiFetch(`/job/featured-jobs-public?limit=${limit}`, { method: "GET" }), 
   updateCompany: (id, body) => 
     apiFetch(`/alumni/companies/${id}`, { 
       method: "PUT", 

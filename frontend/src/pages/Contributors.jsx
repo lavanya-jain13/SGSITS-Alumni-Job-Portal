@@ -12,6 +12,7 @@ import MohammedLakhrawala from "@/assets/contributors/Mohammed Lakhrawala.jpg";
 import AbhishekSinghChauhan from "@/assets/contributors/Abhishek Singh Chauhan.jpg";
 import AtharavChopda from "@/assets/contributors/Atharav Chopda.jpg";
 import HarshitaPandey from "@/assets/contributors/Harshita Pandey.jpg";
+import ShauryaMishra from "@/assets/contributors/Shaurya Mishra.jpg";
 import { Trophy, Users, Briefcase } from "lucide-react";
 
 // --- Data Definitions (Kept the same) ---
@@ -46,7 +47,7 @@ const developers = [
   { name: "Akshat Jain", role: "Developer", image: AkshatJain },
   { name: "Durva Jain", role: "Developer", image: DurvaJain },
   { name: "Atharva Chopra", role: "Developer", image: AtharavChopda },
-  { name: "Shaurya Mishra", role: "Developer", initials: "SM" },
+  { name: "Shaurya Mishra", role: "Developer", image: ShauryaMishra },
 ];
 
 // --- Enhanced Contributor Card Component ---

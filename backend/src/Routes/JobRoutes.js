@@ -121,4 +121,25 @@ authenticate,
 isStudent, 
 jobController.checkJobApplicationStatus 
 ); 
+// ================== PUBLIC ROUTES ================== 
+// 20. Get all approved companies with active job counts (public, no auth required)
+router.get(
+"/companies-public",
+jobController.getAllCompaniesPublic
+);
+// 21. Get company by ID (public, no auth required)
+router.get(
+"/companies-public/:id",
+jobController.getCompanyByIdPublic
+);
+// 22. Get jobs posted by a company (public, no auth required)
+router.get(
+"/companies-public/:companyId/jobs",
+jobController.getCompanyJobsPublic
+);
+// 23. Get featured jobs for landing page (public, no auth required)
+router.get(
+"/featured-jobs-public",
+jobController.getFeaturedJobsPublic
+);
 module.exports = router; 
