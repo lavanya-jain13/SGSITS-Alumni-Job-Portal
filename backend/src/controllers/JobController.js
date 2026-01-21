@@ -1083,4 +1083,250 @@ applied_at: app.applied_at,
 console.error("checkJobApplicationStatus error:", err); 
 return res.status(500).json({ error: "Server error" }); 
 } 
+};
+
+// Public endpoint: Get all approved companies with active job counts
+exports.getAllCompaniesPublic = async (req, res) => {
+  try {
+    // Get all approved companies
+    const companies = await db("companies")
+      .whereRaw("LOWER(status) = 'approved' OR status IS NULL")
+      .select(
+        "id",
+        "name",
+        "industry",
+        "company_size",
+        "website",
+        "linkedin",
+        "twitter",
+        "office_location"
+      )
+      .orderBy("name", "asc");
+
+    // Get active job counts for each company (case-insensitive)
+    const jobCounts = await db("jobs")
+      .whereRaw("LOWER(status) = 'active'")
+      .select("company_id")
+      .count("* as active_jobs")
+      .groupBy("company_id");
+
+    // Create a map of company_id -> active_jobs
+    const jobCountMap = {};
+    jobCounts.forEach((item) => {
+      jobCountMap[item.company_id] = Number(item.active_jobs || 0);
+    });
+
+    // Merge job counts with companies
+    const companiesWithJobs = companies.map((company) => ({
+      ...company,
+      activeJobs: jobCountMap[company.id] || 0,
+    }));
+
+    // Filter to only show companies with at least 1 active job, then sort by job count
+    const filtered = companiesWithJobs
+      .filter((c) => c.activeJobs > 0)
+      .sort((a, b) => b.activeJobs - a.activeJobs);
+
+    return res.json({ companies: filtered });
+  } catch (err) {
+    console.error("getAllCompaniesPublic error:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+};
+
+// Public endpoint: Get limited active jobs for landing page (no auth)
+exports.getFeaturedJobsPublic = async (req, res) => {
+  try {
+    const limit = Number(req.query.limit) || 6; // Default to 6 jobs
+    const jobs = await db("jobs as j")
+      .leftJoin("companies as c", "j.company_id", "c.id")
+      .whereRaw("LOWER(j.status) = 'active'")
+      .select(
+        "j.id",
+        "j.job_title",
+        "j.job_description",
+        "j.job_type",
+        "j.location",
+        "j.allowed_branches",
+        "j.experience_required",
+        "j.stipend",
+        "j.salary_range",
+        "j.ctc_type",
+        "j.min_ctc",
+        "j.max_ctc",
+        "j.skills_required",
+        "j.work_mode",
+        "c.name as company_name"
+      )
+      .orderBy("j.created_at", "desc")
+      .limit(limit);
+
+    // Map allowed_branches to array if stored as string
+    const mappedJobs = jobs.map(job => ({
+      ...job,
+      allowed_branches: Array.isArray(job.allowed_branches)
+        ? job.allowed_branches
+        : String(job.allowed_branches || '').split(',').map(b => b.trim()).filter(Boolean),
+      tags: Array.isArray(job.skills_required)
+        ? job.skills_required
+        : String(job.skills_required || '').split(',').map(s => s.trim()).filter(Boolean),
+    }));
+
+    return res.json({ jobs: mappedJobs });
+  } catch (err) {
+    console.error("getFeaturedJobsPublic error:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+};
+
+// Public endpoint: Get company by ID (for public viewing)
+exports.getCompanyByIdPublic = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get approved company (no auth required)
+    let company;
+    try {
+      company = await db("companies")
+        .where({ id })
+        .whereRaw("LOWER(status) = 'approved' OR status IS NULL")
+        .select(
+          "id",
+          "name",
+          "industry",
+          "company_size",
+          "website",
+          "about",
+          "linkedin",
+          "twitter",
+          "office_location",
+          "company_culture",
+          "created_at"
+        )
+        .first();
+    } catch (err) {
+      console.error("Get Company column mismatch, falling back:", err.message);
+      company = await db("companies")
+        .where({ id })
+        .whereRaw("LOWER(status) = 'approved' OR status IS NULL")
+        .select(
+          "id",
+          "name",
+          "industry",
+          "company_size",
+          "website",
+          "about",
+          "status",
+          "created_at",
+          "linkedin_url",
+          "twitter_url",
+          "office_locations",
+          db.raw("NULL as linkedin"),
+          db.raw("NULL as twitter"),
+          db.raw("NULL as office_location"),
+          db.raw("NULL as company_culture")
+        )
+        .first();
+    }
+
+    if (!company) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+
+    // Get active jobs count
+    const [{ count: activeJobsRaw } = { count: 0 }] = await db("jobs")
+      .where({ company_id: id })
+      .andWhereRaw("LOWER(status) = 'active'")
+      .count("* as count");
+
+    const [{ count: alumniHiredRaw } = { count: 0 }] = await db("job_applications as ja")
+      .join("jobs as j", "ja.job_id", "j.id")
+      .where("j.company_id", id)
+      .andWhereRaw("LOWER(ja.status) = 'accepted'")
+      .count("* as count");
+
+    // Helper to split office locations
+    const splitOfficeLocations = (val) => {
+      if (!val) return [];
+      if (Array.isArray(val)) return val;
+      return String(val).split("|").map((s) => s.trim()).filter(Boolean);
+    };
+
+    const normalized = {
+      ...company,
+      office_locations: splitOfficeLocations(company.office_locations || company.office_location),
+      company_culture: company.company_culture || null,
+      linkedin_url: company.linkedin_url || company.linkedin || null,
+      twitter_url: company.twitter_url || company.twitter || null,
+      activeJobs: Number(activeJobsRaw || 0),
+      alumniHired: Number(alumniHiredRaw || 0),
+    };
+
+    return res.json({ company: normalized });
+  } catch (error) {
+    console.error("Get Company Public Error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Public endpoint: Get jobs posted by a specific company
+exports.getCompanyJobsPublic = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+    const offset = (page - 1) * limit;
+
+    // Verify company exists and is approved
+    const company = await db("companies")
+      .where({ id: companyId })
+      .whereRaw("LOWER(status) = 'approved' OR status IS NULL")
+      .first();
+
+    if (!company) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+
+    // Get active jobs for this company
+    const baseQuery = db("jobs as j")
+      .leftJoin("companies as c", "j.company_id", "c.id")
+      .where("j.company_id", companyId)
+      .andWhereRaw("LOWER(j.status) = 'active'")
+      .select(
+        "j.id",
+        "j.job_title",
+        "j.job_description",
+        "j.location",
+        "j.job_type",
+        "j.experience_required",
+        "j.application_deadline",
+        "j.created_at",
+        "j.updated_at",
+        "j.allowed_branches",
+        "j.stipend",
+        "j.salary_range",
+        "j.ctc_type",
+        "j.min_ctc",
+        "j.max_ctc",
+        "j.skills_required",
+        "j.work_mode",
+        "j.status",
+        "c.name as company_name"
+      );
+
+    const [jobs, [{ total }]] = await Promise.all([
+      baseQuery.clone().orderBy("j.created_at", "desc").limit(limit).offset(offset),
+      baseQuery.clone().clearSelect().count({ total: "*" }),
+    ]);
+
+    return res.json({
+      jobs,
+      page,
+      limit,
+      total: Number(total),
+    });
+  } catch (error) {
+    console.error("Get Company Jobs Public Error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 }; 

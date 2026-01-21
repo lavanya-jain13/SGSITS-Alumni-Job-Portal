@@ -22,6 +22,7 @@ const ApplicationsOverview = lazy(() => import("./pages/admin/ApplicationsOvervi
 const Index = lazy(() => import("./pages/Index"));
 const Jobs = lazy(() => import("./pages/Jobs"));
 const JobDetails = lazy(() => import("./pages/JobDetails"));
+const JobsMatchingProfile = lazy(() => import("./pages/JobsMatchingProfile"));
 const Login = lazy(() => import("./pages/auth/Login"));
 const SignUp = lazy(() => import("./pages/auth/SignUp"));
 const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
@@ -47,6 +48,7 @@ const AlumniJobDetails = lazy(() => import("./pages/AlumniJobDetails"));
 /* ------------------ Shared ------------------ */
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Contributors = lazy(() => import("./pages/Contributors"));
+const PublicCompanyProfile = lazy(() => import("./pages/PublicCompanyProfile"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -91,17 +93,19 @@ export default function App() {
             />
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/jobs/:id" element={<JobDetails />} />
+            <Route path="/company/:id" element={<PublicCompanyProfile />} />
+            <Route
+              path="/jobs/matching"
+              element={
+                <RequireAuth allowedRoles={["student"]}>
+                  <JobsMatchingProfile />
+                </RequireAuth>
+              }
+            />
             <Route path="/contributors" element={<Contributors />} />
 
             {/* ---------- Auth routes ---------- */}
-            <Route
-              path="/login"
-              element={
-                <RedirectIfAuthed>
-                  <Login />
-                </RedirectIfAuthed>
-              }
-            />
+            <Route path="/login" element={<Login />} />
             <Route
               path="/signup"
               element={

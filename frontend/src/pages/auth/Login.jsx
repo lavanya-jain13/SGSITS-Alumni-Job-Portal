@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, GraduationCap, ArrowRight } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { apiClient } from "@/lib/api";
 import { useDispatch, useSelector } from "react-redux";
 import { loginSuccess, selectAuth } from "@/store/authSlice";
@@ -18,8 +18,15 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector(selectAuth);
+
+  // Capture the intended redirect target once (e.g., /jobs/matching) so it
+  // persists across renders and after login.
+  const redirectPathRef = useRef(
+    location.state?.from?.pathname ? location.state.from.pathname : null
+  );
 
   const [formData, setFormData] = useState({
     email: "",
@@ -34,12 +41,14 @@ const Login = () => {
     return "/dashboard";
   };
 
-  // If already signed in, keep users on their dashboard instead of showing login
+  // If already signed in, send them back to where they came from or their dashboard
   useEffect(() => {
     if (isAuthenticated && user?.role) {
-      navigate(getTargetForRole(user.role), { replace: true });
+      const from = redirectPathRef.current || location.state?.from?.pathname;
+      const target = from || getTargetForRole(user.role);
+      navigate(target, { replace: true, state: {} });
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, location.state]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -53,15 +62,19 @@ const Login = () => {
 
       dispatch(loginSuccess({ user: response.user }));
 
-      // Redirect based on user role
-      const target = getTargetForRole(response.user.role);
-      const roleLabel = (response.user.role || "").toLowerCase();
+      const from = redirectPathRef.current || location.state?.from?.pathname;
+      const target = from || getTargetForRole(response.user.role);
+      const roleLabel = from
+        ? "next step"
+        : (response.user.role || "").toLowerCase();
       toast({
         title: "Welcome back!",
-        description: `Taking you to your ${roleLabel} dashboard.`,
+        description: from
+          ? "Taking you back to where you left off."
+          : `Taking you to your ${roleLabel} dashboard.`,
         variant: "default",
       });
-      navigate(target, { replace: true });
+      navigate(target, { replace: true, state: {} });
 
     } catch (error) {
       toast({
