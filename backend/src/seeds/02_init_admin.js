@@ -24,6 +24,6 @@ exports.seed = async function (knex) {
     is_verified: true,
     status: "approved",
   });
-
+  console.log("Initialized admin user: ${email}" + "MMMMMMMMMMMMMMMMMMMMMMMMM");
   return;
 };

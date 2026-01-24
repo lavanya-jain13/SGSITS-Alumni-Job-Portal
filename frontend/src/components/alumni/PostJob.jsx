@@ -426,7 +426,7 @@ export function PostJob() {
                 }
               />
               <div className="text-sm text-muted-foreground">
-                {formData.description.length}/2200 characters minimum
+                {formData.description.length}/2200 characters maximum
               </div>
             </div>
 

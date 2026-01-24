@@ -13,6 +13,7 @@ const {
   sendNotification,
   promoteUserToAdmin,
   getAdminStats,
+  adminviewJobApplicants,
 } = require("../controllers/AdminController");
 const { authenticate, isAdmin } = require("../middleware/authMiddleware");
 
@@ -30,13 +31,13 @@ router.patch(
   "/companies/:companyId/approve",
   authenticate,
   isAdmin,
-  approveAlumni
+  approveAlumni,
 );
 router.patch(
   "/companies/:companyId/reject",
   authenticate,
   isAdmin,
-  rejectAlumni
+  rejectAlumni,
 );
 
 // Job Oversight
@@ -45,7 +46,12 @@ router.delete("/jobs/:id", authenticate, isAdmin, deleteJobAdmin);
 
 // Applications Oversight
 router.get("/applications", authenticate, isAdmin, getAllApplicationsAdmin);
-router.get("/jobs/:jobId/applications", authenticate, isAdmin, getJobApplicationsAdmin);
+router.get(
+  "/jobs/:jobId/applications",
+  authenticate,
+  isAdmin,
+  getJobApplicationsAdmin,
+);
 
 // User Management
 router.get("/users", authenticate, isAdmin, getAllUsers);
@@ -54,5 +60,11 @@ router.patch("/users/:id/promote", authenticate, isAdmin, promoteUserToAdmin);
 
 // Notifications
 router.post("/notify", authenticate, isAdmin, sendNotification);
+router.get(
+  "/jobs/:jobId/applications",
+  authenticate,
+  isAdmin,
+  adminviewJobApplicants,
+);
 
 module.exports = router;

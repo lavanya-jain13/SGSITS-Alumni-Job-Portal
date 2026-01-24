@@ -103,7 +103,7 @@ const registerStudent = async (req, res) => {
       .where({ email: normalizedEmail, otp: normalizedOtp })
       .andWhere("expires_at", ">", db.fn.now())
       .first();
-    console.log(otpEntry);
+    console.log(otpEntry+"IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII");
 
     if (!otpEntry) {
       return res.status(400).json({ error: "Invalid or expired OTP" });
@@ -339,7 +339,7 @@ const registerAlumni = async (req, res) => {
 // ==================== OTP GENERATION ====================
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
-  console.log("Generated OTP:", Math.floor(100000 + Math.random())); // always 6 digits
+  console.log("Generated OTP:", Math.floor(100000 + Math.random())+"UUUUUUUUUUUUUUUUUUUUUUUUU"); // always 6 digits
 };
 
 // ==================== FORGOT PASSWORD: GENERATE OTP ====================
@@ -456,14 +456,14 @@ const generateEmailVerificationOTP = async (req, res) => {
 
     // Ensure only the latest OTP is valid
     await db("otp_verifications").where({ email: normalizedEmail }).del();
-    console.log(otp);
+    console.log(otp+"OOOOOOOOOOOOOOOOOOOOOOOOOOOO");
 
     await db("otp_verifications").insert({
       email: normalizedEmail,
       otp,
       expires_at: expiresAt,
     });
-    console.log(email, otp, expiresAt);
+    console.log(email, otp, expiresAt+"PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP");
 
     await sendEmail({
       to: email,
@@ -502,7 +502,7 @@ const verifyEmailWithOTP = async (req, res) => {
       return res.status(400).json({ error: "Invalid or expired OTP" });
 
     // Consume OTP on first successful check so it can't be reused.
-    await db("otp_verifications").where({ email: normalizedEmail, otp }).del();
+    // await db("otp_verifications").where({ email: normalizedEmail, otp }).del();
 
     const user = await db("users").where({ email: normalizedEmail }).first();
 

@@ -488,7 +488,7 @@ export default function JobDetails() {
         if (mounted) {
           setJobDetails(res?.job || null);
           setApplicantCount(
-            res?.job?.applicants_count || res?.job?.applications_count || 0
+            res?.job?.applicants_count || res?.job?.applications_count || 0,
           );
 
           // fetch a few similar jobs (simple: other active jobs excluding current)
@@ -654,8 +654,8 @@ export default function JobDetails() {
                       displayJob.type === "Full-time"
                         ? "bg-orange-100 text-orange-800 border-orange-200"
                         : displayJob.type === "Internship"
-                        ? "bg-blue-100 text-blue-800 border-blue-200"
-                        : "bg-green-100 text-green-800 border-green-200"
+                          ? "bg-blue-100 text-blue-800 border-blue-200"
+                          : "bg-green-100 text-green-800 border-green-200"
                     }
                   >
                     {displayJob.type}
@@ -690,7 +690,7 @@ export default function JobDetails() {
                 </div>
 
                 <div className="text-lg font-semibold text-primary">
-                  {displayJob.stipend}
+                  {"Stipend upto -: "+displayJob.stipend+" INR"}
                 </div>
               </CardContent>
             </Card>
@@ -731,7 +731,7 @@ export default function JobDetails() {
                     <ul className="space-y-3">
                       {toArray(
                         jobDetails?.key_responsibilities ||
-                          jobDetails?.responsibilities
+                          jobDetails?.responsibilities,
                       ).map((responsibility, index) => (
                         <li key={index} className="flex items-start space-x-2">
                           <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
@@ -759,7 +759,7 @@ export default function JobDetails() {
                             <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                             <span className="text-sm">{requirement}</span>
                           </li>
-                        )
+                        ),
                       )}
                     </ul>
                   </CardContent>
@@ -774,7 +774,7 @@ export default function JobDetails() {
                   <CardContent>
                     <ul className="space-y-3">
                       {toArray(
-                        jobDetails?.eligibility || jobDetails?.allowed_branches
+                        jobDetails?.eligibility || jobDetails?.allowed_branches,
                       ).map((criteria, index) => (
                         <li key={index} className="flex items-start space-x-2">
                           <BookOpen className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
@@ -843,8 +843,8 @@ export default function JobDetails() {
                   {isApplying
                     ? "Submitting..."
                     : profileComplete
-                    ? "Apply Now"
-                    : "Complete Profile to Apply"}
+                      ? "Apply Now"
+                      : "Complete Profile to Apply"}
                 </Button>
 
                 <div className="text-center text-sm text-muted-foreground">

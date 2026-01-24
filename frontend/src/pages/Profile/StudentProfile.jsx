@@ -94,10 +94,11 @@ const StudentProfile = () => {
         URL.revokeObjectURL(tempResumeUrl);
       }
     },
-    [tempResumeUrl]
+    [tempResumeUrl],
   );
   const viewResumeEnabled =
-    profileData.resumeUploaded && (profileData.resumeUrl || profileData.resumeFile);
+    profileData.resumeUploaded &&
+    (profileData.resumeUrl || profileData.resumeFile);
 
   const handleViewResume = () => {
     if (!viewResumeEnabled) {
@@ -184,7 +185,7 @@ const StudentProfile = () => {
           }));
           setDesiredRolesInput((extras.desiredRoles || []).join(", "));
           setPreferredLocationsInput(
-            (extras.preferredLocations || []).join(", ")
+            (extras.preferredLocations || []).join(", "),
           );
           return;
         }
@@ -196,9 +197,7 @@ const StudentProfile = () => {
               .map((r) => r.trim())
               .filter(Boolean);
 
-        const preferredLocationsArr = Array.isArray(
-          profile.preferred_locations
-        )
+        const preferredLocationsArr = Array.isArray(profile.preferred_locations)
           ? profile.preferred_locations
           : (profile.preferred_locations || "")
               .split(",")
@@ -212,25 +211,29 @@ const StudentProfile = () => {
               .map((s) => s.trim())
               .filter(Boolean);
 
-        const normalizedSkills = (skillList || []).map((s) => {
-          if (typeof s === "string") {
-            return { name: s, proficiency: 3, experience: 1 };
-          }
-          if (s && typeof s === "object") {
-            return {
-              name: s.name || "",
-              proficiency:
-                Number.isFinite(Number(s.proficiency)) && Number(s.proficiency) > 0
-                  ? Number(s.proficiency)
-                  : 3,
-              experience:
-                Number.isFinite(Number(s.experience)) && Number(s.experience) >= 0
-                  ? Number(s.experience)
-                  : 1,
-            };
-          }
-          return null;
-        }).filter(Boolean);
+        const normalizedSkills = (skillList || [])
+          .map((s) => {
+            if (typeof s === "string") {
+              return { name: s, proficiency: 3, experience: 1 };
+            }
+            if (s && typeof s === "object") {
+              return {
+                name: s.name || "",
+                proficiency:
+                  Number.isFinite(Number(s.proficiency)) &&
+                  Number(s.proficiency) > 0
+                    ? Number(s.proficiency)
+                    : 3,
+                experience:
+                  Number.isFinite(Number(s.experience)) &&
+                  Number(s.experience) >= 0
+                    ? Number(s.experience)
+                    : 1,
+              };
+            }
+            return null;
+          })
+          .filter(Boolean);
 
         const experienceList = Array.isArray(profile.experiences)
           ? profile.experiences.map((exp) => ({
@@ -294,9 +297,7 @@ const StudentProfile = () => {
         }));
 
         setDesiredRolesInput((desiredRolesArr || []).join(", "));
-        setPreferredLocationsInput(
-          (preferredLocationsArr || []).join(", ")
-        );
+        setPreferredLocationsInput((preferredLocationsArr || []).join(", "));
       } catch (err) {
         console.error("Failed to load profile", err);
         // If the session is invalid/expired, clear and force re-login
@@ -395,7 +396,7 @@ const StudentProfile = () => {
 
   const completionPercentage = profileSections.reduce(
     (total, section) => total + (section.completed ? section.weight : 0),
-    0
+    0,
   );
 
   const branches = [
@@ -478,7 +479,7 @@ const StudentProfile = () => {
             exp.company ||
             exp.duration ||
             exp.description ||
-            exp.link
+            exp.link,
         );
 
       const basePayload = {
@@ -508,9 +509,7 @@ const StudentProfile = () => {
                   ? proficiency
                   : 3,
               experience:
-                Number.isFinite(experience) && experience >= 0
-                  ? experience
-                  : 0,
+                Number.isFinite(experience) && experience >= 0 ? experience : 0,
             };
           })
           .filter((s) => s && s.name),
@@ -534,7 +533,11 @@ const StudentProfile = () => {
         const isEmptyArray = Array.isArray(val) && val.length === 0;
         const isEmptyString = val === "";
         const isUndefined = val === undefined || val === null;
-        if (isEmptyString || isUndefined || (key !== "skills" && isEmptyArray)) {
+        if (
+          isEmptyString ||
+          isUndefined ||
+          (key !== "skills" && isEmptyArray)
+        ) {
           delete basePayload[key];
         }
       });
@@ -567,7 +570,7 @@ const StudentProfile = () => {
           }
           if (!r.ok) {
             const err = new Error(
-              parsed?.error || parsed?.message || r.statusText
+              parsed?.error || parsed?.message || r.statusText,
             );
             err.status = r.status;
             throw err;
@@ -638,7 +641,7 @@ const StudentProfile = () => {
     setProfileData((prev) => ({
       ...prev,
       skills: (prev.skills || []).map((s) =>
-        s.name === skillName ? { ...s, [field]: value } : s
+        s.name === skillName ? { ...s, [field]: value } : s,
       ),
     }));
   };
@@ -757,13 +760,25 @@ const StudentProfile = () => {
                           id="email"
                           type="email"
                           value={profileData.email}
-                          onChange={(e) =>
-                            setProfileData((prev) => ({
-                              ...prev,
-                              email: e.target.value,
-                            }))
-                          }
-                          placeholder="Enter your email"
+                          onChange={(e) => {
+                            const value = e.target.value;
+
+                            // block empty
+                            if (!value) return;
+
+                            // split after @ and validate domain
+                            const parts = value.split("@");
+                            if (
+                              parts.length === 2 &&
+                              parts[1] === "sgsits.ac.in"
+                            ) {
+                              setProfileData((prev) => ({
+                                ...prev,
+                                email: value,
+                              }));
+                            }
+                          }}
+                          placeholder="Enter your institute email"
                         />
                       </div>
                       <div className="space-y-2">
@@ -958,8 +973,8 @@ const StudentProfile = () => {
                             .filter(
                               (skill) =>
                                 !(profileData.skills || []).find(
-                                  (s) => s.name === skill
-                                )
+                                  (s) => s.name === skill,
+                                ),
                             )
                             .map((skill) => (
                               <SelectItem key={skill} value={skill}>
@@ -1003,7 +1018,7 @@ const StudentProfile = () => {
                                       updateSkill(
                                         skill.name,
                                         "proficiency",
-                                        level
+                                        level,
                                       )
                                     }
                                   >
@@ -1026,7 +1041,7 @@ const StudentProfile = () => {
                                   updateSkill(
                                     skill.name,
                                     "experience",
-                                    parseFloat(e.target.value) || 0
+                                    parseFloat(e.target.value) || 0,
                                   )
                                 }
                                 placeholder="1.5"

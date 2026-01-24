@@ -25,7 +25,7 @@
 //   {
 //     id: 2,
 //     name: "Mike Wilson",
-//     class: "Class of 2024", 
+//     class: "Class of 2024",
 //     branch: "Information Technology",
 //     applicationTime: "6 Jan 2024, 05:00 pm",
 //     skillMatch: 88,
@@ -38,7 +38,7 @@
 //     name: "John Doe",
 //     class: "Class of 2024",
 //     branch: "Computer Science",
-//     applicationTime: "10 Jan 2024, 04:00 pm", 
+//     applicationTime: "10 Jan 2024, 04:00 pm",
 //     skillMatch: 85,
 //     skills: ["Python", "Django", "JavaScript"],
 //     status: "Submitted",
@@ -47,12 +47,12 @@
 //   {
 //     id: 4,
 //     name: "Bob Johnson",
-//     class: "Class of 2024", 
+//     class: "Class of 2024",
 //     branch: "Computer Science",
 //     applicationTime: "8 Jan 2024, 02:50 pm",
 //     skillMatch: 78,
 //     skills: ["JavaScript", "Node.js", "MongoDB"],
-//     status: "Submitted", 
+//     status: "Submitted",
 //     statusColor: "bg-yellow-100 text-yellow-800"
 //   }
 // ];
@@ -63,7 +63,7 @@
 //   const [selectedBranches, setSelectedBranches] = useState([]);
 //   const [selectedStatus, setSelectedStatus] = useState("");
 //   const [sortBy, setSortBy] = useState("relevance");
-  
+
 //   const branches = ["Computer Science", "Information Technology"];
 //   const statuses = ["Shortlisted", "Interviewing", "Submitted"];
 
@@ -72,7 +72,7 @@
 //                          applicant.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
 //     const matchesBranch = selectedBranches.length === 0 || selectedBranches.includes(applicant.branch);
 //     const matchesStatus = !selectedStatus || applicant.status === selectedStatus;
-    
+
 //     return matchesSearch && matchesBranch && matchesStatus;
 //   });
 
@@ -291,9 +291,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Search, Filter, Eye, Download, X, ArrowLeft, MoreVertical } from "lucide-react";
+import {
+  Search,
+  Filter,
+  Eye,
+  Download,
+  X,
+  ArrowLeft,
+  MoreVertical,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import {
@@ -328,8 +342,15 @@ export function JobApplicants({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expandedSkills, setExpandedSkills] = useState(() => new Set());
-  
-  const branches = ["Computer Science Engineering", "Information Technology", "Electronics & Communication Engineering", "Electrical Engineering", "Mechanical Engineering", "Civil Engineering"];
+
+  const branches = [
+    "Computer Science Engineering",
+    "Information Technology",
+    "Electronics & Communication Engineering",
+    "Electrical Engineering",
+    "Mechanical Engineering",
+    "Civil Engineering",
+  ];
   const statuses = ["pending", "accepted", "rejected", "on_hold"];
 
   const statusLabel = {
@@ -354,12 +375,16 @@ export function JobApplicants({
     if (lowered.includes("vue")) return "vue";
     if (lowered.includes("node")) return "node";
     if (lowered.includes("python")) return "python";
-    return lowered.replace(/[^a-z0-9+.#]/g, " ").replace(/\s+/g, " ").trim();
+    return lowered
+      .replace(/[^a-z0-9+.#]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   };
 
   const splitSkills = (value) => {
     if (!value) return [];
-    if (Array.isArray(value)) return value.filter(Boolean).map((s) => String(s).trim());
+    if (Array.isArray(value))
+      return value.filter(Boolean).map((s) => String(s).trim());
 
     // Try JSON array first (common when stored as text)
     try {
@@ -377,7 +402,8 @@ export function JobApplicants({
       .map((s) => s.trim())
       .filter(Boolean);
 
-    if (primarySplit.length > 1) return primarySplit.map(normalizeSkill).filter(Boolean);
+    if (primarySplit.length > 1)
+      return primarySplit.map(normalizeSkill).filter(Boolean);
 
     // fallback: space-separated list
     return cleaned.split(/\s+/).map(normalizeSkill).filter(Boolean);
@@ -385,7 +411,8 @@ export function JobApplicants({
 
   const splitAchievements = (value) => {
     if (!value) return [];
-    if (Array.isArray(value)) return value.filter(Boolean).map((s) => String(s).trim());
+    if (Array.isArray(value))
+      return value.filter(Boolean).map((s) => String(s).trim());
     return String(value)
       .split(/[,|]/)
       .map((s) => s.trim())
@@ -393,8 +420,12 @@ export function JobApplicants({
   };
 
   const computeMatch = (studentSkills = [], requiredSkills = []) => {
-    const req = Array.from(new Set(requiredSkills.map(normalizeSkill).filter(Boolean)));
-    const stud = Array.from(new Set(studentSkills.map(normalizeSkill).filter(Boolean)));
+    const req = Array.from(
+      new Set(requiredSkills.map(normalizeSkill).filter(Boolean)),
+    );
+    const stud = Array.from(
+      new Set(studentSkills.map(normalizeSkill).filter(Boolean)),
+    );
     if (!req.length) return null;
     const studentSet = new Set(stud);
     const hits = req.filter((r) => studentSet.has(r)).length;
@@ -424,7 +455,8 @@ export function JobApplicants({
         skills: studentSkills,
         job_skills: jobSkills,
         status: row.application_status || "pending",
-        statusColor: statusColor[row.application_status] || "bg-gray-100 text-gray-800",
+        statusColor:
+          statusColor[row.application_status] || "bg-gray-100 text-gray-800",
         resume_url: row.resume_url || row.profile_resume_url || "",
         user_email: row.user_email || "",
         user_id: row.user_id,
@@ -435,15 +467,19 @@ export function JobApplicants({
       };
     });
 
-  const fetchJobs = loadJobs || (async () => {
-    const res = await apiClient.getMyJobs();
-    return res?.jobs || [];
-  });
+  const fetchJobs =
+    loadJobs ||
+    (async () => {
+      const res = await apiClient.getMyJobs();
+      return res?.jobs || [];
+    });
 
-  const fetchApplicants = loadApplicants || (async (jobId) => {
-    const res = await apiClient.getJobApplicants(jobId);
-    return res?.applicants || [];
-  });
+  const fetchApplicants =
+    loadApplicants ||
+    (async (jobId) => {
+      const res = await apiClient.getJobApplicants(jobId);
+      return res?.applicants || [];
+    });
 
   const jobIdFromQuery = searchParams.get("jobId");
 
@@ -511,14 +547,22 @@ export function JobApplicants({
         selectedBranches.includes(applicant.branch);
       const matchesStatus =
         !selectedStatus || applicant.status === selectedStatus;
-      const skillSet = new Set((applicant.skills || []).map((s) => skillKey(s)));
+      const skillSet = new Set(
+        (applicant.skills || []).map((s) => skillKey(s)),
+      );
       const matchesSkills =
         selectedSkills.length === 0 ||
         selectedSkills.every((s) => skillSet.has(skillKey(s)));
 
       return matchesSearch && matchesBranch && matchesStatus && matchesSkills;
     });
-  }, [applicants, searchTerm, selectedBranches, selectedStatus, selectedSkills]);
+  }, [
+    applicants,
+    searchTerm,
+    selectedBranches,
+    selectedStatus,
+    selectedSkills,
+  ]);
 
   const skillOptions = useMemo(() => {
     const all = new Set();
@@ -542,7 +586,7 @@ export function JobApplicants({
   };
 
   const removeBranchFilter = (branch) => {
-    setSelectedBranches(selectedBranches.filter(b => b !== branch));
+    setSelectedBranches(selectedBranches.filter((b) => b !== branch));
   };
 
   const removeSkillFilter = (skill) => {
@@ -585,8 +629,8 @@ export function JobApplicants({
                 status: nextStatus,
                 statusColor: statusColor[nextStatus] || app.statusColor,
               }
-            : app
-        )
+            : app,
+        ),
       );
       toast({
         title: "Status updated",
@@ -646,8 +690,8 @@ export function JobApplicants({
         </div>
         {jobs.length > 0 && (
           <Select
-            value={selectedJobId || ""}
-            onValueChange={(value) => setSelectedJobId(value)}
+            value={selectedJobId ? String(selectedJobId) : ""}
+            onValueChange={(value) => setSelectedJobId(Number(value))}
           >
             <SelectTrigger className="w-72">
               <SelectValue placeholder="Select job to view applicants" />
@@ -696,7 +740,9 @@ export function JobApplicants({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="relevance">Relevance (Skill Match)</SelectItem>
+                  <SelectItem value="relevance">
+                    Relevance (Skill Match)
+                  </SelectItem>
                   <SelectItem value="date">Application Date</SelectItem>
                   <SelectItem value="name">Name</SelectItem>
                 </SelectContent>
@@ -707,11 +753,19 @@ export function JobApplicants({
               <label className="text-sm font-medium mb-2 block">Branches</label>
               <Select onValueChange={addBranchFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder={selectedBranches.length ? `${selectedBranches.length} selected` : "Select branches..."} />
+                  <SelectValue
+                    placeholder={
+                      selectedBranches.length
+                        ? `${selectedBranches.length} selected`
+                        : "Select branches..."
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {branches.map(branch => (
-                    <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+                  {branches.map((branch) => (
+                    <SelectItem key={branch} value={branch}>
+                      {branch}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -724,8 +778,10 @@ export function JobApplicants({
                   <SelectValue placeholder="Select status..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {statuses.map(status => (
-                    <SelectItem key={status} value={status}>{statusLabel[status]}</SelectItem>
+                  {statuses.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {statusLabel[status]}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -735,11 +791,19 @@ export function JobApplicants({
               <label className="text-sm font-medium mb-2 block">Skills</label>
               <Select onValueChange={addSkillFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder={selectedSkills.length ? `${selectedSkills.length} selected` : "Select skills..."} />
+                  <SelectValue
+                    placeholder={
+                      selectedSkills.length
+                        ? `${selectedSkills.length} selected`
+                        : "Select skills..."
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {skillOptions.map((skill) => (
-                    <SelectItem key={skill} value={skill}>{skill}</SelectItem>
+                    <SelectItem key={skill} value={skill}>
+                      {skill}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -749,16 +813,30 @@ export function JobApplicants({
           {/* Active Filters */}
           {(selectedBranches.length > 0 || selectedSkills.length > 0) && (
             <div className="flex flex-wrap gap-2">
-              {selectedBranches.map(branch => (
-                <Badge key={branch} variant="secondary" className="flex items-center space-x-1">
+              {selectedBranches.map((branch) => (
+                <Badge
+                  key={branch}
+                  variant="secondary"
+                  className="flex items-center space-x-1"
+                >
                   <span>{branch}</span>
-                  <X className="h-3 w-3 cursor-pointer" onClick={() => removeBranchFilter(branch)} />
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => removeBranchFilter(branch)}
+                  />
                 </Badge>
               ))}
-              {selectedSkills.map(skill => (
-                <Badge key={skill} variant="secondary" className="flex items-center space-x-1">
+              {selectedSkills.map((skill) => (
+                <Badge
+                  key={skill}
+                  variant="secondary"
+                  className="flex items-center space-x-1"
+                >
                   <span>{skill}</span>
-                  <X className="h-3 w-3 cursor-pointer" onClick={() => removeSkillFilter(skill)} />
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => removeSkillFilter(skill)}
+                  />
                 </Badge>
               ))}
             </div>
@@ -772,19 +850,36 @@ export function JobApplicants({
           <table className="w-full caption-bottom text-sm">
             <thead className="sticky top-0 bg-card z-20 border-b">
               <tr className="border-b">
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-card">Student Name</th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-card">Branch</th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-card">Application Time</th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-card">Skill Match</th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-card">Skills</th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-card">Status</th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-card">Action</th>
+                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-card">
+                  Student Name
+                </th>
+                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-card">
+                  Branch
+                </th>
+                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-card">
+                  Application Time
+                </th>
+                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-card">
+                  Skill Match
+                </th>
+                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-card">
+                  Skills
+                </th>
+                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-card">
+                  Status
+                </th>
+                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground bg-card">
+                  Action
+                </th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="p-4 text-center text-muted-foreground">
+                  <td
+                    colSpan={7}
+                    className="p-4 text-center text-muted-foreground"
+                  >
                     Loading applications...
                   </td>
                 </tr>
@@ -796,118 +891,160 @@ export function JobApplicants({
                 </tr>
               ) : filteredApplicants.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-4 text-center text-muted-foreground">
+                  <td
+                    colSpan={7}
+                    className="p-4 text-center text-muted-foreground"
+                  >
                     No applications found.
                   </td>
                 </tr>
               ) : (
                 filteredApplicants.map((applicant) => (
-                <tr key={applicant.id} className="border-b transition-colors hover:bg-muted/50">
-                  <td className="p-4 align-middle font-medium">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={`/api/placeholder/32/32`} />
-                        <AvatarFallback>{applicant.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{applicant.name}</div>
-                        <div className="text-sm text-muted-foreground">{applicant.class}</div>
+                  <tr
+                    key={applicant.id}
+                    className="border-b transition-colors hover:bg-muted/50"
+                  >
+                    <td className="p-4 align-middle font-medium">
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={`/api/placeholder/32/32`} />
+                          <AvatarFallback>
+                            {applicant.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">{applicant.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {applicant.class}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="p-4 align-middle">{applicant.branch}</td>
-                  <td className="p-4 align-middle text-sm">{applicant.applicationTime}</td>
-                  <td className="p-4 align-middle">
-                    <div className="flex items-center space-x-2">
-                      {applicant.skillMatch !== null && applicant.skillMatch !== undefined ? (
-                        <>
-                          <Progress value={applicant.skillMatch} className="w-16" />
-                          <span className="text-sm font-medium">{applicant.skillMatch}%</span>
-                        </>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">N/A</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="p-4 align-middle">
-                    {applicant.skills?.length ? (
-                      <div className="flex flex-wrap gap-1">
-                        {(expandedSkills.has(applicant.id)
-                          ? applicant.skills
-                          : applicant.skills.slice(0, 3)
-                        ).map((skill, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {skill}
-                          </Badge>
-                        ))}
-                        {applicant.skills.length > 3 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleSkills(applicant.id)}
-                            className="h-6 px-2 text-xs"
-                          >
-                            {expandedSkills.has(applicant.id) ? "Show less" : "View more"}
-                          </Button>
+                    </td>
+                    <td className="p-4 align-middle">{applicant.branch}</td>
+                    <td className="p-4 align-middle text-sm">
+                      {applicant.applicationTime}
+                    </td>
+                    <td className="p-4 align-middle">
+                      <div className="flex items-center space-x-2">
+                        {applicant.skillMatch !== null &&
+                        applicant.skillMatch !== undefined ? (
+                          <>
+                            <Progress
+                              value={applicant.skillMatch}
+                              className="w-16"
+                            />
+                            <span className="text-sm font-medium">
+                              {applicant.skillMatch}%
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            N/A
+                          </span>
                         )}
                       </div>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">N/A</span>
-                    )}
-                  </td>
-                  <td className="p-4 align-middle">
-                    <Badge className={applicant.statusColor}>
-                      {statusLabel[applicant.status] || applicant.status}
-                    </Badge>
-                  </td>
-                  <td className="p-4 align-middle">
-                    <div className="flex items-center space-x-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() =>
-                          navigate(detailsPath, { state: { applicant } })
-                        }
-                      >
-                        <Eye className="h-4 w-4" />
-                        <span className="ml-1 hidden sm:inline">View</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDownloadResume(applicant)}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40 bg-card z-50">
-                          <DropdownMenuItem 
-                            onClick={() => updateStatus(applicant.id, "accepted")}
+                    </td>
+                    <td className="p-4 align-middle">
+                      {applicant.skills?.length ? (
+                        <div className="flex flex-wrap gap-1">
+                          {(expandedSkills.has(applicant.id)
+                            ? applicant.skills
+                            : applicant.skills.slice(0, 3)
+                          ).map((skill, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="text-xs"
+                            >
+                              {skill}
+                            </Badge>
+                          ))}
+                          {applicant.skills.length > 3 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleSkills(applicant.id)}
+                              className="h-6 px-2 text-xs"
+                            >
+                              {expandedSkills.has(applicant.id)
+                                ? "Show less"
+                                : "View more"}
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">
+                          N/A
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-4 align-middle">
+                      <Badge className={applicant.statusColor}>
+                        {statusLabel[applicant.status] || applicant.status}
+                      </Badge>
+                    </td>
+                    <td className="p-4 align-middle">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            navigate(
+                              `${detailsPath}/${applicant.application_id}`,
+                              {
+                                state: { applicant },
+                              },
+                            )
+                          }
+                        >
+                          <Eye className="h-4 w-4" />
+                          <span className="ml-1 hidden sm:inline">View</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownloadResume(applicant)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-40 bg-card z-50"
                           >
-                            Shortlist
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => updateStatus(applicant.id, "rejected")}
-                          >
-                            Reject
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => updateStatus(applicant.id, "on_hold")}
-                          >
-                            Hold
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </td>
-                </tr>
-              ))
+                            <DropdownMenuItem
+                              onClick={() =>
+                                updateStatus(applicant.id, "accepted")
+                              }
+                            >
+                              Shortlist
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                updateStatus(applicant.id, "rejected")
+                              }
+                            >
+                              Reject
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                updateStatus(applicant.id, "on_hold")
+                              }
+                            >
+                              Hold
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>

@@ -54,6 +54,8 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
+app.use(express.json());
+
 
 // ✅ Preflight handler (use RegExp to avoid path-to-regexp "*" issues)
 app.options(/.*/, cors());

@@ -434,3 +434,50 @@ exports.getAdminStats = async (_req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+exports.adminviewJobApplicants = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+
+    // Admin-only check
+    if (!req.user || req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ error: "Only admin can view applicants." });
+    }
+
+    // Just check if job exists (no ownership check)
+    const jobExists = await db("jobs").where({ id: jobId }).first();
+    if (!jobExists) {
+      return res.status(404).json({ error: "Job not found." });
+    }
+
+    const applicants = await db("job_applications as ja")
+      .join("users as u", "ja.user_id", "u.id")
+      .leftJoin("student_profiles as sp", "sp.user_id", "u.id")
+      .where("ja.job_id", jobId)
+      .select(
+        "ja.id as application_id",
+        "ja.status as application_status",
+        "ja.is_read",
+        "ja.resume_url",
+        "ja.applied_at",
+        "u.id as user_id",
+        "u.email as user_email",
+        "sp.name as student_name",
+        "sp.branch as student_branch",
+        "sp.grad_year as student_grad_year",
+        "sp.phone_number as student_phone",
+        "sp.achievements as student_achievements",
+        "sp.skills as student_skills",
+        "sp.address as student_location",
+        "sp.resume_url as profile_resume_url"
+      )
+      .orderBy("ja.applied_at", "desc");
+
+    return res.json({ jobId, applicants });
+  } catch (err) {
+    console.error("adminviewJobApplicants error:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+};
+

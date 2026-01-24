@@ -17,32 +17,34 @@ exports.seed = async function (knex) {
   const adminHashed = await bcrypt.hash("admin123", 10);
 
   // Insert users
-  const users = await knex("users").insert([
-    {
-      email: "admin@sgsits.ac.in",
-      password_hash: adminHashed,
-      role: "admin",
-      is_verified: true,
-    },
-    {
-      email: "student@sgsits.ac.in",
-      password_hash: hashedPassword,
-      role: "student",
-      is_verified: true,
-    },
-    {
-      email: "alumni@company.com",
-      password_hash: hashedPassword,
-      role: "alumni",
-      is_verified: true,
-    },
-    {
-      email: "alumni2@company.com",
-      password_hash: hashedPassword,
-      role: "alumni",
-      is_verified: true,
-    },
-  ]).returning("id");
+  const users = await knex("users")
+    .insert([
+      {
+        email: "admin@sgsits.ac.in",
+        password_hash: adminHashed,
+        role: "admin",
+        is_verified: true,
+      },
+      {
+        email: "student@sgsits.ac.in",
+        password_hash: hashedPassword,
+        role: "student",
+        is_verified: true,
+      },
+      {
+        email: "alumni@company.com",
+        password_hash: hashedPassword,
+        role: "alumni",
+        is_verified: true,
+      },
+      {
+        email: "alumni2@company.com",
+        password_hash: hashedPassword,
+        role: "alumni",
+        is_verified: true,
+      },
+    ])
+    .returning("id");
 
   // Insert profiles
   await knex("student_profiles").insert({
@@ -51,47 +53,65 @@ exports.seed = async function (knex) {
     student_id: "CS2021001",
     branch: "computer science",
     grad_year: 2025,
-    skills: "React, Node.js, Python",
+    skills: ["React, Node.js, Python"],
   });
 
-  const alumniProfiles = await knex("alumni_profiles").insert([
-    {
-      user_id: users[2].id,
-      name: "Jane Smith",
-      grad_year: 2020,
-      current_title: "Software Engineer",
-    },
-    {
-      user_id: users[3].id,
-      name: "Bob Johnson",
-      grad_year: 2019,
-      current_title: "Product Manager",
-    },
-  ]).returning("id");
+  const alumniProfiles = await knex("alumni_profiles")
+    .insert([
+      {
+        user_id: users[2].id,
+        name: "Jane Smith",
+        grad_year: 2020,
+        current_title: "Software Engineer",
+      },
+      {
+        user_id: users[3].id,
+        name: "Bob Johnson",
+        grad_year: 2019,
+        current_title: "Product Manager",
+      },
+    ])
+    .returning("id");
 
   // Insert companies
-  const companies = await knex("companies").insert([
-    {
-      alumni_id: alumniProfiles[0].id,
-      user_id: users[2].id,
-      name: "TechCorp Solutions",
-      website: "https://techcorp.com",
-      industry: "Software Development",
-      company_size: "50-100 employees",
-      about: "Leading software development company",
-      status: "active",
-    },
-    {
-      alumni_id: alumniProfiles[1].id,
-      user_id: users[3].id,
-      name: "Innovate Labs",
-      website: "https://innovatelabs.com",
-      industry: "Technology",
-      company_size: "10-50 employees",
-      about: "Innovative tech solutions",
-      status: "active",
-    },
-  ]).returning("id");
+  const companies = await knex("companies")
+    .insert([
+      {
+        alumni_id: alumniProfiles[0].id,
+        user_id: users[2].id,
+        name: "TechCorp Solutions",
+        website: "https://techcorp.com",
+        industry: "Software Development",
+        company_size: "50-100 employees",
+        about: "Leading software development company",
+
+        // ✅ columns that ACTUALLY exist
+        linkedin: null,
+        twitter: null,
+        office_location: null,
+        company_culture: null,
+
+        // ✅ required for public fetch to work
+        status: "approved",
+      },
+      {
+        alumni_id: alumniProfiles[1].id,
+        user_id: users[3].id,
+        name: "Innovate Labs",
+        website: "https://innovatelabs.com",
+        industry: "Technology",
+        company_size: "10-50 employees",
+        about: "Innovative tech solutions",
+
+        linkedin: null,
+        twitter: null,
+        office_location: null,
+        company_culture: null,
+
+        status: "approved",
+      },
+    ])
+    .returning("id");
 
   // Insert jobs
   await knex("jobs").insert([
@@ -114,5 +134,4 @@ exports.seed = async function (knex) {
       job_description: "Analyze data and build ML models",
     },
   ]);
-
 };

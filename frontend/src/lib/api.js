@@ -78,6 +78,9 @@ export const apiClient = {
   registerStudent: (body) => 
     apiFetch("/auth/register/student", { 
       method: "POST", 
+       headers: {
+      "Content-Type": "application/json"
+    },
       body: JSON.stringify(body), 
     }), 
   registerAlumni: (body) => 

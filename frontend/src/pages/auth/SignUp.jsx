@@ -126,7 +126,8 @@ const SignUp = () => {
     if (userType === "student" && !formData.email.endsWith("@sgsits.ac.in")) {
       toast({
         title: "Use your SGSITS email",
-        description: "Students should sign up with their @sgsits.ac.in address.",
+        description:
+          "Students should sign up with their @sgsits.ac.in address.",
         variant: "default",
         className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
@@ -172,7 +173,8 @@ const SignUp = () => {
       if (!formData.branch || !formData.gradYear || !formData.studentId) {
         toast({
           title: "Add your student details",
-          description: "Branch, expected graduation year, and student ID are required.",
+          description:
+            "Branch, expected graduation year, and student ID are required.",
           variant: "default",
           className: "bg-blue-600 text-white dark:bg-cyan-600",
         });
@@ -192,7 +194,6 @@ const SignUp = () => {
       }
     }
     // --- End Validation ---
-
 
     try {
       if (userType === "student") {
@@ -227,10 +228,22 @@ const SignUp = () => {
 
       navigate("/login");
     } catch (error) {
+      console.log("ERROR OBJECT:", error);
+      console.log("RESPONSE:", error?.response);
+      console.log("RESPONSE DATA:", error?.response?.data);
+
+      toast({
+        title: "Registration failed",
+        description:
+          error?.response?.data?.message ||
+          JSON.stringify(error?.response?.data) ||
+          error?.message,
+      });
       toast({
         title: "Could not create account",
         description:
-          error?.message || "If you already registered, try signing in or use another email.",
+          error?.message ||
+          "If you already registered, try signing in or use another email.",
         variant: "default",
         className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
@@ -282,7 +295,8 @@ const SignUp = () => {
     } catch (error) {
       toast({
         title: "Could not send OTP",
-        description: error?.message || "Please check your email address and try again.",
+        description:
+          error?.message || "Please check your email address and try again.",
         variant: "default",
         className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
@@ -319,10 +333,23 @@ const SignUp = () => {
         description: "Email verification successful.",
       });
     } catch (error) {
+      console.log("ERROR OBJECT:", error);
+      console.log("RESPONSE:", error?.response);
+      console.log("RESPONSE DATA:", error?.response?.data);
+
+      toast({
+        title: "Registration failed",
+        description:
+          error?.response?.data?.message ||
+          JSON.stringify(error?.response?.data) ||
+          error?.message,
+      });
       setOtpVerified(false);
       toast({
         title: "OTP verification failed",
-        description: error?.message || "The code seems incorrect or expired. Please resend and try again.",
+        description:
+          error?.message ||
+          "The code seems incorrect or expired. Please resend and try again.",
         variant: "default",
         className: "bg-blue-600 text-white dark:bg-cyan-600",
       });
@@ -356,13 +383,14 @@ const SignUp = () => {
     // Alumni: 1952 (earliest) up to current year, descending
     return Array.from(
       { length: currentYear - 1952 + 1 },
-      (_, i) => currentYear - i
+      (_, i) => currentYear - i,
     ).sort((a, b) => b - a); // Ensure descending order
   })();
 
-  const selectedButtonClasses = "bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/40 hover:from-blue-700 hover:to-cyan-600 border-transparent";
-  const unselectedButtonClasses = "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800";
-
+  const selectedButtonClasses =
+    "bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/40 hover:from-blue-700 hover:to-cyan-600 border-transparent";
+  const unselectedButtonClasses =
+    "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800";
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
@@ -390,7 +418,9 @@ const SignUp = () => {
                   type="button"
                   variant="outline"
                   className={`flex items-center gap-2 h-12 text-base font-semibold transition-all duration-300 ${
-                    userType === "student" ? selectedButtonClasses : unselectedButtonClasses
+                    userType === "student"
+                      ? selectedButtonClasses
+                      : unselectedButtonClasses
                   }`}
                   onClick={() => handleUserTypeChange("student")}
                 >
@@ -401,7 +431,9 @@ const SignUp = () => {
                   type="button"
                   variant="outline"
                   className={`flex items-center gap-2 h-12 text-base font-semibold transition-all duration-300 ${
-                    userType === "alumni" ? selectedButtonClasses : unselectedButtonClasses
+                    userType === "alumni"
+                      ? selectedButtonClasses
+                      : unselectedButtonClasses
                   }`}
                   onClick={() => handleUserTypeChange("alumni")}
                 >
@@ -411,11 +443,13 @@ const SignUp = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                
                 {/* Name & Email (Always required) */}
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-sm font-medium dark:text-gray-300">
+                    <Label
+                      htmlFor="name"
+                      className="text-sm font-medium dark:text-gray-300"
+                    >
                       Full Name <RequiredMark />
                     </Label>
                     <Input
@@ -424,14 +458,19 @@ const SignUp = () => {
                       placeholder="Enter your full name"
                       className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                       value={formData.name}
-                      onChange={(e) => handleInputChange("name", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("name", e.target.value)
+                      }
                       required
                     />
                   </div>
 
                   {userType === "student" ? (
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-sm font-medium dark:text-gray-300">
+                      <Label
+                        htmlFor="email"
+                        className="text-sm font-medium dark:text-gray-300"
+                      >
                         Email (Institute Email) <RequiredMark />
                       </Label>
                       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
@@ -441,7 +480,9 @@ const SignUp = () => {
                           placeholder="yourname@sgsits.ac.in"
                           className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white flex-1"
                           value={formData.email}
-                          onChange={(e) => handleInputChange("email", e.target.value)}
+                          onChange={(e) =>
+                            handleInputChange("email", e.target.value)
+                          }
                           required
                         />
                         <Button
@@ -451,7 +492,11 @@ const SignUp = () => {
                           onClick={handleSendOtp}
                           disabled={otpSending}
                         >
-                          {otpSending ? "Sending..." : otpSent ? "Resend OTP" : "Send OTP"}
+                          {otpSending
+                            ? "Sending..."
+                            : otpSent
+                              ? "Resend OTP"
+                              : "Send OTP"}
                         </Button>
                       </div>
                       <p className="text-xs text-red-500 dark:text-red-400 font-medium">
@@ -460,7 +505,10 @@ const SignUp = () => {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-sm font-medium dark:text-gray-300">
+                      <Label
+                        htmlFor="email"
+                        className="text-sm font-medium dark:text-gray-300"
+                      >
                         Email <RequiredMark />
                       </Label>
                       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
@@ -470,7 +518,9 @@ const SignUp = () => {
                           placeholder="your.email@example.com"
                           className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white flex-1"
                           value={formData.email}
-                          onChange={(e) => handleInputChange("email", e.target.value)}
+                          onChange={(e) =>
+                            handleInputChange("email", e.target.value)
+                          }
                           required
                         />
                         <Button
@@ -480,17 +530,24 @@ const SignUp = () => {
                           onClick={handleSendOtp}
                           disabled={otpSending}
                         >
-                          {otpSending ? "Sending..." : otpSent ? "Resend OTP" : "Send OTP"}
+                          {otpSending
+                            ? "Sending..."
+                            : otpSent
+                              ? "Resend OTP"
+                              : "Send OTP"}
                         </Button>
                       </div>
-                  </div>
-                )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Email OTP verification */}
                 {true && (
                   <div className="space-y-2">
-                    <Label htmlFor="otp" className="text-sm font-medium dark:text-gray-300">
+                    <Label
+                      htmlFor="otp"
+                      className="text-sm font-medium dark:text-gray-300"
+                    >
                       Email OTP Verification <RequiredMark />
                     </Label>
                     <div className="flex flex-col sm:flex-row gap-2">
@@ -502,7 +559,9 @@ const SignUp = () => {
                         placeholder="Enter the OTP sent to your institute email"
                         className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white flex-1"
                         value={formData.otp}
-                        onChange={(e) => handleInputChange("otp", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("otp", e.target.value)
+                        }
                         required
                       />
                       <Button
@@ -520,20 +579,26 @@ const SignUp = () => {
 
                 {/* Role-Specific Fields */}
                 <h3 className="text-lg font-semibold border-b pb-1 dark:text-white">
-                  {userType === "student" ? "Student Details" : "Alumni Details"}
+                  {userType === "student"
+                    ? "Student Details"
+                    : "Alumni Details"}
                 </h3>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  
                   {/* Branch (Students) / Title (Alumni) */}
                   {userType === "student" ? (
                     <div className="space-y-2">
-                      <Label htmlFor="branch" className="text-sm font-medium dark:text-gray-300">
+                      <Label
+                        htmlFor="branch"
+                        className="text-sm font-medium dark:text-gray-300"
+                      >
                         Branch <RequiredMark />
                       </Label>
                       <Select
                         value={formData.branch}
-                        onValueChange={(value) => handleInputChange("branch", value)}
+                        onValueChange={(value) =>
+                          handleInputChange("branch", value)
+                        }
                         required
                       >
                         <SelectTrigger className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white">
@@ -541,7 +606,11 @@ const SignUp = () => {
                         </SelectTrigger>
                         <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
                           {BRANCHES.map((branch) => (
-                            <SelectItem key={branch} value={branch.toLowerCase()} className="hover:bg-gray-700/50">
+                            <SelectItem
+                              key={branch}
+                              value={branch.toLowerCase()}
+                              className="hover:bg-gray-700/50"
+                            >
                               {branch}
                             </SelectItem>
                           ))}
@@ -550,7 +619,10 @@ const SignUp = () => {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <Label htmlFor="currentTitle" className="text-sm font-medium dark:text-gray-300">
+                      <Label
+                        htmlFor="currentTitle"
+                        className="text-sm font-medium dark:text-gray-300"
+                      >
                         Current Title / Role <RequiredMark />
                       </Label>
                       <Input
@@ -559,7 +631,9 @@ const SignUp = () => {
                         placeholder="e.g., Senior Engineer at ABC Corp"
                         className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                         value={formData.currentTitle}
-                        onChange={(e) => handleInputChange("currentTitle", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("currentTitle", e.target.value)
+                        }
                         required
                       />
                     </div>
@@ -567,12 +641,20 @@ const SignUp = () => {
 
                   {/* Graduation Year */}
                   <div className="space-y-2">
-                    <Label htmlFor="gradYear" className="text-sm font-medium dark:text-gray-300">
-                      {userType === "student" ? "Expected Graduation Year" : "Graduation Year"} <RequiredMark />
+                    <Label
+                      htmlFor="gradYear"
+                      className="text-sm font-medium dark:text-gray-300"
+                    >
+                      {userType === "student"
+                        ? "Expected Graduation Year"
+                        : "Graduation Year"}{" "}
+                      <RequiredMark />
                     </Label>
                     <Select
                       value={formData.gradYear}
-                      onValueChange={(value) => handleInputChange("gradYear", value)}
+                      onValueChange={(value) =>
+                        handleInputChange("gradYear", value)
+                      }
                       required
                     >
                       <SelectTrigger className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white">
@@ -580,7 +662,11 @@ const SignUp = () => {
                       </SelectTrigger>
                       <SelectContent className="dark:bg-gray-800 dark:border-gray-700 max-h-60 overflow-y-auto">
                         {graduationYears.map((year) => (
-                          <SelectItem key={year} value={year.toString()} className="hover:bg-gray-700/50">
+                          <SelectItem
+                            key={year}
+                            value={year.toString()}
+                            className="hover:bg-gray-700/50"
+                          >
                             {year}
                           </SelectItem>
                         ))}
@@ -591,7 +677,10 @@ const SignUp = () => {
                   {/* Student ID (only for students) */}
                   {userType === "student" && (
                     <div className="space-y-2">
-                      <Label htmlFor="studentId" className="text-sm font-medium dark:text-gray-300">
+                      <Label
+                        htmlFor="studentId"
+                        className="text-sm font-medium dark:text-gray-300"
+                      >
                         Student ID / Enrollment No. <RequiredMark />
                       </Label>
                       <Input
@@ -600,7 +689,9 @@ const SignUp = () => {
                         placeholder="Enter your student ID"
                         className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                         value={formData.studentId}
-                        onChange={(e) => handleInputChange("studentId", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("studentId", e.target.value)
+                        }
                         required
                       />
                     </div>
@@ -608,7 +699,10 @@ const SignUp = () => {
 
                   {/* Phone */}
                   <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-sm font-medium dark:text-gray-300">
+                    <Label
+                      htmlFor="phone"
+                      className="text-sm font-medium dark:text-gray-300"
+                    >
                       Phone Number <RequiredMark />
                     </Label>
                     <Input
@@ -617,7 +711,9 @@ const SignUp = () => {
                       placeholder="+91 9876543210"
                       className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                       value={formData.phone}
-                      onChange={(e) => handleInputChange("phone", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("phone", e.target.value)
+                      }
                       required
                     />
                   </div>
@@ -628,10 +724,12 @@ const SignUp = () => {
                   Security
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  
                   {/* Password */}
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-medium dark:text-gray-300">
+                    <Label
+                      htmlFor="password"
+                      className="text-sm font-medium dark:text-gray-300"
+                    >
                       Password <RequiredMark />
                     </Label>
                     <div className="relative">
@@ -641,7 +739,9 @@ const SignUp = () => {
                         placeholder="Create a strong password"
                         className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                         value={formData.password}
-                        onChange={(e) => handleInputChange("password", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("password", e.target.value)
+                        }
                         required
                       />
                       <Button
@@ -659,13 +759,17 @@ const SignUp = () => {
                       </Button>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Must be 8+ chars with uppercase, lowercase, number, and special symbol.
+                      Must be 8+ chars with uppercase, lowercase, number, and
+                      special symbol.
                     </p>
                   </div>
 
                   {/* Confirm Password */}
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-sm font-medium dark:text-gray-300">
+                    <Label
+                      htmlFor="confirmPassword"
+                      className="text-sm font-medium dark:text-gray-300"
+                    >
                       Confirm Password <RequiredMark />
                     </Label>
                     <div className="relative">
@@ -675,7 +779,9 @@ const SignUp = () => {
                         placeholder="Confirm your password"
                         className="h-11 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                         value={formData.confirmPassword}
-                        onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("confirmPassword", e.target.value)
+                        }
                         required
                       />
                       <Button
@@ -683,7 +789,9 @@ const SignUp = () => {
                         variant="ghost"
                         size="sm"
                         className="absolute right-0 top-0 h-full px-3 py-2 text-gray-500 dark:text-gray-400 hover:bg-transparent"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                       >
                         {showConfirmPassword ? (
                           <EyeOff className="w-4 h-4" />
@@ -701,16 +809,27 @@ const SignUp = () => {
                     id="acceptTerms"
                     className="mt-1 border-gray-400 dark:border-gray-600 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white"
                     checked={formData.acceptTerms}
-                    onCheckedChange={(checked) => handleInputChange("acceptTerms", checked)}
+                    onCheckedChange={(checked) =>
+                      handleInputChange("acceptTerms", checked)
+                    }
                     required
                   />
-                  <Label htmlFor="acceptTerms" className="text-sm font-normal text-gray-600 dark:text-gray-400 cursor-pointer leading-relaxed">
+                  <Label
+                    htmlFor="acceptTerms"
+                    className="text-sm font-normal text-gray-600 dark:text-gray-400 cursor-pointer leading-relaxed"
+                  >
                     I agree to the{" "}
-                    <Link to="/terms" className="text-blue-600 dark:text-cyan-400 hover:underline font-medium">
+                    <Link
+                      to="/terms"
+                      className="text-blue-600 dark:text-cyan-400 hover:underline font-medium"
+                    >
                       Terms of Service
                     </Link>{" "}
                     and{" "}
-                    <Link to="/privacy" className="text-blue-600 dark:text-cyan-400 hover:underline font-medium">
+                    <Link
+                      to="/privacy"
+                      className="text-blue-600 dark:text-cyan-400 hover:underline font-medium"
+                    >
                       Privacy Policy
                     </Link>{" "}
                     <RequiredMark />
@@ -720,11 +839,13 @@ const SignUp = () => {
                 {/* Submit Button (Uses the same gradient) */}
                 <Button
                   type="submit"
-                  
                   variant="outline"
                   disabled={isLoading}
                   // Apply the gradient classes directly here for the main submit button
-                  style={{ backgroundColor: 'transparent', borderColor: 'transparent' }} // Override outline defaults
+                  style={{
+                    backgroundColor: "transparent",
+                    borderColor: "transparent",
+                  }} // Override outline defaults
                   className={`w-full h-12 text-lg font-semibold transition-all duration-300 mt-6 ${selectedButtonClasses}`}
                 >
                   {isLoading ? "Creating Account..." : "Create Account"}

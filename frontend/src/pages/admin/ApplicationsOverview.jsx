@@ -6,11 +6,13 @@ const ApplicationsOverview = () => {
     <div className="min-h-screen bg-background p-6">
       <JobApplicants
         backPath="/admin/postings"
-        detailsPath="/alumni/applicant-details"
+        detailsPath="/admin/applicant-details"
         heading="Applications Overview"
         loadJobs={apiClient.adminJobs}
         loadApplicants={(jobId) =>
-          apiClient.adminJobApplicants(jobId).then((res) => res?.applicants || [])
+          apiClient
+            .adminJobApplications(jobId)
+            .then((res) => res?.applicants ?? [])
         }
       />
     </div>
