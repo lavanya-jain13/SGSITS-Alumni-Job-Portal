@@ -335,41 +335,6 @@ export default function Jobs() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header Section */}
-      <div className="bg-primary text-primary-foreground py-8">
-        <div className="max-w-7xl mx-auto px-6">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/dashboard")}
-            className="text-primary-foreground hover:bg-primary-foreground/10 mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          <h1 className="text-3xl font-bold mb-4">Find Your Perfect Opportunity</h1>
-          <p className="text-primary-foreground/80 mb-6">
-            Discover internships, jobs, and projects tailored for SGSITS students
-          </p>
-          
-          {/* Search Bar */}
-          <form className="flex gap-4 max-w-2xl" onSubmit={handleSearch}>
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search jobs, companies, skills..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/70 focus:bg-white/20"
-              />
-            </div>
-            <Button type="submit" variant="secondary" className="bg-white text-primary hover:bg-white/90">
-              <Search className="h-4 w-4 mr-2" />
-              Search
-            </Button>
-          </form>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex gap-6">
           {/* Sidebar Filters */}

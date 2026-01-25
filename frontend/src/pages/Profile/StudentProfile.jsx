@@ -649,35 +649,6 @@ const StudentProfile = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle p-4">
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <User className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold">Student Profile</h1>
-              <p className="text-muted-foreground">
-                Complete your profile to unlock job application opportunities
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={() => navigate("/dashboard")}
-              className="gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
-            </Button>
-            <ProfileEditor
-              profileData={profileData}
-              setProfileData={setProfileData}
-              onSave={handleSave}
-            />
-          </div>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Profile Completion Sidebar */}

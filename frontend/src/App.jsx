@@ -39,8 +39,10 @@ const JobsMatchingProfile = lazy(() => import("./pages/JobsMatchingProfile"));
 const Login = lazy(() => import("./pages/auth/Login"));
 const SignUp = lazy(() => import("./pages/auth/SignUp"));
 const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
-const StudentDashboard = lazy(() => import("./components/StudentDashboard"));
+const StudentHome = lazy(() => import("@/components/StudentHome"));
+const StudentDashboardLayout = lazy(() => import("@/components/StudentDashboardLayout"));
 const StudentProfile = lazy(() => import("./pages/Profile/StudentProfile"));
+const ApplicationHistory = lazy(() => import("@/components/ApplicationHistory"));
 
 /* ------------------ Lazy-loaded Alumni pages ------------------ */
 const AlumniLayout = lazy(() =>
@@ -98,7 +100,7 @@ const RedirectIfAuthed = ({ children }) => {
 
   const role = (user?.role || "").toLowerCase();
   const target =
-    role === "admin" ? "/admin" : role === "alumni" ? "/alumni" : "/dashboard";
+    role === "admin" ? "/admin" : role === "alumni" ? "/alumni" : "/student";
 
   return <Navigate to={target} replace />;
 };
@@ -173,22 +175,20 @@ export default function App() {
                   />
 
                   {/* ---------- Student dashboard & profile ---------- */}
+                  <Route path="/dashboard" element={<Navigate to="/student" replace />} />
                   <Route
-                    path="/dashboard"
+                    path="/student"
                     element={
                       <RequireAuth allowedRoles={["student"]}>
-                        <StudentDashboard />
+                        <StudentDashboardLayout />
                       </RequireAuth>
                     }
-                  />
-                  <Route
-                    path="/student/profile"
-                    element={
-                      <RequireAuth allowedRoles={["student"]}>
-                        <StudentProfile />
-                      </RequireAuth>
-                    }
-                  />
+                  >
+                    <Route index element={<StudentHome />} />
+                    <Route path="profile" element={<StudentProfile />} />
+                    <Route path="jobs" element={<Jobs />} />
+                    <Route path="applications" element={<ApplicationHistory />} />
+                  </Route>
 
                   {/* ---------- Admin routes (nested) ---------- */}
                   <Route

@@ -899,15 +899,6 @@ export default function JobDetails() {
                   Share Job
                 </Button>
 
-                <Button
-                  onClick={handleShare}
-                  variant="outline"
-                  className="w-full mb-4 flex items-center justify-center gap-2"
-                >
-                  <Share2 className="h-4 w-4" />
-                  Share Job
-                </Button>
-
                 <div className="text-center text-sm text-muted-foreground">
                   Posted {displayJob.posted}
                 </div>

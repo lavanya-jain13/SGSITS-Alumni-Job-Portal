@@ -9,7 +9,7 @@ import { selectAuth } from "@/store/authSlice";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Lightbulb } from "lucide-react";
 
-export default function StudentDashboard() {
+export default function StudentHome() {
   const navigate = useNavigate();
   const { user } = useSelector(selectAuth);
 
@@ -22,7 +22,8 @@ export default function StudentDashboard() {
 
   return (
     <div className="flex flex-col flex-1 bg-gray-50">
-      <header className="bg-white shadow-sm p-6 flex items-center justify-between">
+      {/* This header is now part of StudentDashboardLayout, removing from here */}
+      {/* <header className="bg-white shadow-sm p-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-800">Welcome back, {userName}!</h1>
         <div className="flex items-center gap-4">
           <Popover>
@@ -43,7 +44,7 @@ export default function StudentDashboard() {
             </PopoverContent>
           </Popover>
         </div>
-      </header>
+      </header> */}
 
       <main className="flex-1 p-6">
         {/* Profile Progress Section */}
@@ -141,8 +142,8 @@ export default function StudentDashboard() {
           )}
         </div>
 
-        {/* Application History */}
-        <ApplicationHistory />
+        {/* Application History - This will be on a separate route */}
+        {/* <ApplicationHistory /> */}
       </main>
     </div>
   );
