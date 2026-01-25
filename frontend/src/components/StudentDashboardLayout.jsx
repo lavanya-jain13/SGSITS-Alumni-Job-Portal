@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { selectAuth, logout } from "@/store/authSlice";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, User, LogOut, Eye } from "lucide-react";
+import { Lightbulb, User, LogOut, Eye, Briefcase, Clock } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,7 +37,7 @@ function StudentSidebarNav() {
   const userName = user?.name || user?.email || "Student";
 
   return (
-    <div className="w-64 bg-[#4A148C] min-h-screen flex flex-col text-white p-4">
+    <div className="w-64 bg-[#170438] min-h-screen flex flex-col text-white p-4">
       {/* Logo and Name */}
       <div className="flex items-center gap-3 mb-8 px-2">
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold">
