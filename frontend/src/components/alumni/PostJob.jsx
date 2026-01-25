@@ -574,7 +574,7 @@ export function PostJob() {
       case 3:
         return (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>CTC/Stipend Type</Label>
                 <Select
@@ -618,7 +618,7 @@ export function PostJob() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Min CTC/Stipend (₹)</Label>
                 <Input
@@ -702,7 +702,7 @@ export function PostJob() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Number of Openings *</Label>
                 <Input

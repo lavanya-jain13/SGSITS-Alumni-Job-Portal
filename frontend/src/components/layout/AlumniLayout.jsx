@@ -1,26 +1,29 @@
 import { AlumniSidebar } from "@/components/alumni/AlumniSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, User } from "lucide-react";
+import { Search, User, Menu } from "lucide-react"; // Import Menu icon
 import { Outlet, useLocation } from "react-router-dom";
 import { ProfileView } from "../alumni/ProfileView";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout, selectAuth } from "@/store/authSlice";
 import { useSelector } from "react-redux";
+import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile hook
 
 export function AlumniLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user } = useSelector(selectAuth);
+  const isMobile = useIsMobile(); // Use the hook
+
   const displayName =
     user?.name ||
     (user?.email ? user.email.split("@")[0] : "Profile");
   // ✅ Pages that have their own search bars
   const pagesWithOwnSearch = [
-    "/alumni/postings",    // ActivePostings.jsx
-    "/alumni/applications",  // JobApplicants.jsx
+    "/alumni/postings", // ActivePostings.jsx
+    "/alumni/applications", // JobApplicants.jsx
   ];
 
   // ✅ Hide global search on these pages
@@ -31,25 +34,28 @@ export function AlumniLayout() {
   return (
     <div className="flex h-screen w-full bg-background text-foreground">
       {/* Sidebar */}
-      <AlumniSidebar />
+      {!isMobile && <AlumniSidebar />} {/* Render desktop sidebar if not mobile */}
 
       {/* Main Section */}
       <div className="flex flex-1 flex-col">
         {/* Header */}
-        <header className="flex h-16 items-center justify-end border-b border-border px-6 bg-card shadow-sm">
-          <div className="flex items-center space-x-4">
+        <header className="flex h-16 items-center justify-between border-b border-border px-6 bg-card shadow-sm">
+          {isMobile && (
+            <AlumniSidebar /> // Render mobile sidebar trigger if mobile
+          )}
+          <div className="flex items-center space-x-4 ml-auto"> {/* Use ml-auto to push to right */}
             <Button
               variant="ghost"
               size="sm"
               className="relative flex items-center gap-2 text-foreground hover:text-primary-foreground"
               onClick={() => navigate("/alumni/profile-view")}
             >
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                    {user?.email ? user.email.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
-                  </div>
-                  <div className="hidden sm:block text-left">
-                    <div className="text-sm font-medium leading-none">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                  {user?.email ? user.email.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
+                </div>
+                <div className="hidden sm:block text-left">
+                  <div className="text-sm font-medium leading-none">
                     {displayName}
                   </div>
                   <div className="text-xs text-muted-foreground leading-none">

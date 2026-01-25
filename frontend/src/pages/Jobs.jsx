@@ -1,31 +1,25 @@
 import React, { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Search, SlidersHorizontal, ArrowLeft } from "lucide-react";
+import { Search, SlidersHorizontal, ArrowLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import JobCard from "@/components/JobCard";
 import JobFilters from "@/components/JobFilters";
-
-const defaultBranches = [
-  "Computer Science",
-  "Information Technology",
-  "Electronics and Telecommunication",
-  "Electronics and Instrumentation",
-  "Electrical Engineering",
-  "Mechanical Engineering",
-  "Civil Engineering",
-  "Industrial and Production",
-  "Biomedical Engineering",
-];
+import { useAllJobs, useBranches } from "@/hooks/useStudentData";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export default function Jobs() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [showFilters, setShowFilters] = useState(false);
-  const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [branchOptions, setBranchOptions] = useState([]);
   const [filters, setFilters] = useState({
     branches: [],
     jobTypes: [],
@@ -35,52 +29,19 @@ export default function Jobs() {
   });
   const navigate = useNavigate();
   const { search } = useLocation();
-  React.useEffect(() => {
-    let mounted = true;
-    async function load() {
-      setLoading(true);
-      try {
-        const { apiFetch } = await import("@/lib/api");
-        const res = await apiFetch("/job/get-all-jobs-student", { method: "GET" });
-        if (mounted && res && res.jobs) setJobs(res.jobs);
-        if (mounted && res && res.jobs) {
-          const all = new Set();
-          res.jobs.forEach((job) => {
-            const raw =
-              job.allowed_branches ||
-              job.branches ||
-              job.branch ||
-              job.allowedBranches ||
-              "";
-            const list = Array.isArray(raw)
-              ? raw
-              : String(raw)
-                  .split(",")
-                  .map((b) => b.trim())
-                  .filter(Boolean);
-            list.forEach((b) => all.add(b));
-          });
-          // always include the full default list
-          defaultBranches.forEach((b) => all.add(b));
-          setBranchOptions(Array.from(all));
-        }
-      } catch (err) {
-        console.error("Failed to load jobs", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-    return () => { mounted = false; };
-  }, []);
+  const isMobile = useIsMobile();
 
-  // sync with ?search= from header navigation
+  const { data: jobs, isLoading: isJobsLoading } = useAllJobs();
+  const { data: branchOptions } = useBranches();
+
   React.useEffect(() => {
     const params = new URLSearchParams(search);
     setSearchQuery(params.get("search") || "");
   }, [search]);
 
   const filteredJobs = useMemo(() => {
+    if (isJobsLoading || !jobs) return [];
+
     const term = searchQuery.trim().toLowerCase();
 
     const hasActiveFilters =
@@ -242,7 +203,7 @@ export default function Jobs() {
           return parsed.map((s) =>
             typeof s === "object" && s?.name ? s.name : s
           );
-        }
+        };
       } catch (e) {
         /* ignore */
       }
@@ -352,7 +313,7 @@ export default function Jobs() {
     });
 
     return sorted;
-  }, [jobs, searchQuery, filters, sortBy]);
+  }, [jobs, searchQuery, filters, sortBy, isJobsLoading]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -412,28 +373,63 @@ export default function Jobs() {
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex gap-6">
           {/* Sidebar Filters */}
-          <div className={`${showFilters ? 'block' : 'hidden'} lg:block w-80 flex-shrink-0`}>
-            <JobFilters
-              filters={filters}
-              onChange={handleFilterChange}
-              onClear={handleClearFilters}
-              branchOptions={branchOptions}
-            />
-          </div>
+          {isMobile ? (
+            <Sheet open={showFilters} onOpenChange={setShowFilters}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFilters(true)}
+                  className="lg:hidden"
+                >
+                  <SlidersHorizontal className="h-4 w-4 mr-2" />
+                  Filters
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80 p-0">
+                <div className="flex h-full flex-col py-4">
+                  <div className="flex items-center justify-between px-6 pb-4">
+                    <h3 className="text-lg font-semibold">Filter Jobs</h3>
+                    <Button variant="ghost" size="sm" onClick={() => setShowFilters(false)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto px-6">
+                    <JobFilters
+                      filters={filters}
+                      onChange={handleFilterChange}
+                      onClear={handleClearFilters}
+                      branchOptions={branchOptions || []}
+                    />
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <div className="w-80 flex-shrink-0">
+              <JobFilters
+                filters={filters}
+                onChange={handleFilterChange}
+                onClear={handleClearFilters}
+                branchOptions={branchOptions || []}
+              />
+            </div>
+          )}
 
           {/* Main Content */}
           <div className="flex-1 min-w-0">
             {/* Controls Bar */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="lg:hidden"
-                >
-                  <SlidersHorizontal className="h-4 w-4 mr-2" />
-                  Filters
-                </Button>
+                {isMobile && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="lg:hidden"
+                  >
+                    <SlidersHorizontal className="h-4 w-4 mr-2" />
+                    Filters
+                  </Button>
+                )}
                 <p className="text-muted-foreground">
                   {filteredJobs.length} opportunities found
                   {searchQuery ? ` for "${searchQuery}"` : ""}
@@ -455,16 +451,22 @@ export default function Jobs() {
 
             {/* Jobs Grid */}
             <div className="grid gap-6">
-              {filteredJobs.map((job) => (
-                <JobCard
-                  key={job._id || job.id}
-                  id={job._id || job.id}
-                  title={job.job_title || job.title || "Job"}
-                  company={job.company_name || job.company}
-                  location={job.location || "Location not specified"}
-                  type={job.job_type || job.type || "Job"}
-                />
-              ))}
+              {isJobsLoading ? (
+                <p className="text-muted-foreground">Loading jobs...</p>
+              ) : filteredJobs.length === 0 ? (
+                <p className="text-muted-foreground">No jobs found matching your criteria.</p>
+              ) : (
+                filteredJobs.map((job) => (
+                  <JobCard
+                    key={job._id || job.id}
+                    id={job._id || job.id}
+                    title={job.job_title || job.title || "Job"}
+                    company={job.company_name || job.company}
+                    location={job.location || "Location not specified"}
+                    type={job.job_type || job.type || "Job"}
+                  />
+                ))
+              )}
             </div>
           </div>
         </div>

@@ -445,6 +445,7 @@ import {
   BookOpen,
   CheckCircle,
   AlertCircle,
+  Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -571,6 +572,48 @@ export default function JobDetails() {
       });
     } finally {
       setIsApplying(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    const shareText = `Check out this job: ${displayJob.title} at ${displayJob.company} - ${shareUrl}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: displayJob.title,
+          text: shareText,
+          url: shareUrl,
+        });
+        toast({
+          title: "Job shared!",
+          description: "The job details have been shared successfully.",
+        });
+      } catch (error) {
+        console.error("Error sharing:", error);
+        toast({
+          title: "Share cancelled",
+          description: "You cancelled the share action.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      // Fallback for browsers that do not support the Web Share API
+      try {
+        await navigator.clipboard.writeText(shareText);
+        toast({
+          title: "Link copied!",
+          description: "The job link has been copied to your clipboard.",
+        });
+      } catch (err) {
+        console.error("Failed to copy: ", err);
+        toast({
+          title: "Could not copy link",
+          description: "Failed to copy the job link to clipboard.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -845,6 +888,24 @@ export default function JobDetails() {
                     : profileComplete
                       ? "Apply Now"
                       : "Complete Profile to Apply"}
+                </Button>
+
+                <Button
+                  onClick={handleShare}
+                  variant="outline"
+                  className="w-full mb-4 flex items-center justify-center gap-2"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share Job
+                </Button>
+
+                <Button
+                  onClick={handleShare}
+                  variant="outline"
+                  className="w-full mb-4 flex items-center justify-center gap-2"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share Job
                 </Button>
 
                 <div className="text-center text-sm text-muted-foreground">

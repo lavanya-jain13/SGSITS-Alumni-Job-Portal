@@ -240,82 +240,84 @@ export default function CompaniesManagement() {
           <CardTitle>Company Directory</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Company Details</TableHead>
-                <TableHead>Industry & Size</TableHead>
-                <TableHead>Performance</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredCompanies.map((company) => (
-                <TableRow key={company.id} className="hover:bg-muted/50">
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="font-semibold text-foreground">{company.name}</div>
-                      {company.email && (
-                        <div className="text-sm text-muted-foreground">{company.email}</div>
-                      )}
-                      {company.registeredAt && (
-                        <div className="text-xs text-muted-foreground">Registered: {company.registeredAt}</div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="text-sm font-medium">{company.industry || "N/A"}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {company.company_size || "Size N/A"}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="text-sm">
-                        Active Jobs: <span className="font-semibold">{company.activeJobs ?? 0}</span>
-                      </div>
-                      <div className="text-sm">
-                        Total Hires: <span className="font-semibold">{company.totalHires ?? 0}</span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={getStatusVariant((company.status || "pending").toLowerCase())}
-                      className={`${getStatusColor((company.status || "pending").toLowerCase())} font-medium`}
-                    >
-                      {company.status || "pending"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={loading}
-                        onClick={() => handleCompanyAction(company.id, "approve")}
-                        className="text-success border-success hover:bg-success hover:text-success-foreground"
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={loading}
-                        onClick={() => handleCompanyAction(company.id, "reject")}
-                        className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Company Details</TableHead>
+                  <TableHead>Industry & Size</TableHead>
+                  <TableHead>Performance</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredCompanies.map((company) => (
+                  <TableRow key={company.id} className="hover:bg-muted/50">
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="font-semibold text-foreground">{company.name}</div>
+                        {company.email && (
+                          <div className="text-sm text-muted-foreground">{company.email}</div>
+                        )}
+                        {company.registeredAt && (
+                          <div className="text-xs text-muted-foreground">Registered: {company.registeredAt}</div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">{company.industry || "N/A"}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {company.company_size || "Size N/A"}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="text-sm">
+                          Active Jobs: <span className="font-semibold">{company.activeJobs ?? 0}</span>
+                        </div>
+                        <div className="text-sm">
+                          Total Hires: <span className="font-semibold">{company.totalHires ?? 0}</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={getStatusVariant((company.status || "pending").toLowerCase())}
+                        className={`${getStatusColor((company.status || "pending").toLowerCase())} font-medium`}
+                      >
+                        {company.status || "pending"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={loading}
+                          onClick={() => handleCompanyAction(company.id, "approve")}
+                          className="text-success border-success hover:bg-success hover:text-success-foreground"
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={loading}
+                          onClick={() => handleCompanyAction(company.id, "reject")}
+                          className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

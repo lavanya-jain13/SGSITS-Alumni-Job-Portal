@@ -1,65 +1,29 @@
-import { useEffect, useState } from "react";
-import { Users, Building2 } from "lucide-react";
 import { StatCard } from "@/components/admin/StatCard";
 import { UserManagement } from "@/components/admin/UserManagement";
-import { apiClient } from "@/lib/api";
+import { Building2, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  useAdminStats,
+  useAdminUsers,
+  useApproveAlumni,
+  useDeleteUser,
+  usePromoteUser,
+} from "@/hooks/useAdminData";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
-  const [stats, setStats] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [statsRes, usersRes] = await Promise.all([
-        apiClient.adminStats(),
-        apiClient.adminUsers(),
-      ]);
+  const { data: stats, isLoading: isLoadingStats, isError: isErrorStats } = useAdminStats();
+  const { data: users, isLoading: isLoadingUsers, isError: isErrorUsers } = useAdminUsers();
 
-      setStats(statsRes || {});
-      const normalizedUsers = [
-        ...(usersRes?.students || []).map((u) => ({
-          id: u.user_id,
-          name: u.name,
-          role: "student",
-          status: u.status || "approved",
-          email: u.email,
-        })),
-        ...(usersRes?.alumni || []).map((u) => ({
-          id: u.user_id,
-          name: u.name,
-          role: "alumni",
-          status: u.status || "pending",
-          email: u.email,
-          companyId: u.company_id,
-          companyName: u.company_name,
-          companyStatus: u.company_status,
-        })),
-      ];
-      setUsers(normalizedUsers);
-    } catch (err) {
-      toast({
-        title: "Failed to load admin data",
-        description: err.message || "Unable to fetch dashboard data.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
+  const approveAlumniMutation = useApproveAlumni();
+  const deleteUserMutation = useDeleteUser();
+  const promoteUserMutation = usePromoteUser();
 
   const handleApproveAlumni = async (userId) => {
     try {
-      await apiClient.adminVerifyAlumni(userId, "approved");
+      await approveAlumniMutation.mutateAsync(userId);
       toast({ title: "Alumni approved" });
-      await loadData();
     } catch (err) {
       toast({
         title: "Approval failed",
@@ -71,9 +35,8 @@ export default function AdminDashboard() {
 
   const handleDeleteUser = async (userId) => {
     try {
-      await apiClient.adminDeleteUser(userId);
+      await deleteUserMutation.mutateAsync(userId);
       toast({ title: "User removed" });
-      await loadData();
     } catch (err) {
       toast({
         title: "Delete failed",
@@ -85,9 +48,8 @@ export default function AdminDashboard() {
 
   const handlePromote = async (userId) => {
     try {
-      await apiClient.adminPromoteUser(userId);
+      await promoteUserMutation.mutateAsync(userId);
       toast({ title: "User promoted to admin" });
-      await loadData();
     } catch (err) {
       toast({
         title: "Promote failed",
@@ -100,6 +62,17 @@ export default function AdminDashboard() {
   const studentCount = stats?.studentsCount ?? 0;
   const alumniCount = stats?.alumniCount ?? 0;
   const approvedCompanies = stats?.approvedCompanies ?? 0;
+
+  const loading = isLoadingStats || isLoadingUsers;
+  const error = isErrorStats || isErrorUsers;
+
+  if (error) {
+    toast({
+      title: "Failed to load admin data",
+      description: "Unable to fetch dashboard data. Please try again.",
+      variant: "destructive",
+    });
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -138,7 +111,7 @@ export default function AdminDashboard() {
 
         {/* User Management Section */}
         <UserManagement
-          users={users}
+          users={users || []}
           loading={loading}
           onApproveAlumni={handleApproveAlumni}
           onDeleteUser={handleDeleteUser}
