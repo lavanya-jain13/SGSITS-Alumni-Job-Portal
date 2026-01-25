@@ -34,7 +34,7 @@ function StudentSidebarNav() {
     navigate("/login");
   };
 
-  const userName = user?.name || user?.email || "Student";
+  const userName = user?.name || "Student";
 
   return (
     <div className="w-64 bg-[#170438] min-h-screen flex flex-col text-white p-4">
@@ -115,7 +115,7 @@ function StudentSidebarNav() {
 
 export default function StudentDashboardLayout() {
   const { user } = useSelector(selectAuth);
-  const userName = user?.name || user?.email || "Student";
+  const userName = user?.name || "Student";
 
   return (
     <div className="flex min-h-screen bg-gray-100">
