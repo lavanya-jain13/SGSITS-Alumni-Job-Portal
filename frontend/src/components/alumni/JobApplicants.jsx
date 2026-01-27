@@ -343,13 +343,17 @@ export function JobApplicants({
   const [error, setError] = useState("");
   const [expandedSkills, setExpandedSkills] = useState(() => new Set());
 
+  // Branch options – keep in sync with Alumni PostJob branches
   const branches = [
-    "Computer Science Engineering",
+    "Computer Science",
     "Information Technology",
-    "Electronics & Communication Engineering",
+    "Electronics and Telecommunication",
+    "Electronics and Instrumentation",
     "Electrical Engineering",
     "Mechanical Engineering",
     "Civil Engineering",
+    "Industrial and Production",
+    "Biomedical Engineering",
   ];
   const statuses = ["pending", "accepted", "rejected", "on_hold"];
 
@@ -564,8 +568,19 @@ export function JobApplicants({
     selectedSkills,
   ]);
 
+  // Base skills list (same as alumni PostJob skills)
+  const baseSkills = [
+    "JavaScript",
+    "React",
+    "Node.js",
+    "Python",
+    "Java",
+    "SQL",
+    "AWS",
+  ];
+
   const skillOptions = useMemo(() => {
-    const all = new Set();
+    const all = new Set(baseSkills);
     applicants.forEach((a) => {
       (a.skills || []).forEach((s) => s && all.add(s));
       (a.job_skills || []).forEach((s) => s && all.add(s));
@@ -598,6 +613,7 @@ export function JobApplicants({
     setSelectedStatus("");
     setSelectedSkills([]);
     setSearchTerm("");
+    setSortBy("relevance");
   };
 
   const toggleSkills = (id) => {
@@ -751,7 +767,10 @@ export function JobApplicants({
 
             <div>
               <label className="text-sm font-medium mb-2 block">Branches</label>
-              <Select onValueChange={addBranchFilter}>
+              <Select
+                key={selectedBranches.join(",") || "branches-none"}
+                onValueChange={addBranchFilter}
+              >
                 <SelectTrigger>
                   <SelectValue
                     placeholder={
@@ -789,7 +808,10 @@ export function JobApplicants({
 
             <div>
               <label className="text-sm font-medium mb-2 block">Skills</label>
-              <Select onValueChange={addSkillFilter}>
+              <Select
+                key={selectedSkills.join(",") || "skills-none"}
+                onValueChange={addSkillFilter}
+              >
                 <SelectTrigger>
                   <SelectValue
                     placeholder={

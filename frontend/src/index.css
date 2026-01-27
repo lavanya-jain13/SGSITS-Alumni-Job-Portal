@@ -15,15 +15,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 215 27% 17%;
 
-    /* Professional blue primary */
-    --primary: 221 83% 53%;
+    /* Primary brand color: #063970 */
+    /* Hex #063970 → HSL(211, 90%, 23%) */
+    --primary: 211 90% 23%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 221 83% 65%;
-    --primary: 203 96% 18%;/*changed*/
-    --primary-hover: 203 96% 22%;/*changed*/
+    --primary-glow: 211 90% 33%;
+    /* Slightly lighter for hover */
+    --primary-hover: 211 90% 27%;
 
-    /* Sidebar theme (dark blue unified) */
-    --sidebar-background: 221 44% 15%; /* 🌌 Dark Blue */
+    /* Sidebar theme (use same #063970 family) */
+    --sidebar-background: 211 90% 18%; /* Darker variant of #063970 */
     --sidebar-foreground: 214 32% 85%;
     --sidebar-primary: 221 83% 53%;
     --sidebar-primary-foreground: 0 0% 100%;

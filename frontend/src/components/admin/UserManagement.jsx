@@ -17,7 +17,6 @@ export function UserManagement({
   loading = false,
   onApproveAlumni,
   onDeleteUser,
-  onPromoteUser,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -127,16 +126,6 @@ export function UserManagement({
                           Approve
                         </Button>
                       )}
-                    {user.role !== "admin" && onPromoteUser && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={loading}
-                        onClick={() => onPromoteUser(user.id)}
-                      >
-                        Promote to Admin
-                      </Button>
-                    )}
                     {onDeleteUser && (
                       <Button
                         size="sm"

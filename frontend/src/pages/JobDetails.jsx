@@ -654,7 +654,7 @@ export default function JobDetails() {
                       displayJob.type === "Full-time"
                         ? "bg-orange-100 text-orange-800 border-orange-200"
                         : displayJob.type === "Internship"
-                          ? "bg-blue-100 text-blue-800 border-blue-200"
+                          ? "bg-[#063970]/10 text-[#063970] border-[#063970]/30"
                           : "bg-green-100 text-green-800 border-green-200"
                     }
                   >
@@ -777,7 +777,7 @@ export default function JobDetails() {
                         jobDetails?.eligibility || jobDetails?.allowed_branches,
                       ).map((criteria, index) => (
                         <li key={index} className="flex items-start space-x-2">
-                          <BookOpen className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <BookOpen className="h-4 w-4 text-[#063970] mt-0.5 flex-shrink-0" />
                           <span className="text-sm">{criteria}</span>
                         </li>
                       ))}

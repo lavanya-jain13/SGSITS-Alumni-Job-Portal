@@ -122,15 +122,15 @@ export default function JobsMatchingProfile() {
               Jobs Matching Your Profile
             </h1>
             <p className="text-slate-600 dark:text-slate-300 flex items-center gap-2 text-sm md:text-base">
-              <GraduationCap className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+              <GraduationCap className="w-4 h-4 text-[#063970]" />
               Showing opportunities applicable for{" "}
               <span className="font-semibold ml-1">{headingBranchLabel}</span>
             </p>
           </div>
 
           <div className="inline-flex items-center gap-2 rounded-xl bg-white/80 px-3 py-2 shadow-sm border border-slate-200 dark:bg-slate-900/80 dark:border-slate-700">
-            <div className="h-9 w-9 rounded-lg bg-blue-600/10 flex items-center justify-center">
-              <Briefcase className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+            <div className="h-9 w-9 rounded-lg bg-[#063970]/10 flex items-center justify-center">
+              <Briefcase className="w-5 h-5 text-[#063970]" />
             </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -148,7 +148,7 @@ export default function JobsMatchingProfile() {
           {loading ? (
             <div className="flex items-center justify-center py-16">
               <div className="flex flex-col items-center gap-3 text-slate-500 dark:text-slate-400">
-                <div className="h-8 w-8 border-2 border-blue-500/40 border-t-blue-500 rounded-full animate-spin" />
+                <div className="h-8 w-8 border-2 border-[#063970]/40 border-t-[#063970] rounded-full animate-spin" />
                 <p className="text-sm">Loading opportunities for you…</p>
               </div>
             </div>
