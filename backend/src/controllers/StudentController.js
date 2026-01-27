@@ -55,12 +55,8 @@ const parseSkills = (skills) => {
     if (typeof s === "object" && s.name) {
       return {
         name: s.name,
-        proficiency: Number.isFinite(s.proficiency)
-          ? Number(s.proficiency)
-          : 3,
-        experience: Number.isFinite(s.experience)
-          ? Number(s.experience)
-          : 1,
+        proficiency: Number.isFinite(s.proficiency) ? Number(s.proficiency) : 3,
+        experience: Number.isFinite(s.experience) ? Number(s.experience) : 1,
       };
     }
     if (typeof s === "string") {
@@ -131,7 +127,7 @@ const getMyProfile = async (req, res) => {
     if (profile) {
       const experiences = await db("student_experience")
         .where({ student_id: profile.id })
-        .select("id", "position", "company", "duration", "description") // link removed
+        .select("id", "position", "company", "duration", "description", "link")
         .orderBy("created_at", "desc");
 
       profile.skills = parseSkills(profile.skills);
@@ -207,7 +203,7 @@ const upsertProfile = async (req, res) => {
           (err, result) => {
             if (err) reject(err);
             else resolve(result);
-          }
+          },
         );
 
         uploadStream.end(req.file.buffer);
@@ -285,6 +281,7 @@ const upsertProfile = async (req, res) => {
             company: exp.company || "",
             duration: exp.duration || "",
             description: exp.description || "",
+            link: exp.link || "",
           })); // link removed
 
         if (rows.length) await db("student_experience").insert(rows);
@@ -296,7 +293,7 @@ const upsertProfile = async (req, res) => {
 
       const updatedExperiences = await db("student_experience")
         .where({ student_id: updated.id })
-        .select("id", "position", "company", "duration", "description") // link removed
+        .select("id", "position", "company", "duration", "description", "link") // link removed
         .orderBy("created_at", "desc");
 
       return res.status(200).json({
@@ -373,6 +370,7 @@ const upsertProfile = async (req, res) => {
           company: exp.company || "",
           duration: exp.duration || "",
           description: exp.description || "",
+          link: exp.link || "",
         })); // link removed
 
       if (rows.length) await db("student_experience").insert(rows);

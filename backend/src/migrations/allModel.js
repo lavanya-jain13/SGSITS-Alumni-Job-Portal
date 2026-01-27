@@ -54,6 +54,7 @@ exports.up = function (knex) {
         table.boolean("consent_terms").defaultTo(false);
 
         table.text("resume_url");
+        table.string("resumePublicId");
         table.timestamp("created_at").defaultTo(knex.fn.now());
       })
 
@@ -73,6 +74,7 @@ exports.up = function (knex) {
         table.string("company", 255).notNullable();
         table.string("duration", 100); // e.g., "3 months", "Jan–Jun 2024"
         table.text("description");
+        table.text("link");
 
         table.timestamp("created_at").defaultTo(knex.fn.now());
       })
@@ -95,7 +97,6 @@ exports.up = function (knex) {
         table.timestamp("created_at").defaultTo(knex.fn.now());
       })
 
-      // ---------------- COMPANIES ----------------
       // ---------------- COMPANIES ----------------
       .createTable("companies", (table) => {
         table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));

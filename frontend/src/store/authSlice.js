@@ -6,17 +6,16 @@ const TOKEN_KEYS = ["api_token", "token"];
 const loadInitialState = () => {
   const storedUser = localStorage.getItem(USER_KEY);
   TOKEN_KEYS.forEach((key) => localStorage.removeItem(key));
+
   return {
-    user: storedUser ? JSON.parse(storedUser) : null,
+    user: storedUser ? JSON.parse(storedUser) : {},
     isAuthenticated: !!storedUser,
   };
 };
 
-const initialState = loadInitialState();
-
 const authSlice = createSlice({
   name: "auth",
-  initialState,
+  initialState: loadInitialState(),
   reducers: {
     loginSuccess: (state, action) => {
       const { user } = action.payload;
@@ -26,15 +25,14 @@ const authSlice = createSlice({
       TOKEN_KEYS.forEach((key) => localStorage.removeItem(key));
     },
     logout: (state) => {
-      state.user = null;
+      state.user = {};
       state.isAuthenticated = false;
       localStorage.removeItem(USER_KEY);
       TOKEN_KEYS.forEach((key) => localStorage.removeItem(key));
     },
     updateUser: (state, action) => {
       const updates = action.payload || {};
-      state.user = { ...(state.user || {}), ...updates };
-      state.isAuthenticated = !!state.user;
+      state.user = { ...state.user, ...updates };
       localStorage.setItem(USER_KEY, JSON.stringify(state.user));
     },
   },
@@ -44,3 +42,5 @@ export const { loginSuccess, logout, updateUser } = authSlice.actions;
 export default authSlice.reducer;
 
 export const selectAuth = (state) => state.auth;
+export const selectStudentName = (state) =>
+  state.auth.user?.student_name || "Student";
