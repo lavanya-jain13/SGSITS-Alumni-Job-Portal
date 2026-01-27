@@ -706,6 +706,7 @@ export function JobApplicants({
         </div>
         {jobs.length > 0 && (
           <Select
+            key={selectedJobId || "no-job-selected"}
             value={selectedJobId ? String(selectedJobId) : ""}
             onValueChange={(value) => setSelectedJobId(Number(value))}
           >

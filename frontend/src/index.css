@@ -15,23 +15,23 @@
     --popover: 0 0% 100%;
     --popover-foreground: 215 27% 17%;
 
-    /* Primary brand color: #063970 */
-    /* Hex #063970 → HSL(211, 90%, 23%) */
-    --primary: 211 90% 23%;
+    /* Primary brand color: #072442 */
+    /* Hex #072442 → HSL(213, 82%, 15%) */
+    --primary: 213 82% 15%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 211 90% 33%;
-    /* Slightly lighter for hover */
-    --primary-hover: 211 90% 27%;
+    --primary-glow: 213 82% 25%; /* Slightly lighter glow */
+    /* Slightly lighter for hover, matching the glow or a bit less */
+    --primary-hover: 213 82% 20%;
 
-    /* Sidebar theme (use same #063970 family) */
-    --sidebar-background: 211 90% 18%; /* Darker variant of #063970 */
+    /* Sidebar theme (use same #072442 family) */
+    --sidebar-background: 213 82% 12%; /* Even darker variant of #072442 */
     --sidebar-foreground: 214 32% 85%;
-    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary: 213 82% 15%; /* Primary for active states */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 221 33% 16%;
+    --sidebar-accent: 213 82% 18%; /* A slightly lighter accent */
     --sidebar-accent-foreground: 214 32% 85%;
-    --sidebar-border: 221 33% 16%;
-    --sidebar-ring: 221 83% 53%;
+    --sidebar-border: 213 82% 18%;
+    --sidebar-ring: 213 82% 15%;
 
     --secondary: 214 32% 96%;
     --secondary-foreground: 215 27% 17%;
