@@ -649,6 +649,14 @@ const StudentProfile = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle p-4">
       <div className="max-w-6xl mx-auto space-y-6">
+        <Button
+          variant="outline"
+          onClick={() => navigate("/dashboard")}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Button>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Profile Completion Sidebar */}

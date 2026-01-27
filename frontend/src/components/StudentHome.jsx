@@ -8,6 +8,9 @@ import { useSelector } from "react-redux";
 import { selectAuth } from "@/store/authSlice";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Lightbulb } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function StudentHome() {
   const navigate = useNavigate();
@@ -19,6 +22,32 @@ export default function StudentHome() {
   const { completionPercentage } = calculateProfileCompletion(profileData || {});
 
   const userName = user?.name || "Student";
+
+  const [appliedJobs, setAppliedJobs] = useState([]);
+  const [isAppliedJobsLoading, setIsAppliedJobsLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadAppliedJobs = async () => {
+      setIsAppliedJobsLoading(true);
+      try {
+        const { apiFetch } = await import("@/lib/api");
+        const res = await apiFetch("/job/get-applied-jobs");
+        if (mounted) {
+          setAppliedJobs(res?.applications || []);
+        }
+      } catch (err) {
+        console.error("Failed to load applied jobs", err);
+        if (mounted) setAppliedJobs([]);
+      } finally {
+        if (mounted) setIsAppliedJobsLoading(false);
+      }
+    };
+    loadAppliedJobs();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <div className="flex flex-col flex-1 bg-gray-50">
@@ -51,8 +80,8 @@ export default function StudentHome() {
         {/* Recommended Jobs Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-[#4A148C]">Recommended for You</h2>
-            <Button onClick={() => navigate("/student/jobs")} className="bg-[#4A148C] hover:bg-[#4A148C]/90 text-white">
+            <h2 className="text-2xl font-bold text-[#000]" >Recommended for You</h2>
+            <Button onClick={() => navigate("/student/jobs")} className="bg-[#072442] hover:bg-[#336193]/90 text-white">
               View All Jobs
             </Button>
           </div>
@@ -74,6 +103,63 @@ export default function StudentHome() {
           ) : (
             <p className="text-sm text-muted-foreground">
               No recommended jobs right now. Check back soon or view all jobs.
+            </p>
+          )}
+        </div>
+
+        {/* Recent Applications Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-[#000] mb-6">Recent Applications</h2>
+          {isAppliedJobsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading applications...</p>
+          ) : appliedJobs?.length ? (
+            <div className="space-y-4">
+              {appliedJobs.slice(0, 3).map((app) => (
+                <Card key={app.application_id || app.id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">{app.job_title || "Job"}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {app.company_name || app.company || "Company"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Applied {app.applied_at ? new Date(app.applied_at).toDateString() : ""}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <Badge
+                        variant="secondary"
+                        className={
+                          String(app.application_status || app.status || "pending").toLowerCase() === "reviewed"
+                            ? "bg-blue-100 text-blue-800 border-blue-200"
+                            : String(app.application_status || app.status || "pending").toLowerCase() === "applied"
+                              ? "bg-orange-100 text-orange-800 border-orange-200"
+                              : String(app.application_status || app.status || "pending").toLowerCase() === "interview"
+                                ? "bg-green-100 text-green-800 border-green-200"
+                                : String(app.application_status || app.status || "pending").toLowerCase() === "accepted"
+                                  ? "bg-green-100 text-green-800 border-green-200"
+                                  : String(app.application_status || app.status || "pending").toLowerCase() === "rejected"
+                                    ? "bg-red-100 text-red-800 border-red-200"
+                                    : "bg-gray-100 text-gray-800 border-gray-200"
+                        }
+                      >
+                        {app.application_status || app.status || "Pending"}
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/jobs/${app.job_id || app.jobId || app.id}`)}
+                      >
+                        View
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No applications yet. Start applying to jobs to see them here.
             </p>
           )}
         </div>

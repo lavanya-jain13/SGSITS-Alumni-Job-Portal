@@ -336,6 +336,14 @@ export default function Jobs() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-6 py-6">
+        <Button
+          variant="outline"
+          onClick={() => navigate("/dashboard")}
+          className="flex items-center gap-2 mb-4"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Button>
         <div className="flex gap-6">
           {/* Sidebar Filters */}
           {isMobile ? (

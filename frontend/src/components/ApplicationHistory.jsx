@@ -102,6 +102,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 const statusColors = {
   reviewed: "bg-blue-100 text-blue-800 border-blue-200",
@@ -145,7 +146,16 @@ export default function ApplicationHistory() {
   };
 
   return (
-    <Card className="mt-8">
+    <div>
+      <Button
+        variant="outline"
+        onClick={() => navigate("/dashboard")}
+        className="flex items-center gap-2 mb-4"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Dashboard
+      </Button>
+      <Card className="mt-8">
       <CardHeader>
         <CardTitle className="text-lg font-semibold">
           Recent Applications
@@ -204,5 +214,6 @@ export default function ApplicationHistory() {
         )}
       </CardContent>
     </Card>
+    </div>
   );
 }

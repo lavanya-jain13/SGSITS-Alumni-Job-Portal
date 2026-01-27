@@ -47,12 +47,15 @@ function StudentSidebarNav() {
   const userName = user?.student_name || "Student";
 
   return (
-    <div className="w-64 bg-[#170438] min-h-screen flex flex-col text-white p-4">
+    <div className="w-64 bg-[#072442] min-h-screen flex flex-col text-white p-4">
       <div className="flex items-center gap-3 mb-8 px-2">
-        <div className="w-10 Sh-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center font-bold">
+        <div className="w-10 h-10 rounded-full bg-yellow-100 text-black flex items-center justify-center font-bold">
           A
         </div>
-        <span className="text-xl font-bold">Harry Portal</span>
+        <div className="flex flex-col items-center">
+          <span className="text-m font-bold">Student</span>
+          <span className="text-m font-bold">Dashboard</span>
+        </div>
       </div>
 
       <nav className="flex-1 space-y-2">

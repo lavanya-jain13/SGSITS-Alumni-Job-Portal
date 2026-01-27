@@ -30,7 +30,7 @@ export default function JobCard({ id = "1", title, company, location, type }) {
       className="hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden"
       onClick={handleViewDetails}
     >
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-purple-400 to-pink-500" />
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-white via-gray-400 to-white" />
       <CardContent className="p-6">
         <div className="space-y-4">
           <div className="flex items-start justify-between">
@@ -68,7 +68,7 @@ export default function JobCard({ id = "1", title, company, location, type }) {
 
             <Button
               size="sm"
-              className="bg-[#4A148C] hover:bg-[#4A148C]/90 text-white"
+              className="bg-[#072442] hover:bg-[#32649b]/90 text-white"
               onClick={(e) => {
                 e.stopPropagation();
                 handleViewDetails();
