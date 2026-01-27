@@ -1,4 +1,3 @@
-import RecentApplications from "./RecentApplications";
 import JobCard from "./JobCard";
 import ApplicationHistory from "./ApplicationHistory";
 import { Button } from "@/components/ui/button";
@@ -22,7 +21,7 @@ export default function StudentHome() {
   const userName = user?.name || "Student";
 
   return (
-    <div className="flex flex-col flex-1 bg-[#072442]">
+    <div className="flex flex-col flex-1 bg-gray-50">
       {/* This header is now part of StudentDashboardLayout, removing from here */}
       {/* <header className="bg-white shadow-sm p-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-800">Welcome back, {userName}!</h1>
@@ -52,8 +51,8 @@ export default function StudentHome() {
         {/* Recommended Jobs Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-white">Recommended for You</h2>
-            <Button onClick={() => navigate("/student/jobs")} className="bg-[#072442] hover:bg-[#072442]/90 text-white">
+            <h2 className="text-2xl font-semibold text-[#4A148C]">Recommended for You</h2>
+            <Button onClick={() => navigate("/student/jobs")} className="bg-[#4A148C] hover:bg-[#4A148C]/90 text-white">
               View All Jobs
             </Button>
           </div>
@@ -78,9 +77,6 @@ export default function StudentHome() {
             </p>
           )}
         </div>
-
-        {/* Recent Applications Section */}
-        <RecentApplications />
 
         {/* Application History - This will be on a separate route */}
         {/* <ApplicationHistory /> */}
