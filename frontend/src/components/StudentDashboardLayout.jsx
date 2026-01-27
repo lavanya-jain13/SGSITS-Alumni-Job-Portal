@@ -47,7 +47,7 @@ function StudentSidebarNav() {
   const userName = user?.student_name || "Student";
 
   return (
-    <div className="w-64 bg-[#170438] min-h-screen flex flex-col text-white p-4">
+    <div className="w-64 bg-[#072442] min-h-screen flex flex-col text-white p-4">
       <div className="flex items-center gap-3 mb-8 px-2">
         <div className="w-10 Sh-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center font-bold">
           A
@@ -142,11 +142,11 @@ export default function StudentDashboardLayout() {
   const userName = user?.student_name || "Student";
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-[#072442]">
       <StudentSidebarNav />
 
       <div className="flex-1 flex flex-col">
-        <header className="bg-white shadow-sm p-6 flex justify-between">
+        <header className="bg-[#072442] shadow-sm p-6 flex justify-between">
           <h1 className="text-2xl font-bold">Welcome back, {userName}!</h1>
 
           <Popover>
