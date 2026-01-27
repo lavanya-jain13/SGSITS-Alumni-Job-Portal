@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import Header from "./Header";
-import JobCard from "./JobCard";
-import ApplicationHistory from "./ApplicationHistory";
-import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { calculateProfileCompletion } from "@/lib/profileProgress";
+import ApplicationHistory from "./ApplicationHistory"; // Ensure this is styled correctly
+import { Button } from "@/components/ui/button";
 
 // 🔧 Normalize skills from backend → always array of { name }
 const normalizeSkills = (skills) => {
@@ -33,10 +32,10 @@ const normalizeSkills = (skills) => {
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
 
-  // ✅ Profile data state
   const [profileData, setProfileData] = useState({
-    name: "",
+    name: user?.name || "",
     student_id: "",
     branch: "",
     grad_year: "",
@@ -53,9 +52,9 @@ export default function StudentDashboard() {
   useEffect(() => {
     const loadExtras = () => {
       try {
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        const extrasKey = user?.id
-          ? `student_profile_extras_${user.id}`
+        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+        const extrasKey = storedUser?.id
+          ? `student_profile_extras_${storedUser.id}`
           : "student_profile_extras";
         const raw = localStorage.getItem(extrasKey);
         return raw ? JSON.parse(raw) : {};
@@ -73,7 +72,7 @@ export default function StudentDashboard() {
 
         setProfileData((prev) => ({
           ...prev,
-          name: profile.name || "",
+          name: profile.name || user?.name || "",
           student_id: profile.student_id || "",
           branch: profile.branch || "",
           grad_year: profile.grad_year || "",
@@ -118,7 +117,7 @@ export default function StudentDashboard() {
 
     loadProfile();
     loadJobs();
-  }, []);
+  }, [user]);
 
   const { completionPercentage } = calculateProfileCompletion(profileData);
 
@@ -136,23 +135,25 @@ export default function StudentDashboard() {
   return (
     <div className="min-h-screen bg-[#f6f7fb] text-slate-900 flex">
       {/* Sidebar */}
-      <aside className="w-[280px] bg-gradient-to-br from-[#072442] to-[#041a30] text-white flex flex-col items-center py-8">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-3xl font-bold mb-3">
+      <aside className="w-[280px] bg-[#072442] text-white flex flex-col pt-8 pb-4">
+        <div className="flex items-center gap-3 px-6 mb-8">
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-lg font-bold">
             {firstInitial}
           </div>
-          <h2 className="text-xl font-bold">JobPortal</h2>
-          <p className="text-sm text-white/70">Student Dashboard</p>
+          <div>
+            <h2 className="text-lg font-bold">JobPortal</h2>
+            <p className="text-xs text-white/70">Student Dashboard</p>
+          </div>
         </div>
 
-        <nav className="w-full px-6">
+        <nav className="flex-1 px-6">
           <ul className="space-y-2">
             <li>
               <button
                 onClick={() => navigate("/student/profile")}
                 className="flex items-center w-full p-3 rounded-xl text-white/90 bg-white/10 font-medium transition-colors hover:bg-white/20"
               >
-                <span className="mr-3 text-lg">📝</span> Complete Profile
+                <span className="w-5 h-5 mr-3 flex items-center justify-center">📝</span> Complete Profile
               </button>
             </li>
             <li>
@@ -160,27 +161,26 @@ export default function StudentDashboard() {
                 onClick={() => navigate("/jobs")}
                 className="flex items-center w-full p-3 rounded-xl text-white/70 hover:bg-white/10 transition-colors"
               >
-                <span className="mr-3 text-lg">💼</span> View Jobs
+                <span className="w-5 h-5 mr-3 flex items-center justify-center">💼</span> View Jobs
               </button>
             </li>
             <li>
               <button
                 onClick={() => {
-                  const el = document.getElementById("recent-applications");
+                  const el = document.getElementById("recent-applications-section");
                   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
                 className="flex items-center w-full p-3 rounded-xl text-white/70 hover:bg-white/10 transition-colors"
               >
-                <span className="mr-3 text-lg">🕒</span> Recent Applications
+                <span className="w-5 h-5 mr-3 flex items-center justify-center">🕒</span> Recent Applications
               </button>
             </li>
           </ul>
         </nav>
 
-        <div className="mt-auto px-5 py-4 text-xs text-white/70 border-t border-white/10">
+        <div className="px-6 mt-auto text-xs text-white/70">
             <p className="leading-snug">
-              Keep your profile updated to receive better job recommendations
-              from alumni.
+              Track your progress and discover new opportunities.
             </p>
           </div>
       </aside>
@@ -188,85 +188,23 @@ export default function StudentDashboard() {
       {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto">
         {/* Welcome Section */}
-        <section className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-[#072442]">Welcome back, {profileData.name || "John"}! 👋</h1>
-            <p className="text-slate-500 text-base mt-1">Track your progress and discover new opportunities.</p>
-          </div>
-          <Button
-            variant="outline"
-            className="rounded-full border-[#072442] text-[#072442] hover:bg-[#072442]/5 text-sm"
-            onClick={() => navigate("/jobs")}
-          >
-            View All Jobs
-          </Button>
-        </section>
-
-        {/* Profile Completion & Quick Tips */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Profile Completion Card */}
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-lg font-semibold text-slate-800 mb-4">Complete Profile</h2>
-            <p className="text-sm text-slate-500 mb-5">
-              Finish your profile to unlock more personalized jobs.
-            </p>
-            <div className="flex items-center mb-5">
-              <span className="text-4xl font-extrabold text-[#072442] mr-6">
-                {completionPercentage}%
-              </span>
-              <div className="flex-1">
-                <div className="w-full h-2 rounded-full bg-slate-200 mb-2">
-                  <div
-                    className="h-2 rounded-full bg-[#072442]"
-                    style={{ width: `${completionPercentage}%` }}
-                  />
-                </div>
-                <ul className="grid grid-cols-2 gap-2 text-xs text-slate-600">
-                  <li>{profileData.resumeUploaded ? "✅" : "⭕"} Upload your resume</li>
-                  <li>{profileData.experiences.length > 0 ? "✅" : "⭕"} Add experience / projects</li>
-                  <li>{profileData.skills.length >= 3 ? "✅" : "⭕"} Add at least 3 skills</li>
-                  <li>{profileData.summary ? "✅" : "⭕"} Write a short summary</li>
-                </ul>
-              </div>
+        <section className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-[#072442]">Welcome back, {profileData.name || "John"}! 👋</h1>
+              <p className="text-slate-500 text-base mt-1">Track your progress and discover new opportunities.</p>
             </div>
             <Button
-              className="w-full bg-[#072442] hover:bg-[#072442]/90 text-white rounded-xl text-sm py-2.5"
-              onClick={() => navigate("/student/profile")}
+              variant="outline"
+              className="rounded-full border-gray-300 text-gray-700 hover:bg-gray-100 text-sm py-2 px-4"
+              onClick={() => navigate("/jobs")}
             >
-              Complete Profile
+              View All Jobs
             </Button>
-          </div>
-
-          {/* Quick Tips & Badges Card */}
-          <div className="bg-[#072442] rounded-2xl shadow-lg p-6 text-white">
-            <h2 className="text-lg font-semibold mb-4">Quick Tips & Badges</h2>
-            <p className="text-sm text-white/80 mb-5">
-              Complete your profile and apply to jobs to earn badges and stand out to alumni recruiters.
-            </p>
-            <div className="flex gap-4">
-              <div className="text-center">
-                <div className="w-14 h-14 rounded-full bg-yellow-400 flex items-center justify-center text-2xl mb-1">
-                  ⭐
-                </div>
-                <p className="text-xs text-white/90">Profile Pioneer</p>
-              </div>
-              <div className="text-center">
-                <div className="w-14 h-14 rounded-full bg-blue-400 flex items-center justify-center text-2xl mb-1">
-                  🔍
-                </div>
-                <p className="text-xs text-white/90">Skill Seeker</p>
-              </div>
-              <div className="text-center">
-                <div className="w-14 h-14 rounded-full bg-emerald-400 flex items-center justify-center text-2xl mb-1">
-                  ✔
-                </div>
-                <p className="text-xs text-white/90">First Application</p>
-              </div>
-            </div>
           </div>
         </section>
 
-        {/* Recommended for You Jobs */}
+        {/* Recommended for You Jobs - First Screenshot Layout */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-2xl font-semibold text-slate-800">Recommended for You</h2>
@@ -274,15 +212,20 @@ export default function StudentDashboard() {
               View All Jobs →
             </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {jobsLoading ? (
               <div className="col-span-full text-center text-slate-500 py-10">Loading recommended jobs...</div>
             ) : recommendedJobs.length ? (
-              recommendedJobs.slice(0, 3).map((job) => (
-                <div key={job.id} className="bg-white rounded-xl shadow-md p-5 flex flex-col justify-between border border-slate-100">
+              recommendedJobs.slice(0, 4).map((job) => (
+                <div key={job.id} className="bg-white rounded-xl shadow-md p-5 flex flex-col justify-between border border-gray-200">
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-900 mb-1">{job.title}</h3>
-                    <p className="text-sm text-slate-500 mb-2">{job.company}</p>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-1 flex items-center">
+                        <span className="w-4 h-4 mr-2">🏢</span>
+                        {job.title}
+                    </h3>
+                    <p className="text-sm text-slate-500 mb-2 flex items-center">
+                        <span className="w-4 h-4 mr-2">💼</span> {job.company}
+                    </p>
                     <div className="flex items-center text-xs text-slate-400">
                       <span className="mr-1">📍</span> {job.location}
                     </div>
@@ -307,8 +250,8 @@ export default function StudentDashboard() {
           </div>
         </section>
 
-        {/* Recent Applications */}
-        <section id="recent-applications">
+        {/* Recent Applications - Second Screenshot Layout */}
+        <section id="recent-applications-section">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-2xl font-semibold text-slate-800">Recent Applications</h2>
             <Button variant="ghost" className="text-[#072442] hover:bg-[#072442]/5 text-sm" onClick={() => navigate("/applications")}>
@@ -316,7 +259,7 @@ export default function StudentDashboard() {
             </Button>
           </div>
           <div className="bg-white rounded-2xl shadow-lg p-6">
-             <ApplicationHistory compact={true} />
+             <ApplicationHistory />
           </div>
         </section>
       </main>
