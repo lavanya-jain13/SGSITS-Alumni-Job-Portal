@@ -127,7 +127,7 @@ export function UserManagement({
                           Approve
                         </Button>
                       )}
-                    {user.role !== "admin" && onPromoteUser && (
+                    {/* {user.role !== "admin" && onPromoteUser && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -136,7 +136,7 @@ export function UserManagement({
                       >
                         Promote to Admin
                       </Button>
-                    )}
+                    )} */}
                     {onDeleteUser && (
                       <Button
                         size="sm"

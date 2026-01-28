@@ -13,8 +13,8 @@ export function QuickAccess() {
         <CardTitle className="text-lg font-semibold">Quick Access</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <Button 
-          size="sm" 
+        <Button
+          size="sm"
           className="w-full"
           onClick={() => navigate("/alumni/postings")}
         >
@@ -22,35 +22,34 @@ export function QuickAccess() {
           Post New Job
         </Button>
 
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           className="w-full"
           onClick={() => navigate("/alumni/postings")}
         >
           <Users className="h-4 w-4 mr-2" />
           View All Postings
         </Button>
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
+
+        <Button
+          variant="outline"
+          size="sm"
           className="w-full"
           onClick={() => navigate("/alumni/applications")}
         >
           <Users className="h-4 w-4 mr-2" />
           Applications Overview
         </Button>
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
+
+        <Button
+          variant="outline"
+          size="sm"
           className="w-full"
           onClick={() => navigate("/alumni/add-company")}
         >
           <FileText className="h-4 w-4 mr-2" />
-          Edit Company
+          Add Company
         </Button>
       </CardContent>
     </Card>

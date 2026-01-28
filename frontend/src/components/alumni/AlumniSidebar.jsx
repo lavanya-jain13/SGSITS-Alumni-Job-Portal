@@ -34,7 +34,7 @@ function SidebarContent({ collapsed, onLinkClick }) {
   return (
     <>
       {/* Header */}
-      <div className="flex h-16 items-center justify-start px-4 border-b border-sidebar-border">
+      {/* <div className="flex h-16 items-center justify-start px-4 border-b border-sidebar-border">
         <div className="flex items-center space-x-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <Building2 className="h-5 w-5 text-primary-foreground" />
@@ -48,7 +48,7 @@ function SidebarContent({ collapsed, onLinkClick }) {
             </div>
           )}
         </div>
-      </div>
+      </div> */}
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-3">

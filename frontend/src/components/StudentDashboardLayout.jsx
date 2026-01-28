@@ -44,7 +44,7 @@ function StudentSidebarNav() {
   };
 
   // ✅ SINGLE SOURCE OF TRUTH
-  const userName = user?.student_name || "Student";
+  const userName = user?.student_name?.split(" ")[0] || "Student";
 
   return (
     <div className="w-64 bg-[#072442] min-h-screen flex flex-col text-white p-4">
