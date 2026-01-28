@@ -9,10 +9,10 @@ const ApplicationsOverview = () => {
         detailsPath="/admin/applicant-details"
         heading="Applications Overview"
         loadJobs={apiClient.adminJobs}
-        loadApplicants={(jobId) =>
+        loadApplicants={() =>
           apiClient
-            .adminJobApplications(jobId)
-            .then((res) => res?.applicants ?? [])
+            .adminApplications()
+            .then((res) => res?.applications ?? [])
         }
       />
     </div>

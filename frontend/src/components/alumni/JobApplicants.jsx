@@ -337,19 +337,23 @@ export function JobApplicants({
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [sortBy, setSortBy] = useState("relevance");
   const [jobs, setJobs] = useState([]);
-  const [selectedJobId, setSelectedJobId] = useState(null);
+  const [selectedJobId, setSelectedJobId] = useState(""); 
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expandedSkills, setExpandedSkills] = useState(() => new Set());
 
+  // Branch options – keep in sync with Alumni PostJob branches
   const branches = [
-    "Computer Science Engineering",
+    "Computer Science",
     "Information Technology",
-    "Electronics & Communication Engineering",
+    "Electronics and Telecommunication",
+    "Electronics and Instrumentation",
     "Electrical Engineering",
     "Mechanical Engineering",
     "Civil Engineering",
+    "Industrial and Production",
+    "Biomedical Engineering",
   ];
   const statuses = ["pending", "accepted", "rejected", "on_hold"];
 
@@ -460,7 +464,7 @@ export function JobApplicants({
         resume_url: row.resume_url || row.profile_resume_url || "",
         user_email: row.user_email || "",
         user_id: row.user_id,
-        job_id: row.job_id || selectedJobId,
+        job_id: String(row.job_id),
         student_phone: row.student_phone || "",
         location: row.location || row.student_location || "",
         achievements: splitAchievements(row.student_achievements),
@@ -491,50 +495,48 @@ export function JobApplicants({
     }));
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const jobList = normalizeJobs(await fetchJobs());
-        setJobs(jobList);
-        const initialJobId = jobIdFromQuery || jobList[0]?.id || null;
-        setSelectedJobId(initialJobId);
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const jobList = normalizeJobs(await fetchJobs());
+      setJobs(jobList);
 
-        if (initialJobId) {
-          const apps = await fetchApplicants(initialJobId);
-          setApplicants(normalizeApplicants(apps));
-        } else {
-          setApplicants([]);
-        }
-      } catch (err) {
-        setError(err?.message || "Failed to load applications");
-      } finally {
-        setLoading(false);
-      }
-    };
+      const initialJobId = jobIdFromQuery || jobList[0]?.id || "";
+      setSelectedJobId(initialJobId);
 
-    load();
-  }, [jobIdFromQuery]);
+      // ❌ yahan applicants fetch NAHI karna
+    } catch (err) {
+      setError(err?.message || "Failed to load jobs");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  load();
+}, [jobIdFromQuery]);
 
   useEffect(() => {
-    const fetchApplicantsForJob = async () => {
-      if (!selectedJobId) return;
-      setLoading(true);
-      setError("");
-      try {
-        const apps = await fetchApplicants(selectedJobId);
-        setApplicants(normalizeApplicants(apps));
-      } catch (err) {
-        setError(err?.message || "Failed to load applications");
-      } finally {
-        setLoading(false);
-      }
-    };
+  if (!selectedJobId) {
+    setApplicants([]);
+    return;
+  }
 
-    if (selectedJobId) {
-      fetchApplicantsForJob();
+  const fetchApplicantsForJob = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const apps = await fetchApplicants(selectedJobId);
+      setApplicants(normalizeApplicants(apps));
+    } catch (err) {
+      setError(err?.message || "Failed to load applications");
+    } finally {
+      setLoading(false);
     }
-  }, [selectedJobId]);
+  };
+
+  fetchApplicantsForJob();
+}, [selectedJobId]);
 
   const filteredApplicants = useMemo(() => {
     const skillKey = (s) => s?.toLowerCase();
@@ -564,8 +566,19 @@ export function JobApplicants({
     selectedSkills,
   ]);
 
+  // Base skills list (same as alumni PostJob skills)
+  const baseSkills = [
+    "JavaScript",
+    "React",
+    "Node.js",
+    "Python",
+    "Java",
+    "SQL",
+    "AWS",
+  ];
+
   const skillOptions = useMemo(() => {
-    const all = new Set();
+    const all = new Set(baseSkills);
     applicants.forEach((a) => {
       (a.skills || []).forEach((s) => s && all.add(s));
       (a.job_skills || []).forEach((s) => s && all.add(s));
@@ -598,6 +611,7 @@ export function JobApplicants({
     setSelectedStatus("");
     setSelectedSkills([]);
     setSearchTerm("");
+    setSortBy("relevance");
   };
 
   const toggleSkills = (id) => {
@@ -690,8 +704,9 @@ export function JobApplicants({
         </div>
         {jobs.length > 0 && (
           <Select
+            key={selectedJobId || "no-job-selected"}
             value={selectedJobId ? String(selectedJobId) : ""}
-            onValueChange={(value) => setSelectedJobId(Number(value))}
+            onValueChange={(value) => setSelectedJobId(value)}
           >
             <SelectTrigger className="w-72">
               <SelectValue placeholder="Select job to view applicants" />
@@ -751,7 +766,10 @@ export function JobApplicants({
 
             <div>
               <label className="text-sm font-medium mb-2 block">Branches</label>
-              <Select onValueChange={addBranchFilter}>
+              <Select
+                key={selectedBranches.join(",") || "branches-none"}
+                onValueChange={addBranchFilter}
+              >
                 <SelectTrigger>
                   <SelectValue
                     placeholder={
@@ -789,7 +807,10 @@ export function JobApplicants({
 
             <div>
               <label className="text-sm font-medium mb-2 block">Skills</label>
-              <Select onValueChange={addSkillFilter}>
+              <Select
+                key={selectedSkills.join(",") || "skills-none"}
+                onValueChange={addSkillFilter}
+              >
                 <SelectTrigger>
                   <SelectValue
                     placeholder={

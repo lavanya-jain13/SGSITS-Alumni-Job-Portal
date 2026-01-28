@@ -46,19 +46,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handlePromote = async (userId) => {
-    try {
-      await promoteUserMutation.mutateAsync(userId);
-      toast({ title: "User promoted to admin" });
-    } catch (err) {
-      toast({
-        title: "Promote failed",
-        description: err.message || "Could not promote user.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const studentCount = stats?.studentsCount ?? 0;
   const alumniCount = stats?.alumniCount ?? 0;
   const approvedCompanies = stats?.approvedCompanies ?? 0;
@@ -115,7 +102,6 @@ export default function AdminDashboard() {
           loading={loading}
           onApproveAlumni={handleApproveAlumni}
           onDeleteUser={handleDeleteUser}
-          onPromoteUser={handlePromote}
         />
       </div>
     </div>
