@@ -39,9 +39,9 @@ export function EditCompanyProfile() {
     companyCulture: "",
     linkedinUrl: "",
     twitterUrl: "",
-    contactPersonName: "",
-    contactEmail: "",
-    contactPhone: "",
+    contact_person_name: "",
+    contact_person_email: "",
+    contact_person_phone: "",
     hasLogo: false,
   });
 
@@ -101,9 +101,9 @@ export function EditCompanyProfile() {
     const socialFields = [
       formData.linkedinUrl,
       formData.twitterUrl,
-      formData.contactPersonName,
-      formData.contactEmail,
-      formData.contactPhone,
+      formData.contact_person_name,
+      formData.contact_person_email,
+      formData.contact_person_phone,
     ];
     const completedSocial = socialFields.filter(
       (field) => toText(field).trim() !== "",
@@ -173,6 +173,9 @@ export function EditCompanyProfile() {
             aboutCompany: c.about || "",
             companyCulture: c.company_culture || "",
             linkedinUrl: c.linkedin_url || c.document_url || "",
+            contact_person_name: c.contact_person_name || "",
+            contact_person_email: c.contact_person_email || "",
+            contact_person_phone: c.contact_person_phone || "",
             twitterUrl: c.twitter_url || "",
           }));
           if (
@@ -215,6 +218,9 @@ export function EditCompanyProfile() {
         company_culture: formData.companyCulture,
         linkedin_url: formData.linkedinUrl,
         twitter_url: formData.twitterUrl,
+        contact_person_name: formData.contact_person_name || null,
+        contact_person_email: formData.contact_person_email || null,
+        contact_person_phone: formData.contact_person_phone || null,
         founded_year: formData.foundedYear || null,
         office_locations: locations
           .filter((loc) => loc.city || loc.state || loc.country)
@@ -586,36 +592,39 @@ export function EditCompanyProfile() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="contactPersonName">
+                    <Label htmlFor="contact_person_name">
                       Contact Person Name
                     </Label>
                     <Input
-                      id="contactPersonName"
-                      value={formData.contactPersonName}
+                      id="contact_person_name"
+                      value={formData.contact_person_name}
                       onChange={(e) =>
-                        handleInputChange("contactPersonName", e.target.value)
+                        handleInputChange("contact_person_name", e.target.value)
                       }
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="contactEmail">Contact Email</Label>
+                    <Label htmlFor="contact_person_email">Contact Email</Label>
                     <Input
-                      id="contactEmail"
+                      id="contact_person_email"
                       type="email"
-                      value={formData.contactEmail}
+                      value={formData.contact_person_email}
                       onChange={(e) =>
-                        handleInputChange("contactEmail", e.target.value)
+                        handleInputChange(
+                          "contact_person_email",
+                          e.target.value,
+                        )
                       }
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="contactPhone">Contact Phone</Label>
+                  <Label htmlFor="contact_person_phone">Contact Phone</Label>
                   <Input
-                    id="contactPhone"
-                    value={formData.contactPhone}
+                    id="contact_person_phone"
+                    value={formData.contact_person_phone}
                     onChange={(e) =>
-                      handleInputChange("contactPhone", e.target.value)
+                      handleInputChange("contact_person_phone", e.target.value)
                     }
                     className="max-w-xs"
                   />

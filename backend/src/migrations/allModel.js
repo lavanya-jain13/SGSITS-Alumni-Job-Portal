@@ -120,6 +120,10 @@ exports.up = function (knex) {
         table.string("industry", 100);
         table.string("company_size", 50);
         table.text("about");
+        table.integer("founded_year");
+        table.text("contact_person_name");
+        table.text("contact_person_email");
+        table.text("contact_person_phone");
         table.text("document_url");
         table.string("status", 20);
 
