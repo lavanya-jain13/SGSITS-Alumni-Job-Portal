@@ -12,6 +12,7 @@ exports.up = function (knex) {
         table.boolean("is_verified").defaultTo(false);
         table.string("status", 20); // optional: active, banned, etc.
         table.timestamp("created_at").defaultTo(knex.fn.now());
+        table.timestamp("updated_at").defaultTo(knex.fn.now());
       })
 
       // ---------------- STUDENT PROFILES ----------------
@@ -56,6 +57,7 @@ exports.up = function (knex) {
         table.text("resume_url");
         table.string("resumePublicId");
         table.timestamp("created_at").defaultTo(knex.fn.now());
+        table.timestamp("updated_at").defaultTo(knex.fn.now());
       })
 
       // ---------------- STUDENT EXPERIENCE ----------------
@@ -77,6 +79,7 @@ exports.up = function (knex) {
         table.text("link");
 
         table.timestamp("created_at").defaultTo(knex.fn.now());
+        table.timestamp("updated_at").defaultTo(knex.fn.now());
       })
 
       // ---------------- ALUMNI PROFILES ----------------
@@ -95,6 +98,7 @@ exports.up = function (knex) {
         table.string("current_title", 255);
         table.string("status", 20).defaultTo("pending");
         table.timestamp("created_at").defaultTo(knex.fn.now());
+        table.timestamp("updated_at").defaultTo(knex.fn.now());
       })
 
       // ---------------- COMPANIES ----------------
@@ -134,6 +138,7 @@ exports.up = function (knex) {
         table.string("linkedin", 255); // LinkedIn page URL
 
         table.timestamp("created_at").defaultTo(knex.fn.now());
+        table.timestamp("updated_at").defaultTo(knex.fn.now());
       })
 
       // ---------------- JOB POSTS ----------------
