@@ -6,12 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { 
   ArrowLeft, 
   Building2, 
-  Users, 
-  Globe, 
+  Users,  
   ExternalLink,
   CheckCircle2,
   ChevronDown,
-  MapPin
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -55,7 +53,6 @@ export default function PublicCompanyProfile() {
           description: error?.message || "Please try again.",
           variant: "destructive",
         });
-        navigate("/", { replace: true });
       } finally {
         setLoading(false);
       }
@@ -96,10 +93,20 @@ export default function PublicCompanyProfile() {
     );
   }
 
-  if (!company) return null;
+  if (!company) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
+        <PublicHeader />
+        <div className="flex-1 flex items-center justify-center text-muted-foreground">
+          Company not found or not available.
+        </div>
+        <PublicFooter />
+      </div>
+    );
+  }
 
   // Get first office location for display
-  const primaryLocation = company.office_locations?.[0] || company.office_location || "Location not specified";
+  const primaryLocation = company.office_location || "Location not specified";
   const locationParts = primaryLocation.split(",").map(s => s.trim());
   const displayLocation = locationParts.length > 1 
     ? `${locationParts[0]}, ${locationParts[1]}` 
@@ -240,6 +247,85 @@ export default function PublicCompanyProfile() {
             </div>
           </section>
 
+          {/* Company Information Section */}
+          <section className="mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              Company Information
+            </h2>
+            <div className="bg-white dark:bg-gray-900 rounded-lg p-6 shadow-sm">
+              <div className="space-y-4">
+                {company.founded_year && (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">Founded</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{company.founded_year}</span>
+                  </div>
+                )}
+                {company.company_size && (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">Company Size</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{company.company_size}</span>
+                  </div>
+                )}
+                {company.office_location && (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">Office Location</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{company.office_location}</span>
+                  </div>
+                )}
+                {company.website && (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">Website</span>
+                    <a
+                      href={company.website}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-blue-600 dark:text-cyan-400 hover:underline"
+                    >
+                      {company.website}
+                    </a>
+                  </div>
+                )}
+                {company.linkedin && (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">LinkedIn</span>
+                    <a
+                      href={company.linkedin}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-blue-600 dark:text-cyan-400 hover:underline"
+                    >
+                      {company.linkedin}
+                    </a>
+                  </div>
+                )}
+                {company.twitter && (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">Twitter</span>
+                    <a
+                      href={company.twitter}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-blue-600 dark:text-cyan-400 hover:underline"
+                    >
+                      {company.twitter}
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {company.company_culture && (
+                <div className="pt-5 mt-5 border-t border-gray-200 dark:border-gray-800">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Company Culture
+                  </h3>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-base">
+                    {company.company_culture}
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+
           {/* Jobs Posted by Company Section */}
           <section id="jobs-section" className="mb-12">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -304,9 +390,17 @@ export default function PublicCompanyProfile() {
                                 const target = `/jobs/${job.id}`;
                                 const role = (user?.role || "").toLowerCase();
 
-                                if (!isAuthenticated || role !== "student") {
+                                if (!isAuthenticated) {
                                   navigate("/login", {
                                     state: { from: { pathname: target } },
+                                  });
+                                  return;
+                                }
+
+                                if (role !== "student") {
+                                  toast({
+                                    title: "Only students can apply for jobs.",
+                                    variant: "destructive",
                                   });
                                   return;
                                 }

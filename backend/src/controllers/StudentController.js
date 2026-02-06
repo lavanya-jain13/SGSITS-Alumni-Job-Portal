@@ -4,23 +4,27 @@ const cloudinary = require("../config/cloudinary");
 // helper: support both { userId } and { id } in JWT
 const getUserIdFromReq = (req) => req?.user?.userId || req?.user?.id;
 
-// normalize skills to store in text[] (accept array or string)
+const getStudentProfileByUserId = async (userId) => {
+  return db("student_profiles").where({ user_id: userId }).first();
+};
+
+// ---------------- SKILLS HELPERS ----------------
 const normalizeSkills = (skills) => {
   if (skills == null) return null;
+
   const toEntry = (s) => {
     if (!s) return null;
     if (typeof s === "string") return s.trim();
+
     if (typeof s === "object") {
       const name = s.name || s.skill || s.title || "";
       if (!name) return null;
+
       const proficiency =
-        s.proficiency !== undefined && s.proficiency !== null
-          ? Number(s.proficiency)
-          : undefined;
+        s.proficiency !== undefined ? Number(s.proficiency) : undefined;
       const experience =
-        s.experience !== undefined && s.experience !== null
-          ? Number(s.experience)
-          : undefined;
+        s.experience !== undefined ? Number(s.experience) : undefined;
+
       return JSON.stringify({
         name,
         ...(Number.isFinite(proficiency) ? { proficiency } : {}),
@@ -30,89 +34,63 @@ const normalizeSkills = (skills) => {
     return null;
   };
 
-  if (Array.isArray(skills)) {
-    return skills.map(toEntry).filter(Boolean);
-  }
+  if (Array.isArray(skills)) return skills.map(toEntry).filter(Boolean);
 
-  // try parsing JSON array string
   try {
     const parsed = JSON.parse(skills);
     if (Array.isArray(parsed)) return parsed.map(toEntry).filter(Boolean);
-  } catch (e) {}
+  } catch {}
 
-  // fallback: comma-separated string -> array of trimmed
   return String(skills)
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
 };
 
-// parse DB skills to array for the frontend
 const parseSkills = (skills) => {
   if (!skills) return [];
+
   const toObj = (s) => {
     if (!s) return null;
+
     if (typeof s === "object" && s.name) {
       return {
         name: s.name,
-        proficiency: Number.isFinite(s.proficiency) ? Number(s.proficiency) : 3,
-        experience: Number.isFinite(s.experience) ? Number(s.experience) : 1,
+        proficiency: Number(s.proficiency) || 3,
+        experience: Number(s.experience) || 1,
       };
     }
+
     if (typeof s === "string") {
-      const trimmed = s.trim();
       try {
-        const parsed = JSON.parse(trimmed);
-        if (parsed && typeof parsed === "object" && parsed.name) {
+        const parsed = JSON.parse(s);
+        if (parsed?.name) {
           return {
             name: parsed.name,
-            proficiency: Number.isFinite(parsed.proficiency)
-              ? Number(parsed.proficiency)
-              : 3,
-            experience: Number.isFinite(parsed.experience)
-              ? Number(parsed.experience)
-              : 1,
+            proficiency: Number(parsed.proficiency) || 3,
+            experience: Number(parsed.experience) || 1,
           };
         }
-      } catch (e) {
-        // not JSON, treat as plain name
-      }
-      if (trimmed) {
-        return { name: trimmed, proficiency: 3, experience: 1 };
-      }
+      } catch {}
+
+      return { name: s.trim(), proficiency: 3, experience: 1 };
     }
     return null;
   };
 
-  const arr = Array.isArray(skills)
-    ? skills
-    : String(skills)
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-
-  return arr.map(toObj).filter(Boolean);
-};
-
-// normalize list-like fields (array or comma string) to comma-separated string
-const normalizeList = (value) => {
-  if (value == null) return null;
-  if (Array.isArray(value)) return value.filter(Boolean).join(", ");
-  return String(value);
-};
-
-const parseList = (value) => {
-  if (!value) return [];
-  if (Array.isArray(value)) return value;
-  return String(value)
-    .split(",")
+  return (Array.isArray(skills) ? skills : String(skills).split(","))
     .map((s) => s.trim())
+    .map(toObj)
     .filter(Boolean);
 };
 
-/**
- * GET /student/profile
- */
+const normalizeList = (v) =>
+  v == null ? null : Array.isArray(v) ? v.join(", ") : String(v);
+
+const parseList = (v) =>
+  !v ? [] : Array.isArray(v) ? v : String(v).split(",").map((s) => s.trim());
+
+// ---------------- GET PROFILE ----------------
 const getMyProfile = async (req, res) => {
   try {
     const userId = getUserIdFromReq(req);
@@ -127,28 +105,26 @@ const getMyProfile = async (req, res) => {
     if (profile) {
       const experiences = await db("student_experience")
         .where({ student_id: profile.id })
-        .select("id", "position", "company", "duration", "description", "link")
         .orderBy("created_at", "desc");
 
       profile.skills = parseSkills(profile.skills);
       profile.desired_roles = parseList(profile.desired_roles);
       profile.preferred_locations = parseList(profile.preferred_locations);
       profile.experiences = experiences || [];
+
+      profile.resumes = await db("student_resumes")
+        .where({ student_id: profile.id })
+        .orderBy("version", "desc");
     }
 
-    return res.status(200).json({
-      exists: !!profile,
-      profile: profile || null,
-    });
-  } catch (error) {
-    console.error("Get Student Profile Error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    res.json({ exists: !!profile, profile });
+  } catch (err) {
+    console.error("Get Student Profile Error:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
-/**
- * PUT /student/profile
- */
+// ---------------- CREATE / UPDATE PROFILE ----------------
 const upsertProfile = async (req, res) => {
   try {
     const userId = getUserIdFromReq(req);
@@ -169,8 +145,6 @@ const upsertProfile = async (req, res) => {
       achievements,
       summary,
       yearsOfExperience,
-
-      // EXTRA FIELDS (NEW)
       address,
       desiredRoles,
       preferredLocations,
@@ -184,7 +158,7 @@ const upsertProfile = async (req, res) => {
     if (typeof experiences === "string") {
       try {
         experiences = JSON.parse(experiences);
-      } catch (e) {
+      } catch {
         experiences = [];
       }
     }
@@ -192,203 +166,186 @@ const upsertProfile = async (req, res) => {
     skills = normalizeSkills(skills);
 
     let finalResumeUrl = resumeUrl || null;
+    let pendingResumeUpload = null;
 
+    // -------- RESUME UPLOAD --------
     if (req.file) {
-      const uploadPromise = new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            folder: "student_resumes",
-            resource_type: "raw",
-          },
-          (err, result) => {
-            if (err) reject(err);
-            else resolve(result);
-          },
+      const uploaded = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "student_resumes", resource_type: "raw" },
+          (err, result) => (err ? reject(err) : resolve(result))
         );
-
-        uploadStream.end(req.file.buffer);
+        stream.end(req.file.buffer);
       });
 
-      try {
-        const uploaded = await uploadPromise;
-        finalResumeUrl = uploaded.secure_url;
-      } catch (err) {
-        console.error("Resume upload failed:", err);
-        return res.status(500).json({ error: "Resume upload failed" });
-      }
+      pendingResumeUpload = uploaded;
+      finalResumeUrl = uploaded.secure_url;
     }
 
-    const existing = await db("student_profiles")
-      .where({ user_id: userId })
-      .first();
+    const existing = await getStudentProfileByUserId(userId);
 
-    const patch = {
-      ...(name !== undefined && { name }),
-      ...(studentId !== undefined && { student_id: studentId }),
-      ...(branch !== undefined && { branch }),
-      ...(gradYear !== undefined && { grad_year: Number(gradYear) }),
-      ...(skills !== undefined && { skills: normalizeSkills(skills) }),
-      ...(finalResumeUrl !== undefined && { resume_url: finalResumeUrl }),
-      ...(phone !== undefined && { phone_number: phone }),
-      ...(dateOfBirth !== undefined && { dob: dateOfBirth }),
-      ...(currentYear !== undefined && { current_year: currentYear }),
-      ...(cgpa !== undefined && { cgpa }),
-      ...(achievements !== undefined && { achievements }),
-      ...(summary !== undefined && { proficiency: summary }),
-      ...(yearsOfExperience !== undefined && {
-        years_of_experience: Number(yearsOfExperience),
-      }),
-
-      // new fields
-      ...(address !== undefined && { address }),
-      ...(desiredRoles !== undefined && {
-        desired_roles: normalizeList(desiredRoles),
-      }),
-      ...(preferredLocations !== undefined && {
-        preferred_locations: normalizeList(preferredLocations),
-      }),
-      ...(workMode !== undefined && { work_mode: workMode }),
-      ...(dataConsent !== undefined && {
-        consent_data_sharing: !!dataConsent,
-      }),
-      ...(contactPermissions !== undefined && {
-        consent_marketing: !!contactPermissions,
-      }),
-      ...(profileVisibility !== undefined && {
-        consent_profile_visibility: !!profileVisibility,
-      }),
-      ...(codeOfConduct !== undefined && {
-        consent_terms: !!codeOfConduct,
-      }),
-    };
-
-    // UPDATE FLOW
+    // ---------------- UPDATE FLOW ----------------
     if (existing) {
-      if (Object.keys(patch).length === 0) {
-        return res.status(400).json({ error: "No fields provided to update" });
+      // resume versioning
+      if (pendingResumeUpload) {
+        const last = await db("student_resumes")
+          .where({ student_id: existing.id })
+          .orderBy("version", "desc")
+          .first();
+
+        const nextVersion = last ? last.version + 1 : 1;
+
+        await db("student_resumes")
+          .where({ student_id: existing.id })
+          .update({ is_active: false });
+
+        await db("student_resumes").insert({
+          student_id: existing.id,
+          resume_url: pendingResumeUpload.secure_url,
+          cloudinary_public_id: pendingResumeUpload.public_id,
+          version: nextVersion,
+          is_active: true,
+        });
+
+        const old = await db("student_resumes")
+          .where({ student_id: existing.id })
+          .andWhere("version", "<", nextVersion - 2);
+
+        for (const r of old) {
+          await cloudinary.uploader.destroy(r.cloudinary_public_id, {
+            resource_type: "raw",
+          });
+        }
+
+        await db("student_resumes")
+          .whereIn("id", old.map((r) => r.id))
+          .del();
       }
 
-      await db("student_profiles").where({ user_id: userId }).update(patch);
+      await db("student_profiles")
+        .where({ user_id: userId })
+        .update({
+          ...(name && { name }),
+          ...(studentId && { student_id: studentId }),
+          ...(branch && { branch }),
+          ...(gradYear && { grad_year: Number(gradYear) }),
+          ...(skills && { skills }),
+          ...(finalResumeUrl && { resume_url: finalResumeUrl }),
+          phone_number: phone || null,
+          dob: dateOfBirth || null,
+          current_year: currentYear || null,
+          cgpa: cgpa || null,
+          achievements: achievements || null,
+          proficiency: summary || null,
+          years_of_experience: Number(yearsOfExperience) || 0,
+          address: address || null,
+          desired_roles: normalizeList(desiredRoles),
+          preferred_locations: normalizeList(preferredLocations),
+          work_mode: workMode || null,
+          consent_data_sharing: !!dataConsent,
+          consent_marketing: !!contactPermissions,
+          consent_profile_visibility: !!profileVisibility,
+          consent_terms: !!codeOfConduct,
+        });
 
+      // experiences (FULLY RESTORED)
       if (Array.isArray(experiences)) {
-        await db("student_experience").where({ student_id: existing.id }).del();
+        await db("student_experience")
+          .where({ student_id: existing.id })
+          .del();
 
         const rows = experiences
-          .filter((exp) => exp && (exp.position || exp.title || exp.company))
-          .map((exp) => ({
+          .filter((e) => e && (e.position || e.title || e.company))
+          .map((e) => ({
             student_id: existing.id,
-            position: exp.position || exp.title || "",
-            company: exp.company || "",
-            duration: exp.duration || "",
-            description: exp.description || "",
-            link: exp.link || "",
-          })); // link removed
+            position: e.position || e.title || "",
+            company: e.company || "",
+            duration: e.duration || "",
+            description: e.description || "",
+            link: e.link || "",
+          }));
 
         if (rows.length) await db("student_experience").insert(rows);
       }
 
-      const updated = await db("student_profiles")
-        .where({ user_id: userId })
-        .first();
-
+      const updated = await getStudentProfileByUserId(userId);
       const updatedExperiences = await db("student_experience")
         .where({ student_id: updated.id })
-        .select("id", "position", "company", "duration", "description", "link") // link removed
         .orderBy("created_at", "desc");
 
-      return res.status(200).json({
+      return res.json({
         message: "Profile updated successfully",
         profile: {
           ...updated,
           skills: parseSkills(updated.skills),
-          experiences: updatedExperiences || [],
+          experiences: updatedExperiences,
           desired_roles: parseList(updated.desired_roles),
           preferred_locations: parseList(updated.preferred_locations),
         },
       });
     }
 
-    // CREATE FLOW
-    const missing = [];
-    if (!name) missing.push("name");
-    if (!studentId) missing.push("studentId");
-    if (!branch) missing.push("branch");
-    if (
-      gradYear === undefined ||
-      gradYear === null ||
-      Number.isNaN(Number(gradYear))
-    )
-      missing.push("gradYear");
-
-    if (missing.length) {
+    // ---------------- CREATE FLOW ----------------
+    if (!name || !studentId || !branch || !gradYear) {
       return res.status(400).json({
-        error: "Missing required fields for first-time profile creation",
+        error: "Missing required fields",
         required: ["name", "studentId", "branch", "gradYear"],
-        missing,
       });
     }
 
-    const insertRow = {
+    await db("student_profiles").insert({
       user_id: userId,
       name,
       student_id: studentId,
       branch,
       grad_year: Number(gradYear),
-      skills: normalizeSkills(skills) || null,
-      resume_url: finalResumeUrl || null,
+      skills,
+      resume_url: finalResumeUrl,
       phone_number: phone || null,
       dob: dateOfBirth || null,
       current_year: currentYear || null,
       cgpa: cgpa || null,
       achievements: achievements || null,
       proficiency: summary || null,
-      years_of_experience:
-        yearsOfExperience !== undefined ? Number(yearsOfExperience) : null,
-
-      // new fields
+      years_of_experience: Number(yearsOfExperience) || 0,
       address: address || null,
-      desired_roles: normalizeList(desiredRoles) || null,
-      preferred_locations: normalizeList(preferredLocations) || null,
+      desired_roles: normalizeList(desiredRoles),
+      preferred_locations: normalizeList(preferredLocations),
       work_mode: workMode || null,
-      consent_data_sharing: dataConsent ? true : false,
-      consent_marketing: contactPermissions ? true : false,
-      consent_profile_visibility: profileVisibility ? true : false,
-      consent_terms: codeOfConduct ? true : false,
-    };
+      consent_data_sharing: !!dataConsent,
+      consent_marketing: !!contactPermissions,
+      consent_profile_visibility: !!profileVisibility,
+      consent_terms: !!codeOfConduct,
+    });
 
-    await db("student_profiles").insert(insertRow);
-    const created = await db("student_profiles")
-      .where({ user_id: userId })
-      .first();
+    const created = await getStudentProfileByUserId(userId);
+
+    if (pendingResumeUpload) {
+      await db("student_resumes").insert({
+        student_id: created.id,
+        resume_url: pendingResumeUpload.secure_url,
+        cloudinary_public_id: pendingResumeUpload.public_id,
+        version: 1,
+        is_active: true,
+      });
+    }
 
     if (Array.isArray(experiences)) {
-      const rows = experiences
-        .filter((exp) => exp && (exp.position || exp.title || exp.company))
-        .map((exp) => ({
-          student_id: created.id,
-          position: exp.position || exp.title || "",
-          company: exp.company || "",
-          duration: exp.duration || "",
-          description: exp.description || "",
-          link: exp.link || "",
-        })); // link removed
-
+      const rows = experiences.map((e) => ({
+        student_id: created.id,
+        position: e.position || e.title || "",
+        company: e.company || "",
+        duration: e.duration || "",
+        description: e.description || "",
+        link: e.link || "",
+      }));
       if (rows.length) await db("student_experience").insert(rows);
     }
 
-    return res.status(201).json({
-      message: "Profile created successfully",
-      profile: {
-        ...created,
-        skills: parseSkills(created.skills),
-        experiences: experiences || [],
-        desired_roles: parseList(created.desired_roles),
-        preferred_locations: parseList(created.preferred_locations),
-      },
-    });
-  } catch (error) {
-    console.error("Upsert Student Profile Error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    res.status(201).json({ message: "Profile created successfully" });
+  } catch (err) {
+    console.error("Upsert Student Profile Error:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 

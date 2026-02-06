@@ -55,7 +55,6 @@ exports.up = function (knex) {
         table.boolean("consent_terms").defaultTo(false);
 
         table.text("resume_url");
-        table.string("resumePublicId");
         table.timestamp("created_at").defaultTo(knex.fn.now());
         table.timestamp("updated_at").defaultTo(knex.fn.now());
       })
@@ -81,6 +80,28 @@ exports.up = function (knex) {
         table.timestamp("created_at").defaultTo(knex.fn.now());
         table.timestamp("updated_at").defaultTo(knex.fn.now());
       })
+
+      // ---------------- STUDENT RESUMES (VERSIONED) ----------------
+.createTable("student_resumes", (table) => {
+  table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+
+  table
+    .uuid("student_id")
+    .notNullable()
+    .references("id")
+    .inTable("student_profiles")
+    .onDelete("CASCADE");
+
+  table.text("resume_url").notNullable();
+  table.string("cloudinary_public_id").notNullable();
+
+  table.integer("version").notNullable(); // 1,2,3...
+  table.boolean("is_active").defaultTo(false);
+
+  table.timestamp("created_at").defaultTo(knex.fn.now());
+
+  table.unique(["student_id", "version"]);
+})
 
       // ---------------- ALUMNI PROFILES ----------------
       .createTable("alumni_profiles", (table) => {
@@ -384,6 +405,7 @@ exports.down = function (knex) {
     .dropTableIfExists("companies")
     .dropTableIfExists("notifications")
     .dropTableIfExists("password_reset_tokens")
+    .dropTableIfExists("student_resumes")
     .dropTableIfExists("student_experience") // 🔹 drop child before parent
     .dropTableIfExists("alumni_profiles")
     .dropTableIfExists("student_profiles")

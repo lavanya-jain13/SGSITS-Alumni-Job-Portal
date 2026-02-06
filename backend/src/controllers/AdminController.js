@@ -35,7 +35,12 @@ exports.getPendingAlumni = async (req, res) => {
         "ap.created_at",
         "c.id as company_id",
         "c.name as company_name",
-        "c.status as company_status"
+        "c.status as company_status",
+        "c.industry as company_industry",
+        "c.company_size",
+        "c.contact_person_phone",
+        "c.document_url",
+        "c.created_at as company_created_at"
       )
       .where({ "u.role": "alumni" })
       .andWhere((qb) => {
@@ -317,7 +322,12 @@ exports.getAllUsers = async (req, res) => {
         "ap.grad_year",
         "c.id as company_id",
         "c.name as company_name",
-        "c.status as company_status"
+        "c.status as company_status",
+        "c.industry as company_industry",
+        "c.company_size",
+        "c.contact_person_phone",
+        "c.document_url",
+        "c.created_at as company_created_at"
       )
       .orderBy("ap.created_at", "desc");
 

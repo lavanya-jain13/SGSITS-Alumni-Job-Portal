@@ -4,6 +4,20 @@ const cloudinary = require("../config/cloudinary");
 const { sendEmail } = require("../services/emailService"); 
 // ---------- Helpers ---------- 
 // Normalize branch strings for comparison (lowercase, trim, map common variants/abbreviations) 
+const getActiveStudentResume = async (userId) => {
+  const profile = await db("student_profiles")
+    .where({ user_id: userId })
+    .first();
+
+  if (!profile) return null;
+
+  const activeResume = await db("student_resumes")
+    .where({ student_id: profile.id, is_active: true })
+    .first();
+
+  return activeResume?.resume_url || profile.resume_url || null;
+};
+
 const normalizeBranchForMatch = (value) => { 
   if (!value) return ""; 
   const base = String(value) 
@@ -925,20 +939,27 @@ exports.applyJob = async (req, res) => {
     } 
  
     // 6) Handle resume upload 
-    let resumeUrl = null; 
-    if (req.file && req.file.buffer) { 
-      const uploadResult = await uploadBufferToCloudinary( 
-        req.file.buffer, 
-        "alumni-portal/resumes" 
-      ); 
-      resumeUrl = uploadResult.secure_url; 
-    } else if (req.body.resume_url) { 
-      resumeUrl = req.body.resume_url; 
-    } else { 
-      return res 
-        .status(400) 
-        .json({ error: "Resume file (resume) is required." }); 
-    } 
+let resumeUrl = null;
+
+// Case 1: resume uploaded during apply
+if (req.file && req.file.buffer) {
+  const uploadResult = await uploadBufferToCloudinary(
+    req.file.buffer,
+    "alumni-portal/resumes"
+  );
+  resumeUrl = uploadResult.secure_url;
+}
+// Case 2: use active profile resume
+else {
+  resumeUrl = await getActiveStudentResume(userId);
+}
+
+if (!resumeUrl) {
+  return res.status(400).json({
+    error: "No resume found. Please upload or add a resume in your profile.",
+  });
+}
+
  
     // 7) Do everything in a transaction 
     const application = await db.transaction(async (trx) => { 

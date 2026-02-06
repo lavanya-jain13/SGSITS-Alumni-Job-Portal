@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,18 +13,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Star, Building2, Users, Briefcase } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Search, Star, Building2, Users, Briefcase, ChevronDown, ChevronUp } from "lucide-react";
 import { StatCard } from "@/components/admin/StatCard";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 export default function CompaniesManagement() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [companies, setCompanies] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [expandedCompanyId, setExpandedCompanyId] = useState(null);
 
   const loadCompanies = async () => {
     setLoading(true);
@@ -59,10 +63,14 @@ export default function CompaniesManagement() {
           id: p.company_id,
           name: p.company_name || p.name,
           status: p.company_status || "pending",
-          registeredAt: p.created_at,
+          registeredAt: p.company_created_at || p.created_at,
           email: p.email,
-          industry: companyMeta[p.company_id]?.industry || null,
-          company_size: companyMeta[p.company_id]?.company_size || null,
+          alumniName: p.name || null,
+          alumniEmail: p.email || null,
+          contactPhone: p.contact_person_phone || null,
+          documentUrl: p.document_url || null,
+          industry: p.company_industry || companyMeta[p.company_id]?.industry || null,
+          company_size: p.company_size || companyMeta[p.company_id]?.company_size || null,
           activeJobs: companyMeta[p.company_id]?.activeJobs || 0,
           totalHires: companyMeta[p.company_id]?.totalHires || 0,
         })) || [];
@@ -74,10 +82,14 @@ export default function CompaniesManagement() {
             id: a.company_id,
             name: a.company_name,
             status: a.company_status || a.status || "pending",
-            registeredAt: a.created_at,
+            registeredAt: a.company_created_at || a.created_at,
             email: a.email,
-            industry: companyMeta[a.company_id]?.industry || null,
-            company_size: companyMeta[a.company_id]?.company_size || null,
+            alumniName: a.name || null,
+            alumniEmail: a.email || null,
+            contactPhone: a.contact_person_phone || null,
+            documentUrl: a.document_url || null,
+            industry: a.company_industry || companyMeta[a.company_id]?.industry || null,
+            company_size: a.company_size || companyMeta[a.company_id]?.company_size || null,
             activeJobs: companyMeta[a.company_id]?.activeJobs || 0,
             totalHires: companyMeta[a.company_id]?.totalHires || 0,
           })) || [];
@@ -86,7 +98,23 @@ export default function CompaniesManagement() {
       const merged = {};
       [...pendingCompanies, ...alumniCompanies].forEach((c) => {
         if (!c.id) return;
-        merged[c.id] = { ...(merged[c.id] || {}), ...c };
+        const prev = merged[c.id] || {};
+        merged[c.id] = {
+          ...prev,
+          ...c,
+          name: c.name || prev.name,
+          status: c.status || prev.status,
+          registeredAt: c.registeredAt || prev.registeredAt,
+          email: c.email || prev.email,
+          alumniName: c.alumniName || prev.alumniName,
+          alumniEmail: c.alumniEmail || prev.alumniEmail,
+          contactPhone: c.contactPhone || prev.contactPhone,
+          documentUrl: c.documentUrl || prev.documentUrl,
+          industry: c.industry || prev.industry,
+          company_size: c.company_size || prev.company_size,
+          activeJobs: c.activeJobs ?? prev.activeJobs,
+          totalHires: c.totalHires ?? prev.totalHires,
+        };
       });
 
       setCompanies(Object.values(merged));
@@ -252,69 +280,149 @@ export default function CompaniesManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCompanies.map((company) => (
-                  <TableRow key={company.id} className="hover:bg-muted/50">
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="font-semibold text-foreground">{company.name}</div>
-                        {company.email && (
-                          <div className="text-sm text-muted-foreground">{company.email}</div>
-                        )}
-                        {company.registeredAt && (
-                          <div className="text-xs text-muted-foreground">Registered: {company.registeredAt}</div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="text-sm font-medium">{company.industry || "N/A"}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {company.company_size || "Size N/A"}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="text-sm">
-                          Active Jobs: <span className="font-semibold">{company.activeJobs ?? 0}</span>
-                        </div>
-                        <div className="text-sm">
-                          Total Hires: <span className="font-semibold">{company.totalHires ?? 0}</span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={getStatusVariant((company.status || "pending").toLowerCase())}
-                        className={`${getStatusColor((company.status || "pending").toLowerCase())} font-medium`}
-                      >
-                        {company.status || "pending"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={loading}
-                          onClick={() => handleCompanyAction(company.id, "approve")}
-                          className="text-success border-success hover:bg-success hover:text-success-foreground"
+                {filteredCompanies.map((company) => {
+                  const isExpanded = expandedCompanyId === company.id;
+                  return (
+                    <Fragment key={company.id}>
+                    <TableRow className="hover:bg-muted/50">
+                      <TableCell>
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => navigate(`/company/${company.id}`)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              navigate(`/company/${company.id}`);
+                            }
+                          }}
+                          className="space-y-1 cursor-pointer"
                         >
-                          Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={loading}
-                          onClick={() => handleCompanyAction(company.id, "reject")}
-                          className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          <div className="font-semibold text-foreground hover:underline">
+                            {company.name}
+                          </div>
+                          {company.email && (
+                            <div className="text-sm text-muted-foreground">{company.email}</div>
+                          )}
+                          {company.registeredAt && (
+                            <div className="text-xs text-muted-foreground">Registered: {company.registeredAt}</div>
+                          )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="text-sm font-medium">{company.industry || "N/A"}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {company.company_size || "Size N/A"}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="text-sm">
+                              Active Jobs: <span className="font-semibold">{company.activeJobs ?? 0}</span>
+                            </div>
+                            <div className="text-sm">
+                              Total Hires: <span className="font-semibold">{company.totalHires ?? 0}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={getStatusVariant((company.status || "pending").toLowerCase())}
+                            className={`${getStatusColor((company.status || "pending").toLowerCase())} font-medium`}
+                          >
+                            {company.status || "pending"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={loading}
+                              onClick={() => handleCompanyAction(company.id, "approve")}
+                              className="text-success border-success hover:bg-success hover:text-success-foreground"
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={loading}
+                              onClick={() => handleCompanyAction(company.id, "reject")}
+                              className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                            >
+                              Reject
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                setExpandedCompanyId((prev) =>
+                                  prev === company.id ? null : company.id
+                                )
+                              }
+                              className="text-muted-foreground"
+                            >
+                              {isExpanded ? "Hide Details" : "View Details"}
+                              {isExpanded ? (
+                                <ChevronUp className="ml-1 h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="ml-1 h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      {isExpanded && (
+                        <TableRow className="bg-muted/30">
+                          <TableCell colSpan={5}>
+                            <Card className="border-border">
+                              <CardContent className="p-6">
+                                <div className="flex flex-col gap-4">
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-sm font-semibold text-foreground">
+                                      Admin-Only Details
+                                    </div>
+                                    <Badge
+                                      variant={getStatusVariant((company.status || "pending").toLowerCase())}
+                                      className={`${getStatusColor((company.status || "pending").toLowerCase())} font-medium`}
+                                    >
+                                      {company.status || "pending"}
+                                    </Badge>
+                                  </div>
+                                  <Separator />
+                                  <div className="grid gap-3 md:grid-cols-2">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <span className="text-sm text-muted-foreground">Alumni Name</span>
+                                      <span className="text-sm text-foreground">{company.alumniName || "—"}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3">
+                                      <span className="text-sm text-muted-foreground">Alumni Email</span>
+                                      <span className="text-sm text-foreground">{company.alumniEmail || "—"}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3">
+                                      <span className="text-sm text-muted-foreground">Contact Phone</span>
+                                      <span className="text-sm text-foreground">{company.contactPhone || "—"}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3">
+                                      <span className="text-sm text-muted-foreground">Registration Date</span>
+                                      <span className="text-sm text-foreground">{company.registeredAt || "—"}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3">
+                                      <span className="text-sm text-muted-foreground">Internal Status</span>
+                                      <span className="text-sm text-foreground">{company.status || "pending"}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

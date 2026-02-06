@@ -16,6 +16,7 @@ const JobRoutes = require("./Routes/JobRoutes");
 const utilityRoutes = require("./Routes/utilityRoutes");
 const ProjectRoutes = require("./Routes/projectRoutes");
 const OtherRoutes = require("./Routes/otherRoutes");
+const publicCompanyRoutes = require("./Routes/publicCompanyRoutes");
 
 const PORT = process.env.PORT || 5004;
 app.listen(PORT, () => {
@@ -74,6 +75,7 @@ app.use("/api/job", JobRoutes);
 app.use("/api/project", ProjectRoutes);
 app.use("/api/other", OtherRoutes);
 app.use("/api", utilityRoutes);
+app.use("/api/public", publicCompanyRoutes);
 
 // ==================== HEALTH CHECK ====================
 app.get("/", (req, res) => {
