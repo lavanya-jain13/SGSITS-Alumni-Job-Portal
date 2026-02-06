@@ -4,7 +4,6 @@ import {
   Briefcase,
   Users,
   Building2,
-  Settings,
   User,
   ChevronLeft,
   ChevronRight,
@@ -24,7 +23,7 @@ const navigation = [
   { name: "Home", href: "/alumni", icon: Home },
   { name: "Applications Overview", href: "/alumni/applications", icon: Users },
   { name: "Edit My Profile", href: "/alumni/profile", icon: User },
-  { name: "Settings", href: "/settings", icon: Settings },
+  // { name: "Settings", href: "/settings", icon: Settings },
 ];
 
 function SidebarContent({ collapsed, onLinkClick }) {

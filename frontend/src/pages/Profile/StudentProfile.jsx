@@ -449,17 +449,33 @@ const StudentProfile = () => {
       const { apiFetch } = await import("@/lib/api");
 
       // Merge with existing state so arrays are never lost
+      const resolvedDesiredRoles =
+        updatedData?.preferences?.desiredRoles ??
+        updatedData?.desiredRoles ??
+        profileData.desiredRoles ??
+        [];
+      const resolvedPreferredLocations =
+        updatedData?.preferences?.preferredLocations ??
+        updatedData?.preferredLocations ??
+        profileData.preferredLocations ??
+        [];
+      const resolvedWorkMode =
+        updatedData?.preferences?.workMode ??
+        updatedData?.workMode ??
+        profileData.workMode ??
+        "";
+      const resolvedAddress =
+        updatedData?.address ?? profileData.address ?? "";
+
       const mergedData = {
         ...profileData,
         ...updatedData,
         skills: updatedData.skills ?? profileData.skills ?? [],
         experiences: updatedData.experiences ?? profileData.experiences ?? [],
-        desiredRoles:
-          updatedData.desiredRoles ?? profileData.desiredRoles ?? [],
-        preferredLocations:
-          updatedData.preferredLocations ??
-          profileData.preferredLocations ??
-          [],
+        desiredRoles: resolvedDesiredRoles,
+        preferredLocations: resolvedPreferredLocations,
+        workMode: resolvedWorkMode,
+        address: resolvedAddress,
       };
 
       // accept the latest edits from the modal instead of stale state

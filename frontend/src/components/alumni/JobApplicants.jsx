@@ -1010,12 +1010,9 @@ export function JobApplicants({
                           variant="ghost"
                           size="sm"
                           onClick={() =>
-                            navigate(
-                              `${detailsPath}/${applicant.application_id}`,
-                              {
-                                state: { applicant },
-                              },
-                            )
+                            navigate(detailsPath, {
+                              state: { applicant },
+                            })
                           }
                         >
                           <Eye className="h-4 w-4" />

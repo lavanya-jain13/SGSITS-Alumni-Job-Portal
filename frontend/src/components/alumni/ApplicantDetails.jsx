@@ -158,6 +158,12 @@ export function ApplicantDetails() {
   const [profileError, setProfileError] = useState("");
 
   const applicationId = applicant?.applicationId || applicant?.application_id || applicant?.id;
+  const hasValue = (value) =>
+    value !== null &&
+    value !== undefined &&
+    String(value).trim() !== "" &&
+    value !== "Not provided" &&
+    value !== "N/A";
 
   useEffect(() => {
     if (!applicationId) return;
@@ -244,10 +250,10 @@ export function ApplicantDetails() {
     profile?.phone ||
     applicant.student_phone ||
     applicant.phone ||
-    "Not provided";
+    "";
 
-  const email = profile?.email || applicant.user_email || applicant.email || "Not provided";
-  const location = profile?.address || applicant.location || "Not provided";
+  const email = profile?.email || applicant.user_email || applicant.email || "";
+  const location = profile?.address || applicant.location || "";
 
   const profileSkills = useMemo(() => normalizeProfileSkills(profile?.skills), [profile]);
 
@@ -269,13 +275,27 @@ export function ApplicantDetails() {
   const summary = profile?.proficiency || "";
   const experiences = Array.isArray(profile?.experiences) ? profile.experiences : [];
 
-  const dob = profile?.dob ? new Date(profile.dob).toLocaleDateString() : "Not provided";
-  const studentId = profile?.student_id || "Not provided";
-  const currentYear = profile?.current_year || "Not provided";
-  const cgpa = profile?.cgpa ?? "Not provided";
-  const yearsOfExperience = profile?.years_of_experience ?? "Not provided";
-  const address = profile?.address || "Not provided";
-  const workMode = profile?.work_mode || "Not provided";
+  const dob = profile?.dob ? new Date(profile.dob).toLocaleDateString() : "";
+  const studentId = profile?.student_id || "";
+  const currentYear = profile?.current_year || "";
+  const cgpa = profile?.cgpa ?? "";
+  const yearsOfExperience = profile?.years_of_experience ?? "";
+  const address = profile?.address || "";
+  const workMode = profile?.work_mode || "";
+
+  const hasProfileDetails =
+    hasValue(studentId) ||
+    hasValue(dob) ||
+    hasValue(currentYear) ||
+    hasValue(cgpa) ||
+    hasValue(yearsOfExperience) ||
+    hasValue(address);
+
+  const hasSkillsPreferences =
+    profileSkills.length > 0 ||
+    desiredRoles.length > 0 ||
+    preferredLocations.length > 0 ||
+    hasValue(workMode);
 
   const handleDownloadResume = async () => {
     if (!resumeUrl) {
@@ -333,29 +353,37 @@ export function ApplicantDetails() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span>{email}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{phone}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span>{location}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>
-                    Applied on {appliedDate ? new Date(appliedDate).toLocaleDateString() : "N/A"}
-                  </span>
-                </div>
+                {hasValue(email) && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span>{email}</span>
+                  </div>
+                )}
+                {hasValue(phone) && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span>{phone}</span>
+                  </div>
+                )}
+                {hasValue(location) && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span>{location}</span>
+                  </div>
+                )}
+                {appliedDate && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span>Applied on {new Date(appliedDate).toLocaleDateString()}</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {applicant.cgpa && <Badge variant="secondary">CGPA: {applicant.cgpa}</Badge>}
-                {applicant.experience && (
+                {hasValue(applicant.cgpa) && (
+                  <Badge variant="secondary">CGPA: {applicant.cgpa}</Badge>
+                )}
+                {hasValue(applicant.experience) && (
                   <Badge variant="secondary">{applicant.experience} Experience</Badge>
                 )}
                 <Badge
@@ -378,50 +406,50 @@ export function ApplicantDetails() {
       </Card>
 
       {/* Skills Match */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Code className="h-5 w-5" />
-            Skills Match
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Match Percentage</span>
-              <span className="font-semibold">
-                {computedMatch === null ? "N/A" : `${skillMatch}%`}
-              </span>
+      {(jobSkills.length > 0 || skills.length > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Code className="h-5 w-5" />
+              Skills Match
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Match Percentage</span>
+                <span className="font-semibold">
+                  {computedMatch === null ? "N/A" : `${skillMatch}%`}
+                </span>
+              </div>
+              <Progress value={computedMatch === null ? 0 : skillMatch} />
             </div>
-            <Progress value={computedMatch === null ? 0 : skillMatch} />
-          </div>
 
-          <div className="flex flex-wrap gap-2">
-            {jobSkills.length > 0 && (
-              <>
-                <Badge variant="outline" className="text-xs">
-                  Required:
-                </Badge>
-                {jobSkills.map((skill) => (
-                  <Badge key={`req-${skill}`} variant="secondary">
-                    {skill}
+            <div className="flex flex-wrap gap-2">
+              {jobSkills.length > 0 && (
+                <>
+                  <Badge variant="outline" className="text-xs">
+                    Required:
                   </Badge>
-                ))}
-              </>
-            )}
+                  {jobSkills.map((skill) => (
+                    <Badge key={`req-${skill}`} variant="secondary">
+                      {skill}
+                    </Badge>
+                  ))}
+                </>
+              )}
 
-            {skills.length ? (
-              skills.map((skill) => (
-                <Badge key={`stud-${skill}`} variant="secondary">
-                  {skill}
-                </Badge>
-              ))
-            ) : (
-              <span className="text-sm text-muted-foreground">No skills provided.</span>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              {skills.length
+                ? skills.map((skill) => (
+                    <Badge key={`stud-${skill}`} variant="secondary">
+                      {skill}
+                    </Badge>
+                  ))
+                : null}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Full Student Profile */}
       {profileLoading ? (
@@ -452,146 +480,161 @@ export function ApplicantDetails() {
             </Card>
           ) : null}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <GraduationCap className="h-5 w-5" />
-                Student Profile
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground">Student ID</p>
-                <p>{studentId}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Date of Birth</p>
-                <p>{dob}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Current Year</p>
-                <p>{currentYear}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">CGPA</p>
-                <p>{cgpa}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Years of Experience</p>
-                <p>{yearsOfExperience}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Address</p>
-                <p>{address}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Code className="h-5 w-5" />
-                Skills & Preferences
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Skills</p>
-                {profileSkills.length ? (
-                  <div className="flex flex-wrap gap-2">
-                    {profileSkills.map((skill) => (
-                      <Badge key={skill.name} variant="secondary" className="text-xs">
-                        {skill.name}
-                        {Number.isFinite(skill.proficiency) ? ` • P${skill.proficiency}` : ""}
-                        {Number.isFinite(skill.experience) ? ` • E${skill.experience}y` : ""}
-                      </Badge>
-                    ))}
+          {hasProfileDetails && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <GraduationCap className="h-5 w-5" />
+                  Student Profile
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                {hasValue(studentId) && (
+                  <div>
+                    <p className="text-muted-foreground">Student ID</p>
+                    <p>{studentId}</p>
                   </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No skills provided.</p>
                 )}
-              </div>
+                {hasValue(dob) && (
+                  <div>
+                    <p className="text-muted-foreground">Date of Birth</p>
+                    <p>{dob}</p>
+                  </div>
+                )}
+                {hasValue(currentYear) && (
+                  <div>
+                    <p className="text-muted-foreground">Current Year</p>
+                    <p>{currentYear}</p>
+                  </div>
+                )}
+                {hasValue(cgpa) && (
+                  <div>
+                    <p className="text-muted-foreground">CGPA</p>
+                    <p>{cgpa}</p>
+                  </div>
+                )}
+                {hasValue(yearsOfExperience) && (
+                  <div>
+                    <p className="text-muted-foreground">Years of Experience</p>
+                    <p>{yearsOfExperience}</p>
+                  </div>
+                )}
+                {hasValue(address) && (
+                  <div>
+                    <p className="text-muted-foreground">Address</p>
+                    <p>{address}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Desired Roles</p>
-                  {desiredRoles.length ? (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {desiredRoles.map((role) => (
-                        <Badge key={role} variant="outline" className="text-xs">
-                          {role}
+          {hasSkillsPreferences && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Code className="h-5 w-5" />
+                  Skills & Preferences
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {profileSkills.length > 0 && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Skills</p>
+                    <div className="flex flex-wrap gap-2">
+                      {profileSkills.map((skill) => (
+                        <Badge key={skill.name} variant="secondary" className="text-xs">
+                          {skill.name}
+                          {Number.isFinite(skill.proficiency) ? ` ??? P${skill.proficiency}` : ""}
+                          {Number.isFinite(skill.experience) ? ` ??? E${skill.experience}y` : ""}
                         </Badge>
                       ))}
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Not provided</p>
-                  )}
-                </div>
+                  </div>
+                )}
 
-                <div>
-                  <p className="text-muted-foreground">Preferred Locations</p>
-                  {preferredLocations.length ? (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {preferredLocations.map((loc) => (
-                        <Badge key={loc} variant="outline" className="text-xs">
-                          {loc}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Not provided</p>
-                  )}
-                </div>
+                {(desiredRoles.length > 0 || preferredLocations.length > 0 || hasValue(workMode)) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    {desiredRoles.length > 0 && (
+                      <div>
+                        <p className="text-muted-foreground">Desired Roles</p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {desiredRoles.map((role) => (
+                            <Badge key={role} variant="outline" className="text-xs">
+                              {role}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                <div>
-                  <p className="text-muted-foreground">Work Mode</p>
-                  <p>{workMode}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                    {preferredLocations.length > 0 && (
+                      <div>
+                        <p className="text-muted-foreground">Preferred Locations</p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {preferredLocations.map((loc) => (
+                            <Badge key={loc} variant="outline" className="text-xs">
+                              {loc}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Briefcase className="h-5 w-5" />
-                Experience
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {experiences.length ? (
+                    {hasValue(workMode) && (
+                      <div>
+                        <p className="text-muted-foreground">Work Mode</p>
+                        <p>{workMode}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+          {experiences.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Briefcase className="h-5 w-5" />
+                  Experience
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-4">
                   {experiences.map((exp) => (
                     <div key={exp.id} className="rounded-lg border p-4">
                       <div className="flex items-center justify-between">
                         <div className="font-medium">{exp.position}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {exp.duration || "Duration not provided"}
-                        </div>
+                        {exp.duration && (
+                          <div className="text-xs text-muted-foreground">
+                            {exp.duration}
+                          </div>
+                        )}
                       </div>
-                      <div className="text-sm text-muted-foreground">{exp.company}</div>
+                      {exp.company && (
+                        <div className="text-sm text-muted-foreground">{exp.company}</div>
+                      )}
                       {exp.description && <p className="text-sm mt-2">{exp.description}</p>}
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No experience listed.</p>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </>
       ) : null}
 
       {/* Achievements only (projects/certifications removed as requested) */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Award className="h-5 w-5" />
-            Achievements
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {achievements.length ? (
+      {achievements.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5" />
+              Achievements
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <ul className="space-y-2">
               {achievements.map((achievement, index) => (
                 <li key={index} className="flex items-start gap-2">
@@ -600,11 +643,9 @@ export function ApplicantDetails() {
                 </li>
               ))}
             </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground">No achievements provided.</p>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

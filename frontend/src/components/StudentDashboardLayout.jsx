@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { apiFetch } from "@/lib/api";
 
 /* ---------------- NAV ITEMS ---------------- */
 
@@ -35,12 +37,58 @@ function StudentSidebarNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { toast } = useToast();
   const { user } = useSelector(selectAuth);
-  const [profileVisible, setProfileVisible] = useState(true);
+  const [profileVisible, setProfileVisible] = useState(false);
+  const [visibilityLoading, setVisibilityLoading] = useState(false);
 
   const handleLogout = () => {
     dispatch(logout());
     navigate("/login");
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    apiFetch("/student/profile")
+      .then((res) => {
+        if (!mounted) return;
+        const visible =
+          typeof res?.profile?.consent_profile_visibility === "boolean"
+            ? res.profile.consent_profile_visibility
+            : false;
+        setProfileVisible(visible);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setProfileVisible(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleProfileVisibleChange = async (checked) => {
+    const prev = profileVisible;
+    setProfileVisible(checked);
+    setVisibilityLoading(true);
+    try {
+      await apiFetch("/student/profile", {
+        method: "PUT",
+        body: JSON.stringify({ profileVisibility: checked }),
+      });
+      toast({
+        title: "Profile visibility updated",
+      });
+    } catch (err) {
+      setProfileVisible(prev);
+      toast({
+        title: "Update failed",
+        description: err?.message || "Could not update profile visibility.",
+        variant: "destructive",
+      });
+    } finally {
+      setVisibilityLoading(false);
+    }
   };
 
   // ✅ SINGLE SOURCE OF TRUTH
@@ -98,7 +146,8 @@ function StudentSidebarNav() {
               <span className="text-sm">Profile Visible</span>
               <Switch
                 checked={profileVisible}
-                onCheckedChange={setProfileVisible}
+                disabled={visibilityLoading}
+                onCheckedChange={handleProfileVisibleChange}
               />
             </div>
 
