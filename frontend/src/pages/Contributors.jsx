@@ -152,16 +152,19 @@ const Contributors = () => {
             </p>
           </div>
 
-          {/* 1. Head/Mentor Section (Prominent) */}
+          {/* 1. Head/Mentor + Manager Section (Prominent) */}
           <section className="space-y-8">
             <h2 className="text-3xl font-bold text-center pb-2 text-gray-800 dark:text-gray-200">
               <span className="pb-1 border-b-2 border-blue-500/50 dark:border-cyan-500/50">
-                Project Mentor
+                Leadership
               </span>
             </h2>
-            <div className="flex justify-center">
+            <div className="grid gap-8 md:grid-cols-2 place-items-center">
               <div className="w-full max-w-sm">
                 <ContributorCard person={head} isHead={true} />
+              </div>
+              <div className="w-full max-w-sm">
+                <ContributorCard person={manager} isManager={true} />
               </div>
             </div>
           </section>
@@ -186,19 +189,6 @@ const Contributors = () => {
             </div>
           </section>
 
-          {/* 2. Project Manager Section */}
-          <section className="space-y-8">
-            <h2 className="text-3xl font-bold text-center pb-2 text-gray-800 dark:text-gray-200">
-              <span className="pb-1 border-b-2 border-blue-500/50 dark:border-cyan-500/50">
-                Project Manager
-              </span>
-            </h2>
-            <div className="flex justify-center">
-              <div className="w-full max-w-sm">
-                <ContributorCard person={manager} isManager={true} />
-              </div>
-            </div>
-          </section>
         </div>
       </div>
 
