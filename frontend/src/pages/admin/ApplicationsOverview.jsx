@@ -6,13 +6,15 @@ const ApplicationsOverview = () => {
     <div className="min-h-screen bg-background p-6">
       <JobApplicants
         backPath="/admin/postings"
-        detailsPath="/admin/applicant-details"
+        detailsPath="/admin/applicant-details/:applicationId"
         heading="Applications Overview"
         loadJobs={apiClient.adminJobs}
-        loadApplicants={() =>
-          apiClient
-            .adminApplications()
-            .then((res) => res?.applications ?? [])
+        loadApplicants={(jobId) =>
+          jobId
+            ? apiClient
+                .adminJobApplicants(jobId)
+                .then((res) => res?.applicants ?? [])
+            : Promise.resolve([])
         }
       />
     </div>

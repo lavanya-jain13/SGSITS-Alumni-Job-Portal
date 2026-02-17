@@ -145,6 +145,13 @@ exports.rejectAlumni = async (req, res) => {
       .where({ id: alumni.user_id })
       .update({ status: "rejected" });
 
+    const user = await db("users").where({ id: alumni.user_id }).first();
+    await notifyUser(
+      user?.email,
+      "Company Rejected",
+      "Your company profile has been rejected by admin. Please update details and re-apply."
+    );
+
     res.json({ message: "Alumni & company rejected successfully" });
   } catch (error) {
     console.error("rejectAlumni error:", error);
@@ -462,6 +469,7 @@ exports.adminviewJobApplicants = async (req, res) => {
     }
 
     const applicants = await db("job_applications as ja")
+      .join("jobs as j", "ja.job_id", "j.id")
       .join("users as u", "ja.user_id", "u.id")
       .leftJoin("student_profiles as sp", "sp.user_id", "u.id")
       .where("ja.job_id", jobId)
@@ -471,6 +479,8 @@ exports.adminviewJobApplicants = async (req, res) => {
         "ja.is_read",
         "ja.resume_url",
         "ja.applied_at",
+        "j.id as job_id",
+        "j.skills_required as job_skills",
         "u.id as user_id",
         "u.email as user_email",
         "sp.name as student_name",

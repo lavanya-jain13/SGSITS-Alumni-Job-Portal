@@ -343,6 +343,15 @@ export function JobApplicants({
   const [error, setError] = useState("");
   const [expandedSkills, setExpandedSkills] = useState(() => new Set());
 
+  const resolveDetailsPath = (applicationId) => {
+    const id = String(applicationId || "");
+    if (!id) return detailsPath;
+    if (detailsPath.includes(":applicationId")) {
+      return detailsPath.replace(":applicationId", id);
+    }
+    return detailsPath;
+  };
+
   // Branch options – keep in sync with Alumni PostJob branches
   const branches = [
     "Computer Science",
@@ -447,11 +456,20 @@ export function JobApplicants({
       return {
         id: row.application_id,
         applicationId: row.application_id,
-        name: row.student_name || row.user_email || "Unknown",
-        class: row.student_grad_year ? `Grad ${row.student_grad_year}` : "N/A",
-        branch: row.student_branch || "N/A",
-        student_branch: row.student_branch || "",
-        student_grad_year: row.student_grad_year || "",
+        name:
+          row.student_name ||
+          row.applicant_name ||
+          row.user_email ||
+          row.applicant_email ||
+          "Unknown",
+        class:
+          row.student_grad_year || row.applicant_grad_year
+            ? `Grad ${row.student_grad_year || row.applicant_grad_year}`
+            : "N/A",
+        branch: row.student_branch || row.applicant_branch || "N/A",
+        student_branch: row.student_branch || row.applicant_branch || "",
+        student_grad_year:
+          row.student_grad_year || row.applicant_grad_year || "",
         applicationTime: formatDateTime(row.applied_at),
         applied_at: row.applied_at || null,
         skillMatch: match,
@@ -462,7 +480,7 @@ export function JobApplicants({
         statusColor:
           statusColor[row.application_status] || "bg-gray-100 text-gray-800",
         resume_url: row.resume_url || row.profile_resume_url || "",
-        user_email: row.user_email || "",
+        user_email: row.user_email || row.applicant_email || "",
         user_id: row.user_id,
         job_id: String(row.job_id),
         student_phone: row.student_phone || "",
@@ -1010,7 +1028,7 @@ export function JobApplicants({
                           variant="ghost"
                           size="sm"
                           onClick={() =>
-                            navigate(detailsPath, {
+                            navigate(resolveDetailsPath(applicant.id), {
                               state: { applicant },
                             })
                           }

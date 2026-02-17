@@ -1,6 +1,7 @@
 // src/controllers/projectController.js
 const db = require("../config/db");
 const cloudinary = require("../config/cloudinary");
+const { sendEmail } = require("../services/emailService");
 
 // ---------- Helpers ----------
 
@@ -431,6 +432,43 @@ const updateProjectApplicationStatus = async (req, res, newStatus) => {
       .where({ id: applicationId })
       .update({ status: newStatus, is_read: true });
 
+    // Send status-change email to the student (best-effort)
+    try {
+      const studentUser = await db("users")
+        .where({ id: application.user_id })
+        .first();
+      const studentProfile = await db("student_profiles")
+        .where({ user_id: application.user_id })
+        .first();
+
+      if (studentUser?.email) {
+        const studentName =
+          studentProfile?.name || studentUser.name || "there";
+        const projectTitle = project.project_title || "the project";
+        const friendlyStatus = newStatus.replace("_", " ");
+
+        await sendEmail({
+          to: studentUser.email,
+          subject: `Your application for ${projectTitle} was ${friendlyStatus}`,
+          text: `Hi ${studentName},
+
+Your application for "${projectTitle}" has been ${friendlyStatus} by the alumni reviewer.
+
+Status: ${friendlyStatus}
+
+If you have questions, you can reply to this email.
+
+Thanks,
+SGSITS Alumni Portal`,
+        });
+      }
+    } catch (emailErr) {
+      console.warn(
+        "Project status email notification failed:",
+        emailErr && emailErr.message
+      );
+    }
+
     return res.json({
       message: `Application marked as ${newStatus}.`,
     });
@@ -567,6 +605,7 @@ exports.applyProject = async (req, res) => {
     }
 
     // 6) Transaction
+    let limitReachedNow = false;
     const application = await db.transaction(async (trx) => {
       const [app] = await trx("project_applications")
         .insert(
@@ -593,6 +632,7 @@ exports.applyProject = async (req, res) => {
       const newCount = Number(newCountRow?.count || 0);
 
       if (newCount >= project.max_applicants_allowed) {
+        limitReachedNow = true;
         await trx("project_posts")
           .where({ id: project_id })
           .update({ status: "paused", updated_at: trx.fn.now() });
@@ -600,6 +640,36 @@ exports.applyProject = async (req, res) => {
 
       return app;
     });
+
+    if (limitReachedNow) {
+      try {
+        const owner = await db("alumni_profiles as ap")
+          .join("users as u", "u.id", "ap.user_id")
+          .where("ap.id", project.alumni_id)
+          .select("u.email", "ap.name")
+          .first();
+
+        if (owner?.email) {
+          const title = project.project_title || "your project";
+          await sendEmail({
+            to: owner.email,
+            subject: `Max applicant limit reached for ${title}`,
+            text: `Hello ${owner.name || "Alumni"},
+
+The maximum applicant limit for "${title}" has been reached.
+The project has been auto-paused for new applications.
+
+Regards,
+SGSITS Alumni Portal`,
+          });
+        }
+      } catch (emailErr) {
+        console.warn(
+          "Project max-limit email notification failed:",
+          emailErr && emailErr.message
+        );
+      }
+    }
 
     return res.status(201).json({
       message: "Project application submitted successfully.",
