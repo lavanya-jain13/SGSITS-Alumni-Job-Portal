@@ -24,9 +24,9 @@ import {
 import { apiClient } from "@/lib/api";
 
 // ✅ Import the enhanced, consistent Header and Footer components
-import PublicHeader from "@/components/PublicHeader"; 
-import PublicFooter from "@/components/PublicFooter"; 
-// Note: You must ensure the PublicHeader and PublicFooter files 
+import PublicHeader from "@/components/PublicHeader";
+import PublicFooter from "@/components/PublicFooter";
+// Note: You must ensure the PublicHeader and PublicFooter files
 // contain the code blocks we finalized in the previous steps.
 
 const Index = () => {
@@ -104,7 +104,10 @@ const Index = () => {
       const parsed = JSON.parse(tags);
       return Array.isArray(parsed) ? parsed : [];
     } catch {
-      return String(tags).split(",").map(t => t.trim()).filter(Boolean);
+      return String(tags)
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
     }
   };
 
@@ -113,90 +116,92 @@ const Index = () => {
     {
       icon: Network,
       title: "Global Alumni Network",
-      description: "Instantly connect with over 10,000 SGSITS alumni worldwide for mentorship and collaboration.",
+      description:
+        "Instantly connect with over 10,000 SGSITS alumni worldwide for mentorship and collaboration.",
     },
     {
       icon: Briefcase,
       title: "Exclusive Job Board",
-      description: "Access curated job and internship opportunities shared directly by alumni companies and recruiters.",
+      description:
+        "Access curated job and internship opportunities shared directly by alumni companies and recruiters.",
     },
     {
       icon: Calendar,
       title: "Event & Seminar Hub",
-      description: "Stay informed about college reunions, workshops, and exclusive alumni professional development seminars.",
+      description:
+        "Stay informed about college reunions, workshops, and exclusive alumni professional development seminars.",
     },
     {
       icon: Users,
       title: "Mentorship Program",
-      description: "Get personalized career guidance from experienced alumni in your desired industry or field.",
+      description:
+        "Get personalized career guidance from experienced alumni in your desired industry or field.",
     },
   ];
 
   const featuredOpportunities = [
-    { 
-      id: 1, 
-      title: "Senior Software Engineer", 
-      badge: "JOB", 
-      badgeVariant: "bg-emerald-500", 
-      company: "Amazon", 
-      mode: "Full-time · On-site", 
-      tags: ["CSE", "IT", "AI"], 
+    {
+      id: 1,
+      title: "Senior Software Engineer",
+      badge: "JOB",
+      badgeVariant: "bg-emerald-500",
+      company: "Amazon",
+      mode: "Full-time · On-site",
+      tags: ["CSE", "IT", "AI"],
     },
-    { 
-      id: 2, 
-      title: "UI/UX Designer", 
-      badge: "INTERNSHIP", 
-      badgeVariant: "bg-sky-500", 
-      company: "Design Studio", 
-      mode: "Internship · Hybrid", 
-      tags: ["CSE", "IT", "Design"], 
+    {
+      id: 2,
+      title: "UI/UX Designer",
+      badge: "INTERNSHIP",
+      badgeVariant: "bg-sky-500",
+      company: "Design Studio",
+      mode: "Internship · Hybrid",
+      tags: ["CSE", "IT", "Design"],
     },
-    { 
-      id: 3, 
-      title: "Data Scientist", 
-      badge: "JOB", 
-      badgeVariant: "bg-emerald-500", 
-      company: "Analytics Pro", 
-      mode: "Full-time · Remote", 
-      tags: ["CSE", "AI", "Mathematics"], 
+    {
+      id: 3,
+      title: "Data Scientist",
+      badge: "JOB",
+      badgeVariant: "bg-emerald-500",
+      company: "Analytics Pro",
+      mode: "Full-time · Remote",
+      tags: ["CSE", "AI", "Mathematics"],
     },
-    { 
-      id: 4, 
-      title: "Backend Developer", 
-      badge: "INTERNSHIP", 
-      badgeVariant: "bg-sky-500", 
-      company: "API Solutions", 
-      mode: "Internship · Remote", 
-      tags: ["CSE", "IT"], 
+    {
+      id: 4,
+      title: "Backend Developer",
+      badge: "INTERNSHIP",
+      badgeVariant: "bg-sky-500",
+      company: "API Solutions",
+      mode: "Internship · Remote",
+      tags: ["CSE", "IT"],
     },
-    { 
-      id: 5, 
-      title: "Alumni Portal Enhancement", 
-      badge: "PROJECT", 
-      badgeVariant: "bg-violet-500", 
-      company: "SGSITS", 
-      mode: "Capstone · Hybrid", 
-      tags: ["CSE", "IT", "AI"], 
+    {
+      id: 5,
+      title: "Alumni Portal Enhancement",
+      badge: "PROJECT",
+      badgeVariant: "bg-violet-500",
+      company: "SGSITS",
+      mode: "Capstone · Hybrid",
+      tags: ["CSE", "IT", "AI"],
     },
-    { 
-      id: 6, 
-      title: "Machine Learning Engineer", 
-      badge: "JOB", 
-      badgeVariant: "bg-emerald-500", 
-      company: "Google", 
-      mode: "Full-time · On-site", 
-      tags: ["CSE", "AI", "Mathematics"], 
+    {
+      id: 6,
+      title: "Machine Learning Engineer",
+      badge: "JOB",
+      badgeVariant: "bg-emerald-500",
+      company: "Google",
+      mode: "Full-time · On-site",
+      tags: ["CSE", "AI", "Mathematics"],
     },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
-      
       {/* 1. ✅ Replaced inline header with the consistent PublicHeader component */}
       <PublicHeader />
 
       <main className="flex-grow">
-        
         {/* ✅ Hero Section - More dramatic and inviting */}
         <section
           className="py-16 md:py-24 bg-cover bg-center relative overflow-hidden"
@@ -207,18 +212,26 @@ const Index = () => {
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div className="max-w-4xl mx-auto">
               <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold mb-6 text-white leading-tight">
-                <span className="font-sans font-black tracking-tight">Bridge Your Career with the</span> <span className="text-cyan-400 font-sans font-black tracking-tight">SGSITS Alumni</span> <span className="font-sans font-black tracking-tight">Network</span>
+                <span className="font-sans font-black tracking-tight">
+                  Bridgess Your Career with the
+                </span>{" "}
+                <span className="text-cyan-400 font-sans font-black tracking-tight">
+                  SGSITS Alumni
+                </span>{" "}
+                <span className="font-sans font-black tracking-tight">
+                  Network
+                </span>
               </h1>
 
               <p className="text-xl md:text-2xl text-gray-200 mb-10 max-w-2xl mx-auto">
-                Discover live jobs, internships, and alumni-led projects tailored for SGSITS
-                students and graduates.
+                Discover live jobs, internships, and alumni-led projects
+                tailored for SGSITS students and graduates.
               </p>
 
               {/* Button Group - Prominent and action-oriented s */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
-                  size="xl" 
+                  size="xl"
                   className="text-lg py-4 px-8 bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-all duration-300"
                   asChild
                 >
@@ -236,7 +249,7 @@ const Index = () => {
                 >
                   <Link to="/signup/alumni">
                     Create Profile
-                    <Users className="w-5 h-5 ml-2"/>
+                    <Users className="w-5 h-5 ml-2" />
                   </Link>
                 </Button>
               </div>
@@ -248,20 +261,30 @@ const Index = () => {
         <section className="py-16 md:py-20 bg-white dark:bg-gray-900">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-gray-900 dark:text-white">
-              Your Next <span className="text-blue-600 dark:text-cyan-400">Career Step</span> Starts Here
+              Your Next{" "}
+              <span className="text-blue-600 dark:text-cyan-400">
+                Career Step
+              </span>{" "}
+              Starts Here
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-400 mb-16 max-w-3xl mx-auto">
-              We provide the essential tools and connections to bridge the gap between academic life and professional success.
+              We provide the essential tools and connections to bridge the gap
+              between academic life and professional success.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {features.map((feature, index) => (
-                <Card key={index} className="transform hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border border-blue-500/20 dark:border-cyan-400/20 hover:border-blue-500 dark:hover:border-cyan-400 hover:ring-2 hover:ring-blue-100 dark:hover:ring-cyan-900">
+                <Card
+                  key={index}
+                  className="transform hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border border-blue-500/20 dark:border-cyan-400/20 hover:border-blue-500 dark:hover:border-cyan-400 hover:ring-2 hover:ring-blue-100 dark:hover:ring-cyan-900"
+                >
                   <CardHeader className="flex flex-col items-center space-y-3">
                     <div className="p-4 bg-blue-100 dark:bg-blue-900/50 rounded-full text-blue-600 dark:text-cyan-400">
                       <feature.icon className="h-8 w-8" />
                     </div>
-                    <CardTitle className="text-xl font-bold pt-2">{feature.title}</CardTitle>
+                    <CardTitle className="text-xl font-bold pt-2">
+                      {feature.title}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <CardDescription className="text-gray-600 dark:text-gray-400 text-base">
@@ -275,7 +298,9 @@ const Index = () => {
         </section>
 
         {/* --- Visual separation --- */}
-        <div className="max-w-7xl mx-auto"><hr className="border-gray-200 dark:border-gray-800" /></div>
+        <div className="max-w-7xl mx-auto">
+          <hr className="border-gray-200 dark:border-gray-800" />
+        </div>
 
         {/* ✅ Featured Opportunities Section */}
         <section className="py-16 md:py-20 bg-gradient-to-b from-white via-slate-50 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
@@ -286,7 +311,11 @@ const Index = () => {
                 FEATURED OPPORTUNITIES
               </div>
               <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-3">
-                Live <span className="text-blue-600 dark:text-cyan-400">Opportunities</span> from Alumni
+                Live{" "}
+                <span className="text-blue-600 dark:text-cyan-400">
+                  Opportunities
+                </span>{" "}
+                from Alumni
               </h2>
               <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
                 Updated in real time. Apply before positions close.
@@ -305,7 +334,9 @@ const Index = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-6 mb-8">
                 {featuredJobs.map((job) => {
                   const badge = getJobTypeBadge(job.job_type);
-                  const tags = parseTags(job.allowed_branches || job.skills_required);
+                  const tags = parseTags(
+                    job.allowed_branches || job.skills_required,
+                  );
                   return (
                     <Card
                       key={job.id}
@@ -326,7 +357,9 @@ const Index = () => {
                           <button
                             type="button"
                             className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline dark:text-cyan-400 dark:hover:text-cyan-300 text-left"
-                            onClick={() => navigate(`/company/${job.company_id}`)}
+                            onClick={() =>
+                              navigate(`/company/${job.company_id}`)
+                            }
                           >
                             {job.company_name}
                           </button>
@@ -382,8 +415,13 @@ const Index = () => {
 
             <div className="flex flex-col items-center gap-4">
               <div className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm dark:border-slate-800 dark:bg-gray-900 dark:text-slate-300">
-                Page <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-semibold ml-1">1</span>
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 text-xs font-medium dark:bg-slate-800 dark:text-slate-300">2</span>
+                Page{" "}
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-semibold ml-1">
+                  1
+                </span>
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 text-xs font-medium dark:bg-slate-800 dark:text-slate-300">
+                  2
+                </span>
               </div>
               <Button
                 variant="link"
@@ -404,7 +442,10 @@ const Index = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-10 md:mb-14">
               <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-3">
-                Top Companies by <span className="text-blue-600 dark:text-cyan-400">SGSITS Alumni</span>
+                Top Companies by{" "}
+                <span className="text-blue-600 dark:text-cyan-400">
+                  SGSITS Alumni
+                </span>
               </h2>
               <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
                 Where our alumni are hiring from.
@@ -415,11 +456,11 @@ const Index = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
               {topCompanies.map((company, idx) => {
                 // Find matching company from real data if available
-                const realCompany = companies.find(c => 
-                  c.name.toLowerCase() === company.name.toLowerCase()
+                const realCompany = companies.find(
+                  (c) => c.name.toLowerCase() === company.name.toLowerCase(),
                 );
                 const companyId = realCompany?.id;
-                
+
                 return (
                   <Card
                     key={idx}
@@ -455,7 +496,8 @@ const Index = () => {
                         to={`/company/${company.id}`}
                         className="text-sm hover:underline cursor-pointer"
                       >
-                        {company.name} • {company.activeJobs} Active {company.activeJobs === 1 ? "Job" : "Jobs"}
+                        {company.name} • {company.activeJobs} Active{" "}
+                        {company.activeJobs === 1 ? "Job" : "Jobs"}
                       </Link>
                     ))}
                     {/* Duplicate for seamless loop */}
@@ -465,7 +507,8 @@ const Index = () => {
                         to={`/company/${company.id}`}
                         className="text-sm hover:underline cursor-pointer"
                       >
-                        {company.name} • {company.activeJobs} Active {company.activeJobs === 1 ? "Job" : "Jobs"}
+                        {company.name} • {company.activeJobs} Active{" "}
+                        {company.activeJobs === 1 ? "Job" : "Jobs"}
                       </Link>
                     ))}
                   </div>
@@ -511,7 +554,8 @@ const Index = () => {
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground dark:text-gray-500">
-                  Free to join • Exclusive to the SGSITS community • Secure and private
+                  Free to join • Exclusive to the SGSITS community • Secure and
+                  private
                 </p>
               </CardContent>
             </Card>
