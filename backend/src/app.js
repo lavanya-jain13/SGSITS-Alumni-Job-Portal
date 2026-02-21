@@ -33,7 +33,7 @@ const fallbackWhitelist = [
   "http://localhost:8080",
   "https://sgsits-alumni-jobs.com",
   "https://www.sgsits-alumni-jobs.com",
-  "http://44.254.252.160",
+  "http://18.217.68.204",
 ];
 
 const whitelist = envOrigins.length > 0 ? envOrigins : fallbackWhitelist;
@@ -79,7 +79,7 @@ app.use("/api/public", publicCompanyRoutes);
 
 // ==================== HEALTH CHECK ====================
 app.get("/", (req, res) => {
-  res.send("SGSITS Alumni Job Portal Backend v1.0 is running...");
+  res.send("SGSITS Alumni Job Portal Backend is running...");
 });
 
 // ==================== ERROR HANDLER ====================
