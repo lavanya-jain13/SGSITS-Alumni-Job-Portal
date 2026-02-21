@@ -33,7 +33,7 @@ const fallbackWhitelist = [
   "http://localhost:8080",
   "https://sgsits-alumni-jobs.com",
   "https://www.sgsits-alumni-jobs.com",
-  "http://18.217.68.204",
+  "http://44.254.252.160",
 ];
 
 const whitelist = envOrigins.length > 0 ? envOrigins : fallbackWhitelist;
