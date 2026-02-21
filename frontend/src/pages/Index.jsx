@@ -215,7 +215,7 @@ const Index = () => {
                 students and graduates.
               </p>
 
-              {/* Button Group - Prominent and action-oriented */}
+              {/* Button Group - Prominent and action-oriented s */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
                   size="xl" 
