@@ -79,7 +79,7 @@ app.use("/api/public", publicCompanyRoutes);
 
 // ==================== HEALTH CHECK ====================
 app.get("/", (req, res) => {
-  res.send("SGSITS Alumni Job Portal Backend is running...");
+  res.send("SGSITS Alumni Job Portal Backend v1.0 is running...");
 });
 
 // ==================== ERROR HANDLER ====================
