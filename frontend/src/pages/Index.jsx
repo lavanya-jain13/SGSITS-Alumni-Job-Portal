@@ -213,7 +213,7 @@ const Index = () => {
             <div className="max-w-4xl mx-auto">
               <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold mb-6 text-white leading-tight">
                 <span className="font-sans font-black tracking-tight">
-                  Bridgess Your Career with the
+                  Bridge Your Career with the
                 </span>{" "}
                 <span className="text-cyan-400 font-sans font-black tracking-tight">
                   SGSITS Alumni
