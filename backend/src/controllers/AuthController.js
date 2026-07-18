@@ -193,11 +193,36 @@ const login = async (req, res) => {
 
   res.cookie("access_token", token, buildCookieOptions());
 
+  // Pull profile-side name/grad_year so Redux (and the header) has real
+  // values on first render — otherwise `user.name` is undefined and the
+  // UI falls back to the email prefix.
+  let profile = null;
+  if (roleToAssign === "student") {
+    profile = await db("student_profiles")
+      .where({ user_id: user.id })
+      .select("name", "grad_year", "branch", "student_id")
+      .first();
+  } else if (roleToAssign === "alumni") {
+    profile = await db("alumni_profiles")
+      .where({ user_id: user.id })
+      .select("name", "grad_year", "current_title")
+      .first();
+  }
+
   res.json({
     user: {
       id: user.id,
       email: user.email,
       role: roleToAssign,
+      name: profile?.name || null,
+      grad_year: profile?.grad_year || null,
+      ...(roleToAssign === "student" && {
+        branch: profile?.branch || null,
+        student_id: profile?.student_id || null,
+      }),
+      ...(roleToAssign === "alumni" && {
+        position: profile?.current_title || null,
+      }),
     },
     message: "Login successful",
   });
