@@ -163,27 +163,27 @@ export function EditMyProfile() {
       if (formData.companyWebsite) payload.linkedin = formData.companyWebsite;
 
       await apiClient.completeAlumniProfile(payload);
-      // Update local auth state so ProfileView reflects changes
-      dispatch(
-        updateUser({
-          name: formData.fullName,
-          email: formData.email,
-          phone: formData.phoneNumber,
-          grad_year: formData.graduationYear,
-          position: formData.currentJobTitle,
-          company: formData.companyName,
-          company_website: formData.companyWebsite,
-          industry: formData.companyIndustry,
-          company_size: formData.companySize,
-          company_about: formData.companyAbout,
-        })
-      );
+      // Update local auth state so header/ProfileView pick up changes immediately.
+      // Only include fields the user actually filled in so we never blank out
+      // existing values (e.g. clearing user.name if fullName is empty).
+      const userUpdates = {};
+      if (formData.fullName) userUpdates.name = formData.fullName;
+      if (formData.email) userUpdates.email = formData.email;
+      if (formData.phoneNumber) userUpdates.phone = formData.phoneNumber;
+      if (formData.graduationYear) userUpdates.grad_year = formData.graduationYear;
+      if (formData.currentJobTitle) userUpdates.position = formData.currentJobTitle;
+      if (formData.companyName) userUpdates.company = formData.companyName;
+      if (formData.companyWebsite) userUpdates.company_website = formData.companyWebsite;
+      if (formData.companyIndustry) userUpdates.industry = formData.companyIndustry;
+      if (formData.companySize) userUpdates.company_size = formData.companySize;
+      if (formData.companyAbout) userUpdates.company_about = formData.companyAbout;
+      dispatch(updateUser(userUpdates));
       // Invalidate any cached queries so other views (postings, company profile,
       // applicant lists) refetch with the updated profile/company data.
       queryClient.invalidateQueries();
       toast({
-        title: "Profile submitted",
-        description: "Your alumni profile and company details have been saved.",
+        title: "Profile updated",
+        description: "Your changes have been saved.",
       });
       navigate(-1);
     } catch (error) {

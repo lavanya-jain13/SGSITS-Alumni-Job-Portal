@@ -152,19 +152,9 @@ const completeProfile = async (req, res) => {
       }
     }
 
-    // 3️⃣ Notify admin
-    const user = await trx("users").where({ id }).select("email").first();
-    if (user?.email) {
-      await sendEmail(
-        user.email,
-        "New Alumni Approval Required",
-        `Alumni with user ID ${id} has submitted company details.`,
-      );
-    }
-
     await trx.commit();
     return res.json({
-      message: "Alumni profile submitted. Awaiting admin approval.",
+      message: "Profile updated successfully.",
     });
   } catch (error) {
     if (trx) await trx.rollback();
