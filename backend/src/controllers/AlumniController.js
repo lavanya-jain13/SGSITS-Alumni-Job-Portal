@@ -67,6 +67,7 @@ const completeProfile = async (req, res) => {
 
     const {
       name,
+      alumniName,
       website,
       industry,
       company_size,
@@ -83,52 +84,72 @@ const completeProfile = async (req, res) => {
       gradYear,
     } = req.body;
 
-    // 1️⃣ Update alumni profile
-    await trx("alumni_profiles").where({ user_id: id }).update({
-      grad_year: gradYear,
-      current_title: currentTitle,
-      updated_at: trx.fn.now(),
-    });
+    // 1️⃣ Update alumni profile. Only include fields the client actually sent
+    // so we don't blank out columns when the form only touches a subset.
+    const alumniUpdate = { updated_at: trx.fn.now() };
+    if (alumniName && String(alumniName).trim()) alumniUpdate.name = alumniName;
+    if (gradYear) alumniUpdate.grad_year = gradYear;
+    if (currentTitle) alumniUpdate.current_title = currentTitle;
+    await trx("alumni_profiles").where({ user_id: id }).update(alumniUpdate);
 
-    // 2️⃣ UPSERT company (MAIN BUG FIX)
-    const existingCompany = await trx("companies")
-      .where({ user_id: id })
-      .first();
+    // 2️⃣ UPSERT company — only when at least one company field was actually
+    // provided. Otherwise the alumni is just updating their personal profile
+    // and we should leave the existing company row alone.
+    const companyFieldsProvided =
+      name ||
+      website ||
+      industry ||
+      company_size ||
+      about ||
+      linkedin ||
+      twitter ||
+      founded_year ||
+      contact_person_name ||
+      contact_person_email ||
+      contact_person_phone ||
+      office_location ||
+      company_culture;
 
-    const companyPayload = {
-      user_id: id,
-      name,
-      website,
-      industry,
-      company_size,
-      about,
-      linkedin: linkedin || null,
-      twitter: twitter || null,
-      founded_year: founded_year || null,
-
-      // ✅ CONTACT PERSON FIELDS
-      contact_person_name: contact_person_name || null,
-      contact_person_email: contact_person_email || null,
-      contact_person_phone: contact_person_phone || null,
-
-      office_location: office_location || null,
-      company_culture: company_culture || null,
-      document_url: linkedin || null,
-    };
-
-    if (existingCompany) {
-      await trx("companies")
+    if (companyFieldsProvided) {
+      const existingCompany = await trx("companies")
         .where({ user_id: id })
-        .update({
+        .first();
+
+      const companyPayload = {
+        user_id: id,
+        name,
+        website,
+        industry,
+        company_size,
+        about,
+        linkedin: linkedin || null,
+        twitter: twitter || null,
+        founded_year: founded_year || null,
+
+        // ✅ CONTACT PERSON FIELDS
+        contact_person_name: contact_person_name || null,
+        contact_person_email: contact_person_email || null,
+        contact_person_phone: contact_person_phone || null,
+
+        office_location: office_location || null,
+        company_culture: company_culture || null,
+        document_url: linkedin || null,
+      };
+
+      if (existingCompany) {
+        await trx("companies")
+          .where({ user_id: id })
+          .update({
+            ...companyPayload,
+            updated_at: trx.fn.now(),
+          });
+      } else {
+        await trx("companies").insert({
           ...companyPayload,
-          updated_at: trx.fn.now(),
+          status: "pending",
+          created_at: trx.fn.now(),
         });
-    } else {
-      await trx("companies").insert({
-        ...companyPayload,
-        status: "pending",
-        created_at: trx.fn.now(),
-      });
+      }
     }
 
     // 3️⃣ Notify admin

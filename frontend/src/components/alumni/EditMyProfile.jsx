@@ -148,9 +148,12 @@ export function EditMyProfile() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Only send fields that have values to avoid overwriting DB columns with empty strings
+      // Only send fields that have values to avoid overwriting DB columns with empty strings.
+      // `alumniName` maps to alumni_profiles.name (the person). `name` maps to
+      // companies.name (the company) — the two are distinct on the backend.
       const payload = {};
-      if (formData.companyName || formData.fullName) payload.name = formData.companyName || formData.fullName;
+      if (formData.fullName) payload.alumniName = formData.fullName;
+      if (formData.companyName) payload.name = formData.companyName;
       if (formData.companyWebsite) payload.website = formData.companyWebsite;
       if (formData.companyIndustry) payload.industry = formData.companyIndustry;
       if (formData.companySize) payload.company_size = formData.companySize;
