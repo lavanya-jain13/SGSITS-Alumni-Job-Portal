@@ -1,23 +1,65 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone } from "lucide-react";
+import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, Clock } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import logo from "@/assets/logo.png"; // Assuming this path is correct
 
+const socialLinks = [
+  {
+    name: "LinkedIn",
+    Icon: Linkedin,
+    href: "https://www.linkedin.com/groups/10311867/",
+    hoverColor: "hover:text-blue-700 dark:hover:text-cyan-400",
+  },
+  {
+    name: "Facebook",
+    Icon: Facebook,
+    href: null, // Coming soon
+    hoverColor: "hover:text-blue-600 dark:hover:text-cyan-400",
+  },
+  {
+    name: "Twitter",
+    Icon: Twitter,
+    href: null, // Coming soon
+    hoverColor: "hover:text-sky-500 dark:hover:text-cyan-400",
+  },
+  {
+    name: "Instagram",
+    Icon: Instagram,
+    href: "https://www.instagram.com/sgsits_alumni_association?igsh=amI0a2swY2tmZm03",
+    hoverColor: "hover:text-pink-600 dark:hover:text-cyan-400",
+  },
+];
+
 export default function PublicFooter() {
+  const [comingSoonPlatform, setComingSoonPlatform] = useState(null);
+
   // Common class for link styling with enhanced hover effect
-  const linkClass = "text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-cyan-400 transition-colors hover:underline-offset-4 hover:underline";
-  
+  const linkClass =
+    "text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-cyan-400 transition-colors hover:underline-offset-4 hover:underline";
+
+  const handleSocialClick = (e, social) => {
+    if (!social.href) {
+      e.preventDefault();
+      setComingSoonPlatform(social.name);
+    }
+  };
+
   return (
     // Base footer container with subtle background and strong top border accent
     <footer className="bg-gray-50 dark:bg-gray-950 py-12 sm:py-16 relative">
-      
       {/* Subtle Gradient Accent Border */}
       <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-blue-600 to-cyan-500"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
         {/* --- Main Grid Layout --- */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-y-10 gap-x-8 lg:gap-x-16">
-          
           {/* Column 1: Branding & Description (Spans 2 columns on small screens) */}
           <div className="col-span-2 space-y-4 md:space-y-6">
             <Link to="/" className="flex items-center gap-3 group">
@@ -73,7 +115,10 @@ export default function PublicFooter() {
               {/* Mail */}
               <div className="flex items-center gap-3">
                 <Mail className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
-                <a href="mailto:alumni@sgsits.ac.in" className={linkClass.replace("text-sm", "text-base")}>
+                <a
+                  href="mailto:alumni@sgsits.ac.in"
+                  className={linkClass.replace("text-sm", "text-base")}
+                >
                   alumni@sgsits.ac.in
                 </a>
               </div>
@@ -85,21 +130,25 @@ export default function PublicFooter() {
                 </span>
               </div>
             </div>
-            
+
             {/* Social Icons - More prominent and colorful */}
             <div className="flex space-x-4 pt-3">
-              <a href="#" aria-label="LinkedIn" className="p-2 rounded-full bg-white dark:bg-gray-800 text-gray-500 hover:text-blue-700 dark:hover:text-cyan-400 transition-colors shadow-md hover:shadow-lg">
-                <Linkedin className="w-5 h-5" />
-              </a>
-              <a href="#" aria-label="Facebook" className="p-2 rounded-full bg-white dark:bg-gray-800 text-gray-500 hover:text-blue-600 dark:hover:text-cyan-400 transition-colors shadow-md hover:shadow-lg">
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a href="#" aria-label="Twitter" className="p-2 rounded-full bg-white dark:bg-gray-800 text-gray-500 hover:text-sky-500 dark:hover:text-cyan-400 transition-colors shadow-md hover:shadow-lg">
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a href="#" aria-label="Instagram" className="p-2 rounded-full bg-white dark:bg-gray-800 text-gray-500 hover:text-pink-600 dark:hover:text-cyan-400 transition-colors shadow-md hover:shadow-lg">
-                <Instagram className="w-5 h-5" />
-              </a>
+              {socialLinks.map((social) => {
+                const { name, Icon, href, hoverColor } = social;
+                return (
+                  <a
+                    key={name}
+                    href={href || "#"}
+                    target={href ? "_blank" : undefined}
+                    rel={href ? "noopener noreferrer" : undefined}
+                    onClick={(e) => handleSocialClick(e, social)}
+                    aria-label={name}
+                    className={`p-2 rounded-full bg-white dark:bg-gray-800 text-gray-500 ${hoverColor} transition-colors shadow-md hover:shadow-lg cursor-pointer`}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </a>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -110,8 +159,32 @@ export default function PublicFooter() {
             &copy; {new Date().getFullYear()} SGSITS Alumni Association. All rights reserved. Designed and developed by the Contributors Team.
           </div>
         </div>
-        
       </div>
+
+      {/* Coming Soon Dialog */}
+      <Dialog
+        open={!!comingSoonPlatform}
+        onOpenChange={(open) => !open && setComingSoonPlatform(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-3 w-14 h-14 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg">
+              <Clock className="w-7 h-7 text-white" />
+            </div>
+            <DialogTitle className="text-center text-2xl font-extrabold text-gray-900 dark:text-white">
+              Coming Soon
+            </DialogTitle>
+            <DialogDescription className="text-center text-base text-gray-600 dark:text-gray-400 pt-1">
+              Our{" "}
+              <span className="font-semibold text-gray-800 dark:text-gray-200">
+                {comingSoonPlatform}
+              </span>{" "}
+              presence is on the way. Check back shortly — meanwhile, follow us on
+              LinkedIn or Instagram.
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </footer>
   );
 }

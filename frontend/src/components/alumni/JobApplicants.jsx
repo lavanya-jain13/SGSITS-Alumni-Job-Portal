@@ -319,6 +319,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
 import { downloadResumeFile } from "@/lib/downloadResume";
+import {
+  splitSkills,
+  splitAchievements,
+  computeMatch,
+} from "@/lib/skills";
 
 export function JobApplicants({
   backPath = "/alumni",
@@ -378,71 +383,6 @@ export function JobApplicants({
     accepted: "bg-green-100 text-green-800",
     rejected: "bg-red-100 text-red-800",
     on_hold: "bg-blue-100 text-blue-800",
-  };
-
-  const normalizeSkill = (s) => {
-    if (!s) return "";
-    const lowered = String(s).toLowerCase();
-    if (lowered.includes("javascript") || lowered === "js") return "javascript";
-    if (lowered.includes("react")) return "react";
-    if (lowered.includes("vue")) return "vue";
-    if (lowered.includes("node")) return "node";
-    if (lowered.includes("python")) return "python";
-    return lowered
-      .replace(/[^a-z0-9+.#]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-  };
-
-  const splitSkills = (value) => {
-    if (!value) return [];
-    if (Array.isArray(value))
-      return value.filter(Boolean).map((s) => String(s).trim());
-
-    // Try JSON array first (common when stored as text)
-    try {
-      const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) {
-        return parsed.filter(Boolean).map((s) => String(s).trim());
-      }
-    } catch (_err) {
-      // fall back to delimiter split
-    }
-
-    const cleaned = String(value).replace(/[{}\[\]"']/g, ""); // strip stray brackets/quotes if present (PG arrays)
-    const primarySplit = cleaned
-      .split(/[,|]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    if (primarySplit.length > 1)
-      return primarySplit.map(normalizeSkill).filter(Boolean);
-
-    // fallback: space-separated list
-    return cleaned.split(/\s+/).map(normalizeSkill).filter(Boolean);
-  };
-
-  const splitAchievements = (value) => {
-    if (!value) return [];
-    if (Array.isArray(value))
-      return value.filter(Boolean).map((s) => String(s).trim());
-    return String(value)
-      .split(/[,|]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-  };
-
-  const computeMatch = (studentSkills = [], requiredSkills = []) => {
-    const req = Array.from(
-      new Set(requiredSkills.map(normalizeSkill).filter(Boolean)),
-    );
-    const stud = Array.from(
-      new Set(studentSkills.map(normalizeSkill).filter(Boolean)),
-    );
-    if (!req.length) return null;
-    const studentSet = new Set(stud);
-    const hits = req.filter((r) => studentSet.has(r)).length;
-    return Math.round((hits / req.length) * 100);
   };
 
   const formatDateTime = (value) =>

@@ -6,62 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/lib/api";
-
-const normalizeSkill = (s) => {
-  if (!s) return "";
-  const lowered = String(s).toLowerCase();
-  if (lowered.includes("javascript") || lowered === "js") return "javascript";
-  if (lowered.includes("react")) return "react";
-  if (lowered.includes("vue")) return "vue";
-  if (lowered.includes("node")) return "node";
-  if (lowered.includes("python")) return "python";
-  return lowered.replace(/[^a-z0-9+.#]/g, " ").replace(/\s+/g, " ").trim();
-};
-
-const splitSkills = (value) => {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.filter(Boolean).map((s) => String(s).trim());
-
-  // Try JSON array first (common when stored as text)
-  try {
-    const parsed = JSON.parse(value);
-    if (Array.isArray(parsed)) {
-      return parsed.filter(Boolean).map((s) => String(s).trim());
-    }
-  } catch (_err) {
-    // fall back to delimiter split
-  }
-
-  // strip stray brackets/quotes if present (PG arrays)
-  const cleaned = String(value).replace(/[{}\[\]"']/g, "");
-  const primarySplit = cleaned
-    .split(/[,|]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  if (primarySplit.length > 1) return primarySplit.map(normalizeSkill).filter(Boolean);
-
-  // fallback: space-separated list
-  return cleaned.split(/\s+/).map(normalizeSkill).filter(Boolean);
-};
-
-const splitAchievements = (value) => {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.filter(Boolean).map((s) => String(s).trim());
-  return String(value)
-    .split(/[,|]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-};
-
-const computeMatch = (studentSkills = [], requiredSkills = []) => {
-  const req = Array.from(new Set(requiredSkills.map(normalizeSkill).filter(Boolean)));
-  const stud = Array.from(new Set(studentSkills.map(normalizeSkill).filter(Boolean)));
-  if (!req.length) return 0;
-  const studentSet = new Set(stud);
-  const hits = req.filter((r) => studentSet.has(r)).length;
-  return Math.round((hits / req.length) * 100);
-};
+import { splitSkills, splitAchievements, computeMatch } from "@/lib/skills";
 
 export function TopApplicants() {
   const navigate = useNavigate();
@@ -122,7 +67,7 @@ export function TopApplicants() {
             student_grad_year: app.student_grad_year || "",
             skills,
             job_skills: splitSkills(app.job_skills),
-            match: computeMatch(skills, requiredSkills),
+            match: computeMatch(skills, requiredSkills) ?? 0,
             applied_at: app.applied_at,
             resume_url: app.resume_url || "",
             email: app.user_email || "",

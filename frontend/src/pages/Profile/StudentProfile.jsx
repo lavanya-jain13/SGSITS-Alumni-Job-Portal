@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +48,7 @@ const getCurrentUserId = () => {
 
 const StudentProfile = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const [tempResumeUrl, setTempResumeUrl] = useState(null);
@@ -617,6 +619,10 @@ const StudentProfile = () => {
         profileVisibility: mergedData.profileVisibility || false,
       };
       localStorage.setItem(extrasKey, JSON.stringify(extras));
+
+      // Refresh every React Query cache so any component using profile data
+      // (StudentHome dashboard, job matching, etc.) picks up the new values.
+      queryClient.invalidateQueries();
 
       toast({
         title: "Profile updated!",

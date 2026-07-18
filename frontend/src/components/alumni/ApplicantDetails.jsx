@@ -21,97 +21,15 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
 import { downloadResumeFile } from "@/lib/downloadResume";
-
-const normalizeSkill = (s) => {
-  if (!s) return "";
-  const lowered = String(s).toLowerCase();
-  if (lowered.includes("javascript") || lowered === "js") return "javascript";
-  if (lowered.includes("react")) return "react";
-  if (lowered.includes("vue")) return "vue";
-  if (lowered.includes("node")) return "node";
-  if (lowered.includes("python")) return "python";
-  return lowered.replace(/[^a-z0-9+.#]/g, " ").replace(/\s+/g, " ").trim();
-};
-
-const extractSkillName = (skill) => {
-  if (!skill) return "";
-  if (typeof skill === "string") {
-    const trimmed = skill.trim();
-    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (parsed && typeof parsed === "object") {
-          return parsed.name || parsed.skill || parsed.title || "";
-        }
-      } catch (_err) {
-        return trimmed;
-      }
-    }
-    return trimmed;
-  }
-  if (typeof skill === "object") {
-    return skill.name || skill.skill || skill.title || "";
-  }
-  return String(skill).trim();
-};
-
-const splitSkills = (value) => {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.map(extractSkillName).filter(Boolean);
-
-  // Try JSON array first (common when stored as text)
-  try {
-    const parsed = JSON.parse(value);
-    if (Array.isArray(parsed)) {
-      return parsed.map(extractSkillName).filter(Boolean);
-    }
-    if (parsed && typeof parsed === "object") {
-      const named = extractSkillName(parsed);
-      return named ? [named] : [];
-    }
-  } catch (_err) {
-    // fall back to delimiter split
-  }
-
-  const cleaned = String(value).replace(/[{}\[\]"']/g, ""); // strip stray brackets/quotes if present (PG arrays)
-  const primarySplit = cleaned
-    .split(/[,|]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  if (primarySplit.length > 1) return primarySplit.map(normalizeSkill).filter(Boolean);
-
-  // fallback: space-separated list
-  return cleaned.split(/\s+/).map(normalizeSkill).filter(Boolean);
-};
-
-const computeMatch = (studentSkills = [], requiredSkills = []) => {
-  const req = Array.from(new Set(requiredSkills.map(normalizeSkill).filter(Boolean)));
-  const stud = Array.from(new Set(studentSkills.map(normalizeSkill).filter(Boolean)));
-  if (!req.length) return null;
-  const studentSet = new Set(stud);
-  const hits = req.filter((r) => studentSet.has(r)).length;
-  return Math.round((hits / req.length) * 100);
-};
-
-const uniqueSkills = (skills = []) => {
-  const seen = new Set();
-  return skills.filter((skill) => {
-    const key = normalizeSkill(skill);
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-};
-
-const splitAchievements = (value) => {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.filter(Boolean).map((s) => String(s).trim());
-  return String(value)
-    .split(/[,|]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-};
+import {
+  splitSkills,
+  splitAchievements,
+  computeMatch,
+  uniqueSkills,
+  normalizeSkill,
+  skillsMatch,
+  expandStudentSkills,
+} from "@/lib/skills";
 
 const normalizeList = (value) => {
   if (!value) return [];
@@ -425,28 +343,48 @@ export function ApplicantDetails() {
               <Progress value={computedMatch === null ? 0 : skillMatch} />
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {jobSkills.length > 0 && (
-                <>
-                  <Badge variant="outline" className="text-xs">
-                    Required:
-                  </Badge>
-                  {jobSkills.map((skill) => (
-                    <Badge key={`req-${skill}`} variant="secondary">
-                      {skill}
-                    </Badge>
-                  ))}
-                </>
-              )}
+            {jobSkills.length > 0 && (() => {
+              const rawStudent = Array.from(new Set(skills.map(normalizeSkill).filter(Boolean)));
+              const studentNormSet = expandStudentSkills(rawStudent);
+              const studentNormList = Array.from(studentNormSet);
+              return (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Required by job</p>
+                  <div className="flex flex-wrap gap-2">
+                    {jobSkills.map((skill) => {
+                      const matched = skillsMatch(normalizeSkill(skill), studentNormSet, studentNormList);
+                      return (
+                        <Badge
+                          key={`req-${skill}`}
+                          variant={matched ? "default" : "outline"}
+                          className={
+                            matched
+                              ? "bg-emerald-600 hover:bg-emerald-600 text-white"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {skill}
+                          {matched ? " ✓" : ""}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
-              {skills.length
-                ? skills.map((skill) => (
+            {skills.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Applicant skills</p>
+                <div className="flex flex-wrap gap-2">
+                  {skills.map((skill) => (
                     <Badge key={`stud-${skill}`} variant="secondary">
                       {skill}
                     </Badge>
-                  ))
-                : null}
-            </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -542,13 +480,18 @@ export function ApplicantDetails() {
                   <div>
                     <p className="text-sm text-muted-foreground mb-2">Skills</p>
                     <div className="flex flex-wrap gap-2">
-                      {profileSkills.map((skill) => (
-                        <Badge key={skill.name} variant="secondary" className="text-xs">
-                          {skill.name}
-                          {Number.isFinite(skill.proficiency) ? ` ??? P${skill.proficiency}` : ""}
-                          {Number.isFinite(skill.experience) ? ` ??? E${skill.experience}y` : ""}
-                        </Badge>
-                      ))}
+                      {profileSkills.map((skill) => {
+                        const meta = [
+                          Number.isFinite(skill.proficiency) ? `P${skill.proficiency}` : null,
+                          Number.isFinite(skill.experience) ? `${skill.experience}y` : null,
+                        ].filter(Boolean);
+                        return (
+                          <Badge key={skill.name} variant="secondary" className="text-xs">
+                            {skill.name}
+                            {meta.length > 0 ? ` · ${meta.join(" · ")}` : ""}
+                          </Badge>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

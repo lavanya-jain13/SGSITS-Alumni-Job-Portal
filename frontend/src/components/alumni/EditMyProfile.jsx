@@ -14,11 +14,13 @@ import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
 import { useSelector, useDispatch } from "react-redux";
 import { selectAuth, updateUser } from "@/store/authSlice";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function EditMyProfile() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const dispatch = useDispatch();
+  const queryClient = useQueryClient();
   const { user } = useSelector(selectAuth);
   const [saving, setSaving] = useState(false);
    // Track whether we've pulled latest data from backend
@@ -173,6 +175,9 @@ export function EditMyProfile() {
           company_about: formData.companyAbout,
         })
       );
+      // Invalidate any cached queries so other views (postings, company profile,
+      // applicant lists) refetch with the updated profile/company data.
+      queryClient.invalidateQueries();
       toast({
         title: "Profile submitted",
         description: "Your alumni profile and company details have been saved.",

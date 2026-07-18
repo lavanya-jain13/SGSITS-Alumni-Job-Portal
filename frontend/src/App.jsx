@@ -137,7 +137,14 @@ export default function App() {
                       </RedirectIfAuthed>
                     }
                   />
-                  <Route path="/jobs" element={<Jobs />} />
+                  <Route
+                    path="/jobs"
+                    element={
+                      <RequireAuth>
+                        <Jobs />
+                      </RequireAuth>
+                    }
+                  />
                   <Route path="/jobs/:id" element={<JobDetails />} />
                   <Route
                     path="/company/:id"
