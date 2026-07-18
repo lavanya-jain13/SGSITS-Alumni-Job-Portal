@@ -27,16 +27,27 @@ const envOrigins = (process.env.FRONTEND_URL || "")
   .map((o) => o.trim())
   .filter(Boolean);
 
-const fallbackWhitelist = [
+// Local dev origins are always allowed so contributors can point their
+// dev server at any environment (local or live) without a server-side
+// FRONTEND_URL change.
+const localDevOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
   "http://localhost:8080",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:8080",
+];
+
+const productionOrigins = [
   "https://sgsits-alumni-jobs.com",
   "https://www.sgsits-alumni-jobs.com",
   "http://18.217.68.204",
 ];
 
-const whitelist = envOrigins.length > 0 ? envOrigins : fallbackWhitelist;
+const whitelist = Array.from(
+  new Set([...envOrigins, ...productionOrigins, ...localDevOrigins]),
+);
 
 // ==================== MIDDLEWARE ====================
 app.use(

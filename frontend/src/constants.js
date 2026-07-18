@@ -13,11 +13,14 @@ export const PROD_API_BASE_URL = "https://sgsits-alumni-jobs.com/api";
 // ----------------------------
 // Auto switch based on mode
 // ----------------------------
-// Vite runs in "development" or "production"
+// Priority: explicit VITE_API_URL env var → production build → localhost.
+// Set VITE_API_URL in frontend/.env to override for any mode (e.g. run dev
+// against the live API by setting VITE_API_URL=https://sgsits-alumni-jobs.com/api).
 export const API_BASE_URL =
-  import.meta.env.MODE === "production"
-    ? "https://sgsits-alumni-jobs.com/api"
-    : "http://localhost:5004/api";
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.MODE === "production"
+    ? PROD_API_BASE_URL
+    : LOCAL_API_BASE_URL);
 
 // ----------------------------
 // Common endpoint groups
@@ -34,6 +37,7 @@ export const COMPANY_URL = `${API_BASE_URL}/companies`;
 // WebSocket
 // ----------------------------
 export const WS_URL =
-  import.meta.env.MODE === "production"
+  import.meta.env.VITE_WS_URL ||
+  (import.meta.env.MODE === "production"
     ? "wss://sgsits-alumni-jobs.com"
-    : "ws://localhost:5004";
+    : "ws://localhost:5004");

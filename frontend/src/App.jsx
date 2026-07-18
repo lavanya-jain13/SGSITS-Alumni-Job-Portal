@@ -87,6 +87,15 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Contributors = lazy(() => import("./pages/Contributors"));
 const PublicCompanyProfile = lazy(() => import("./pages/PublicCompanyProfile"));
 
+/* ------------------ Static / Info pages ------------------ */
+const About = lazy(() => import("./pages/About"));
+const AlumniDirectory = lazy(() => import("./pages/AlumniDirectory"));
+const Events = lazy(() => import("./pages/Events"));
+const HelpCenter = lazy(() => import("./pages/HelpCenter"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const Contact = lazy(() => import("./pages/Contact"));
+
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -143,6 +152,15 @@ export default function App() {
                     }
                   />
                   <Route path="/contributors" element={<Contributors />} />
+
+                  {/* ---------- Footer / Info pages ---------- */}
+                  <Route path="/about" element={<About />} />
+                  <Route path="/directory" element={<AlumniDirectory />} />
+                  <Route path="/events" element={<Events />} />
+                  <Route path="/help" element={<HelpCenter />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/terms" element={<TermsOfService />} />
+                  <Route path="/contact" element={<Contact />} />
 
                   {/* ---------- Auth routes ---------- */}
                   <Route path="/login" element={<Login />} />
